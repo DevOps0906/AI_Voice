@@ -15,6 +15,7 @@
 | task-011 | 교육내용 선택하기 + 과정 지도 자료실(개념·문제·그래프·애니메이션) | W8 | 010 | 보통 | builder(sonnet) | 완료 |
 | task-012 | 과정 지도 일차 번호 공 선택기(전체+1~N) | W9 | 011 | 보통 | builder(sonnet) | 완료 |
 | task-013 | 번호 공=주차 보기 · 문제 풀이 일차 탭 · 자료실 왼쪽 메뉴 | W10 | 012 | 보통 | builder(sonnet) | 완료 |
+| task-014 | 애니메이션 카드 코드 탭(Python·JS·TS) D1·D10 | W11 | 013 | 보통 | builder(sonnet) | 완료 |
 
 상태: 대기 / 진행 / 완료 / 보류 · 위험도 → 워커 model: 낮음 haiku · 보통 sonnet · 높음 opus
 

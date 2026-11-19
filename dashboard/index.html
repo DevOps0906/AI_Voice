@@ -10,7 +10,7 @@
 :root{
   --page:#f6f8fa;--panel:#ffffff;--ink:#1f2328;--muted:#59636e;--line:#d0d7de;--soft:#eaeef2;--input:#818b98;--primary:#0969da;--primary-fg:#ffffff;
   --a1:#1b7c83;--a2:#9a6700;--a3:#bf3989;--a4:#8250df;--a5:#0969da;--ok:#1a7f37;--bad:#d1242f;
-  --scope:#0d1117;--scope-fg:#f0f6fc;
+  --scope:#0d1117;--scope-fg:#f0f6fc;--scope-mute:#9198a1;--hl-kw:#ff7b72;--hl-str:#a5d6ff;
   --font-sans:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;--font-mono:ui-monospace,"SF Mono",Consolas,monospace;
   --radius:6px;--shadow-pop:0 8px 24px rgb(140 149 159 / .2);--ring:0 0 0 2px rgb(9 105 218 / .4);
   /* 3구간 타입 토큰: 데스크톱 1200~ */
@@ -190,6 +190,20 @@ h3.sec{margin:26px 0 10px;font-size:1.05rem}
 :root[data-theme="dark"] .acards button[aria-pressed="true"]{color:#0d1117}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .acards button[aria-pressed="true"]{color:#0d1117}}
 .afrm{display:block;width:100%;height:clamp(520px,78vh,820px);border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+/* 코드 상자: 애니메이션 카드 아래, 테마와 상관없이 어두운 화면 */
+.codebox{margin-top:18px;min-width:0}
+.cbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+.ctabs{display:flex;gap:4px;flex-wrap:wrap;min-width:0}
+.ctabs button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 14px;min-height:var(--tap);border-radius:6px;cursor:pointer;font-size:.92rem;font-weight:600}
+.ctabs button[aria-selected="true"]{background:var(--primary);color:var(--primary-fg);border-color:var(--primary)}
+.csrc{margin:8px 2px;font-size:.86rem;color:var(--muted);overflow-wrap:anywhere}
+.cpanel{background:var(--scope);color:var(--scope-fg);border:1px solid var(--line);border-radius:6px;overflow:auto;max-height:480px;max-width:100%}
+.cpanel pre{margin:0;padding:12px 14px;counter-reset:ln;font-family:var(--font-mono);font-size:.86rem;line-height:1.55;white-space:pre;width:max-content;min-width:100%;box-sizing:border-box}
+.cpanel code{background:none;padding:0;border-radius:0;font-size:inherit;overflow-wrap:normal}
+.cpanel .ln{display:block}
+.cpanel .ln::before{counter-increment:ln;content:counter(ln);display:inline-block;width:2.4em;margin-right:1em;text-align:right;color:var(--scope-mute);user-select:none}
+.cpanel .k{color:var(--hl-kw)}.cpanel .s{color:var(--hl-str)}.cpanel .c{color:var(--scope-mute);font-style:italic}
+.cstat{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 /* 파일 */
 .flist{display:grid;gap:8px}
 .frow{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
@@ -603,7 +617,8 @@ function renderAnim(){
   const d=DATA[S.day];
   $('p-anim').innerHTML=head('S3','애니메이션 '+d.anims.length+'종','카드를 누르면 아래에 원본과 같은 애니메이션이 열려요.')+`<div class="acards" id="acards">${d.anims.map((a,i)=>`<button type="button" style="--c:var(${AC[i%5]})" data-h="${esc(a.hash)}" aria-pressed="false"><b>${i+1} · #${esc(a.hash)}</b><span>${esc(a.title)}</span>${a.desc?`<small>${esc(a.desc)}</small>`:''}</button>`).join('')}</div>
   <div class="row" style="margin:0 0 10px"><a class="btn" id="aOpen" target="_blank" rel="noopener" href="#">새 탭에서 열기 ↗</a></div>
-  <iframe class="afrm" id="aFrm" title="애니메이션" loading="lazy"></iframe>`;
+  <iframe class="afrm" id="aFrm" title="애니메이션" loading="lazy"></iframe>
+  <section class="codebox" id="codeBox" aria-label="코드로 보기"></section>`;
   $('acards').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.anim=b.dataset.h;syncAnim();});
   S.anim=d.anims.some(a=>a.hash===S.anim)?S.anim:(d.anims[0]&&d.anims[0].hash);
 }
@@ -612,6 +627,61 @@ function syncAnim(load){
   $('acards').querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.h===S.anim));
   const u='d'+S.day+'/animation.html#'+S.anim;$('aOpen').href=u;
   const fr=$('aFrm');if(fr.dataset.src!==u){fr.dataset.src=u;fr.src=u;}
+  renderCode();
+}
+/* ── 코드 탭: Python(노트북 추출) · JavaScript · TypeScript(참고용 변환 예시) ── */
+const CODE={};
+const CLANG=[['python','Python'],['javascript','JavaScript'],['typescript','TypeScript']];
+const CODE_DAYS=new Set([1,10]); /* data/code/dayNN.json이 있는 일차(없는 일차는 요청하지 않아 404 로그를 막음) */
+const loadCode=n=>CODE[n]||(CODE[n]=!CODE_DAYS.has(n)?Promise.resolve(null):jget('../data/code/'+dn(n)+'.json').catch(()=>null));
+const codeLang=()=>{const v=sget('aiVoiceDash.codeLang');return CLANG.some(l=>l[0]===v)?v:'python';};
+const KW_PY=/^(?:def|class|return|if|elif|else|for|while|in|not|and|or|is|import|from|as|with|try|except|finally|raise|await|async|lambda|None|True|False|pass|break|continue|yield|global)$/;
+const KW_JS=/^(?:const|let|var|function|return|if|else|for|while|of|in|new|await|async|import|from|export|default|class|extends|try|catch|finally|throw|typeof|instanceof|null|undefined|true|false|interface|type|readonly|as|void|switch|case|break|continue)$/;
+function hlLines(code,lang){
+  const py=lang==='python';
+  const re=py?/("""[\s\S]*?"""|'''[\s\S]*?'''|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|#[^\n]*)|([A-Za-z_]\w*)/g
+    :/(\/\/[^\n]*|\/\*[\s\S]*?\*\/|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|`(?:\\[\s\S]|[^`\\])*`)|([A-Za-z_$][\w$]*)/g;
+  const kw=py?KW_PY:KW_JS,lines=[''];let last=0,m;
+  const put=(txt,cls)=>txt.split('\n').forEach((part,i)=>{if(i)lines.push('');if(part)lines[lines.length-1]+=cls?`<span class="${cls}">${esc(part)}</span>`:esc(part);});
+  while((m=re.exec(code))){
+    put(code.slice(last,m.index),'');
+    if(m[1])put(m[1],(py?m[1][0]==='#':m[1][0]==='/'&&(m[1][1]==='/'||m[1][1]==='*'))?'c':'s');
+    else put(m[2],kw.test(m[2])?'k':'');
+    last=re.lastIndex;
+  }
+  put(code.slice(last),'');
+  return lines.map(l=>`<span class="ln">${l}</span>`).join('');
+}
+const cellRange=c=>{if(!c||!c.length)return '';const seq=c.every((v,i)=>i===0||v===c[i-1]+1);return '셀 '+(seq&&c.length>1?c[0]+'~'+c[c.length-1]:c.join(', '));};
+async function renderCode(){
+  const box=$('codeBox');if(!box)return;
+  const day=S.day,h=S.anim,all=await loadCode(day);
+  if($('codeBox')!==box||S.day!==day||S.anim!==h)return;
+  const e=all&&all[h];
+  box.innerHTML='<h3 class="sec" style="margin-top:0">코드로 보기</h3>';
+  if(!e){box.insertAdjacentHTML('beforeend','<div class="msg" role="status">이 일차 코드는 준비 중이에요.</div>');return;}
+  let lang=codeLang();
+  box.insertAdjacentHTML('beforeend',`<div class="cbar"><div class="ctabs" role="tablist" aria-label="코드 언어">${CLANG.map(([k,t])=>`<button type="button" role="tab" id="ct-${k}" data-l="${k}" aria-controls="cPanel">${t}</button>`).join('')}</div><button class="btn" type="button" id="cCopy">복사</button></div>
+  <p class="csrc" id="cSrc"></p><div class="cpanel" id="cPanel" role="tabpanel" tabindex="0"><pre><code id="cCode"></code></pre></div><span class="cstat" id="cStat" role="status"></span>`);
+  const tabs=[...box.querySelectorAll('[role=tab]')];
+  const paint=()=>{
+    tabs.forEach(b=>{const on=b.dataset.l===lang;b.setAttribute('aria-selected',on);b.tabIndex=on?0:-1;});
+    $('cPanel').setAttribute('aria-labelledby','ct-'+lang);
+    $('cSrc').textContent=lang==='python'?'노트북 '+[e.part,cellRange(e.cells)].filter(Boolean).join(' · '):'참고용 변환 예시 — 원본은 Python 노트북 코드';
+    $('cCode').innerHTML=hlLines(e[lang]||'',lang);$('cPanel').scrollTop=0;$('cPanel').scrollLeft=0;
+  };
+  const pick=(l,focus)=>{lang=l;sset('aiVoiceDash.codeLang',l);paint();if(focus)$('ct-'+l).focus();};
+  tabs.forEach((b,i)=>{b.onclick=()=>pick(b.dataset.l);
+    b.onkeydown=ev=>{const n=ev.key==='ArrowRight'?(i+1)%3:ev.key==='ArrowLeft'?(i+2)%3:ev.key==='Home'?0:ev.key==='End'?2:-1;if(n<0)return;ev.preventDefault();ev.stopPropagation();pick(tabs[n].dataset.l,true);};});
+  let tm=0;
+  $('cCopy').onclick=async()=>{
+    const txt=e[lang]||'';let ok=false;
+    try{await navigator.clipboard.writeText(txt);ok=true;}catch(x){
+      const ta=mk('textarea');ta.value=txt;ta.style.cssText='position:fixed;opacity:0';document.body.appendChild(ta);ta.select();
+      try{ok=document.execCommand('copy');}catch(y){}ta.remove();}
+    const b=$('cCopy');b.textContent=ok?'복사됨 ✓':'복사 실패';$('cStat').textContent=ok?'코드를 복사했어요':'복사하지 못했어요';
+    clearTimeout(tm);tm=setTimeout(()=>{b.textContent='복사';$('cStat').textContent='';},1600);};
+  paint();
 }
 function fsize(b){return b>=1048576?(b/1048576).toFixed(1)+' MB':Math.round(b/1024)+' KB';}
 function renderFiles(){
