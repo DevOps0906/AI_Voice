@@ -117,6 +117,8 @@ h3{overflow-wrap:anywhere}
 a.st:hover{border-color:var(--ink);border-top-color:var(--c)}
 .st.soon{opacity:.55;border-style:dashed;border-top-style:solid}
 .st.cur{box-shadow:inset 2px 0 0 var(--primary)}
+.st.sel{border-color:var(--a5);border-top-color:var(--c);box-shadow:inset 0 0 0 1px var(--a5)}
+.ball.wk:not([aria-pressed="true"]){background:color-mix(in srgb,var(--c) 16%,var(--panel))}
 /* 홈 대시보드 */
 .hm-top{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
 @media (max-width:1199px){.hm-top{grid-template-columns:minmax(0,1fr)}}
@@ -308,6 +310,33 @@ footer{margin-top:36px;color:var(--muted);font-size:.84rem}
 .apv .row{margin:0 0 8px}
 .apv strong{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
 .apf{display:block;width:100%;aspect-ratio:16/10;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+/* 자료실 보조 메뉴 */
+.lib-wrap{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px;align-items:start}
+.lib-main{min-width:0}
+.lib-mob{display:none}
+.lib-side{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;min-width:0;padding-right:4px}
+.lib-side ul,.lib-side ol{list-style:none;margin:0;padding:0}
+.ls-i{display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-height:var(--tap);padding:6px 10px;color:var(--ink);text-decoration:none;border-radius:6px;overflow-wrap:anywhere}
+.ls-i small{color:var(--muted);font-size:.76rem;font-weight:500;text-align:right}
+.ls-i:hover,.ls-w a:hover{background:var(--soft)}
+.ls-i[aria-current="page"]{font-weight:700;box-shadow:inset 2px 0 0 var(--a5);background:var(--soft)}
+.ls-w{margin:2px 0 8px 10px!important;border-left:1px solid var(--line)}
+.ls-w a{display:flex;align-items:center;min-height:var(--tap);padding:4px 10px;color:var(--ink);text-decoration:none;font-size:.9rem;border-radius:6px;min-width:0}
+.ls-w>li>a[aria-current="true"]{font-weight:700;color:var(--a5)}
+.ls-d{margin:0 0 4px 8px!important}
+.ls-d a{font-size:.84rem;color:var(--muted)}
+.ls-d a[aria-current="true"]{color:var(--a5);font-weight:700;box-shadow:inset 2px 0 0 var(--a5)}
+.ls-d .dt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.ls-d .dn{flex:0 0 auto;font-weight:700;margin-right:4px}
+@media (max-width:1199px){.lib-wrap{grid-template-columns:180px minmax(0,1fr);gap:16px}.ls-d .dt{display:none}.ls-i{flex-direction:column;gap:0}.ls-i small{text-align:left}}
+@media (max-width:767px){.lib-wrap{grid-template-columns:minmax(0,1fr)}.lib-side{display:none}.lib-mob{display:block}}
+@media (max-width:1399px){.lib-main .lg-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){.lib-main .lg-grid{grid-template-columns:minmax(0,1fr)}}
+.lib-sticky{position:sticky;top:0;z-index:5;display:flex;gap:8px;align-items:center;background:var(--page);padding:6px 0;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.lib-days{position:relative;display:flex;gap:6px;flex:1 1 auto;min-width:0;overflow-x:auto;padding:2px}
+.lib-days .chip{flex:0 0 auto;white-space:nowrap}
+.lib-pn{flex:0 0 auto;white-space:nowrap;padding:8px 12px}
+@media (max-width:767px){.lib-pn .nt{display:none}.lib-pn{min-width:var(--tap)}}
 /* 모바일: 레일 → 상단 가로 탭 */
 @media (max-width:767px){
   .shell{grid-template-columns:minmax(0,1fr)}
@@ -525,8 +554,10 @@ function renderMap(sel){
   const p=$('p-map');const byW={};S.course.forEach(c=>(byW[c.week]=byW[c.week]||[]).push(c));
   const ready=S.course.filter(c=>c.ready).length;
   const cs=sel&&S.course.find(c=>c.day===sel&&c.ready);sel=cs?sel:0;MAPSEL=sel;
-  const balls=`<div class="balls" role="group" aria-label="일차 선택"><button class="ball all" type="button" data-n="0" aria-pressed="${!sel}" style="--c:var(--a5)">전체</button>`+S.course.map(c=>`<button class="ball" type="button" data-n="${c.day}" aria-pressed="${c.day===sel}"${c.ready?'':' aria-disabled="true" title="준비 중"'} style="--c:var(${AC[(c.week-1)%5]})">${c.day}</button>`).join('')+`</div>`;
-  const list=sel?`<div class="mapday" id="mapDay"><div class="msg" role="status">불러오는 중…</div></div>`:Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="week"><h3>${w}주차 <small>${esc(ds[0].module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`;
+  const balls=`<div class="balls" role="group" aria-label="일차 선택"><button class="ball all" type="button" data-n="0" aria-pressed="${!sel}" style="--c:var(--a5)">전체</button>`+S.course.map(c=>`<button class="ball${cs&&c.week===cs.week?' wk':''}" type="button" data-n="${c.day}" aria-pressed="${c.day===sel}"${c.ready?'':' aria-disabled="true" title="준비 중"'} style="--c:var(${AC[(c.week-1)%5]})">${c.day}</button>`).join('')+`</div>`;
+  const wkCard=()=>{const ds=byW[cs.week];return `<div class="week" id="mapWeek"><h3>${cs.week}주차 <small>${esc(cs.module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`,on=c.day===sel;
+    return c.ready?`<a class="st${on?' sel':''}" ${col} href="#map-d${c.day}"${on?' aria-current="true"':''}><b>D${c.day}</b><span>${esc(c.title)}</span><em>${on?'보는 중':'준비됨'}</em></a>`:`<div class="st soon" ${col} aria-disabled="true"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비 중</em></div>`;}).join('')+`</div></div>`;};
+  const list=sel?wkCard()+`<div class="mapday" id="mapDay"><div class="msg" role="status">불러오는 중…</div></div>`:Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="week"><h3>${w}주차 <small>${esc(ds[0].module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`;
     return c.ready?`<a class="st${c.day===S.day?' cur':''}" ${col} href="#d${c.day}-flow"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비됨</em></a>`:`<div class="st soon" ${col} aria-disabled="true"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비 중</em></div>`;}).join('')+`</div></div>`;}).join('');
   p.innerHTML=`<div class="eyebrow">S0 · 과정 지도</div><h2>음성 AI 전문가 과정 지도</h2><p class="lead">${S.course.length}일 중 ${ready}일이 준비됐어요. 준비된 일차를 누르면 오늘의 흐름으로 이동해요.</p>`+libCards()+`<h3 class="sec">주차별 일차</h3>`+balls+list;
   p.querySelectorAll('.ball').forEach(b=>b.onclick=()=>{if(b.getAttribute('aria-disabled')==='true')return;const n=+b.dataset.n;MAPFOCUS=1;location.hash=n?'#map-d'+n:'#map';});
@@ -677,24 +708,37 @@ function libCards(){const st=LIB?libStat(LIB):null;
   return `<h3 class="sec">자료실</h3><div class="lib-cards">${Object.keys(LIBS).map(k=>`<a class="lib-c" style="--c:var(${LIBS[k][2]})" href="#lib-${k}"><b>${LIBS[k][0]}</b><span>${LIBS[k][1]}</span><em data-lk="${k}">${st?esc(st[k]):'…'}</em></a>`).join('')}</div>`;}
 function libFillTotals(days){const st=libStat(days);document.querySelectorAll('#p-map [data-lk]').forEach(e=>e.textContent=st[e.dataset.lk]);}
 const libText=q=>[q.p,q.w,q.c||'',...(q.items||[]),...(q.cats||[]),...(q.o||[]),...(q.steps||[]),...(q.left||[]),...(q.right||[])].join(' ').toLowerCase();
-function renderLib(page,week){
+function renderLib(page,week,day){
   const days=LIB,p=$('p-lib'),T=LIBS[page],weeks=[...new Set(days.map(d=>d.week))];
+  const isQ=page==='quiz';
   if(week&&!weeks.includes(week))week=0;
-  const wd=days.filter(d=>!week||d.week===week);
   const items=d=>page==='concepts'?d.concepts:page==='quiz'?d.questions:page==='anims'?d.anims:[d];
-  const list=wd.filter(d=>items(d).length);
+  const qall=days.filter(d=>d.questions.length);
+  let qd=null;
+  if(isQ){const dd=qall.find(d=>d.day===day);if(dd&&week)week=dd.week;
+    const pool=week?qall.filter(d=>d.week===week):qall;qd=dd||pool[0]||null;}
+  const wd=days.filter(d=>!week||d.week===week);
+  const list=isQ?(qd?[qd]:[]):wd.filter(d=>items(d).length);
   const cnt=page==='graphs'?wd.length:list.reduce((a,d)=>a+items(d).length,0);
   const unit={concepts:'개념 ',quiz:'문항 ',graphs:'흐름 그래프 ',anims:'애니메이션 '}[page],suf=page==='anims'?'종':'개';
   const wlab=week?week+'주차':'전체';
   const hashW=w=>'#lib-'+page+(w?'-w'+w:'');
+  const hashD=(w,d)=>hashW(w)+(d?'-d'+d:'');
   let selDay=0,term='';
   const search=page==='concepts'||page==='quiz';
-  p.innerHTML=`<a class="lib-back" href="#map">← 과정 지도</a><div class="eyebrow">자료실</div><h2>${T[0]}</h2><p class="lead">${wlab} · ${unit}${cnt}${suf} · ${page==='graphs'?wd.length:list.length}일</p>
-  <div class="lib-bar" role="group" aria-label="주차 선택">${[0,...weeks].map(w=>`<button class="chip" type="button" data-w="${w}" aria-pressed="${w===week}">${w?w+'주차':'전체'}</button>`).join('')}</div>
-  ${week?`<div class="lib-bar" role="group" aria-label="일차 선택"><button class="chip" type="button" data-d="0" aria-pressed="true" style="--c:var(--a5)">전체 일차</button>${(page==='graphs'?wd:list).map(d=>`<button class="chip" type="button" data-d="${d.day}" aria-pressed="false" style="--c:var(--a5)">D${d.day}</button>`).join('')}</div>`:''}
-  ${search?`<input class="lib-q" type="search" placeholder="${page==='quiz'?'문제 검색':'개념 검색'}" aria-label="${page==='quiz'?'문제':'개념'} 검색" autocomplete="off">`:''}
-  ${page==='quiz'?'<p class="lib-sum" id="lbSum" role="status">맞힌 수 0 / 푼 수 0</p>':''}
-  <div id="lbBody"></div>`;
+  const tot=libStat(days);
+  const sideDays=week?(isQ?qall.filter(d=>d.week===week):page==='graphs'?wd:list):[];
+  const side=`<nav class="lib-side" aria-label="자료실 메뉴"><a class="lib-back" href="#map">← 과정 지도</a><ul class="ls-m">${Object.keys(LIBS).map(k=>{const cur=k===page;
+    return `<li><a class="ls-i" href="#lib-${k}${week?'-w'+week:''}"${cur?' aria-current="page"':''}><b>${LIBS[k][0]}</b><small>${esc(tot[k])}</small></a>`+(cur?`<ol class="ls-w">${[0,...weeks].map(w=>`<li><a href="${hashW(w)}"${w===week?' aria-current="true"':''}>${w?w+'주차':'전체'}</a>${w===week&&w&&sideDays.length?`<ol class="ls-d">${sideDays.map(d=>`<li><a href="${hashD(week,d.day)}" title="D${d.day} ${esc(d.title)}"${isQ&&qd&&d.day===qd.day?' aria-current="true"':''}><span class="dn">D${d.day}</span><span class="dt"> ${esc(d.title)}</span></a></li>`).join('')}</ol>`:''}</li>`).join('')}</ol>`:'')+`</li>`;}).join('')}</ul></nav>`;
+  const mob=`<div class="lib-mob"><a class="lib-back" href="#map">← 과정 지도</a><div class="lib-bar" role="group" aria-label="자료 선택">${Object.keys(LIBS).map(k=>`<button class="chip" type="button" data-p="${k}" aria-pressed="${k===page}" style="--c:var(--a5)">${LIBS[k][0]}</button>`).join('')}</div>
+  <div class="lib-bar" role="group" aria-label="주차 선택">${[0,...weeks].map(w=>`<button class="chip" type="button" data-w="${w}" aria-pressed="${w===week}">${w?w+'주차':'전체'}</button>`).join('')}</div></div>`;
+  const qi0=qd?qall.indexOf(qd):-1,qchips=week?qall.filter(d=>d.week===week):qall;
+  const sticky=isQ?`<div class="lib-sticky"><button class="btn lib-pn" type="button" data-nx="-1" aria-label="이전 일차"${qi0<=0?' disabled':''}>◀<span class="nt"> 이전 일차</span></button><div class="lib-days" role="group" aria-label="일차 선택">${qchips.map(d=>`<button class="chip" type="button" data-qd="${d.day}" aria-pressed="${!!qd&&d.day===qd.day}" style="--c:var(--a5)">D${d.day}</button>`).join('')}</div><button class="btn lib-pn" type="button" data-nx="1" aria-label="다음 일차"${qi0<0||qi0>=qall.length-1?' disabled':''}><span class="nt">다음 일차 </span>▶</button></div>`:'';
+  p.innerHTML=`<div class="lib-wrap">${side}<div class="lib-main">${mob}<div class="eyebrow">자료실</div><h2>${T[0]}</h2><p class="lead">${wlab} · ${unit}${cnt}${suf} · ${isQ?(qd?'D'+qd.day:'-'):(page==='graphs'?wd.length:list.length)+'일'}</p>
+  ${week&&!isQ?`<div class="lib-bar" role="group" aria-label="일차 선택"><button class="chip" type="button" data-d="0" aria-pressed="true" style="--c:var(--a5)">전체 일차</button>${(page==='graphs'?wd:list).map(d=>`<button class="chip" type="button" data-d="${d.day}" aria-pressed="false" style="--c:var(--a5)">D${d.day}</button>`).join('')}</div>`:''}
+  ${search?`<input class="lib-q" type="search" placeholder="${isQ?'문제 검색':'개념 검색'}" aria-label="${isQ?'문제':'개념'} 검색" autocomplete="off">`:''}
+  ${isQ?'<p class="lib-sum" id="lbSum" role="status">맞힌 수 0 / 푼 수 0</p>':''}
+  ${sticky}<div id="lbBody"></div></div></div>`;
   const body=$('lbBody'),secs=[];
   const head=d=>`<div class="lh"><h3>D${d.day} · ${esc(d.title)}</h3><a href="#d${d.day}-flow">이 일차 열기 →</a></div>`;
   const res={};
@@ -752,6 +796,12 @@ function renderLib(page,week){
   p.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{const h=hashW(+b.dataset.w);if(location.hash!==h)location.hash=h;});
   p.querySelectorAll('.lib-bar [data-d]').forEach(b=>b.onclick=()=>{selDay=+b.dataset.d;
     p.querySelectorAll('.lib-bar [data-d]').forEach(x=>x.setAttribute('aria-pressed',x===b));apply();});
+  p.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{location.hash='#lib-'+b.dataset.p+(week?'-w'+week:'');});
+  p.querySelectorAll('[data-qd]').forEach(b=>b.onclick=()=>{const h=hashD(week,+b.dataset.qd);if(location.hash!==h)location.hash=h;});
+  p.querySelectorAll('[data-nx]').forEach(b=>b.onclick=()=>{const t=qall[qi0+ +b.dataset.nx];if(t)location.hash=hashD(week?t.week:0,t.day);});
+  requestAnimationFrame(()=>{
+    if(isQ){window.scrollTo(0,0);const bar=p.querySelector('.lib-days'),c=bar&&bar.querySelector('[aria-pressed="true"]');if(c)bar.scrollLeft=c.offsetLeft-bar.clientWidth/2+c.offsetWidth/2;}
+    else if(day){const t=body.querySelector('[data-d="'+day+'"]');if(t)t.scrollIntoView({block:'start'});}});
   const qi=p.querySelector('.lib-q');
   if(qi)qi.oninput=()=>{term=qi.value.trim().toLowerCase();apply();};
   document.title=T[0]+' · 자료실 · 학습 대시보드';
@@ -798,7 +848,7 @@ const railTab=t=>t==='lib'?'map':t;
 function nav(tab){const h=hashOf(tab,S.day);if(location.hash===h)route();else location.hash=h;}
 function parse(){const h=location.hash.replace(/^#/,'');if(h==='home'||h==='map'||h==='motion')return {tab:h};
   const mp=/^map-d(\d+)$/.exec(h);if(mp)return {tab:'map',mapDay:+mp[1]};
-  const l=/^lib-(concepts|quiz|graphs|anims)(?:-w(\d))?$/.exec(h);if(l)return {tab:'lib',page:l[1],week:+(l[2]||0)};
+  const l=/^lib-(concepts|quiz|graphs|anims)(?:-w(\d))?(?:-d(\d+))?$/.exec(h);if(l)return {tab:'lib',page:l[1],week:+(l[2]||0),libDay:+(l[3]||0)};
   const m=/^d(\d+)-(flow|goals|anim|files|learned|tasks|quiz)$/.exec(h);return m?{tab:m[2],day:+m[1]}:{tab:'home'};}
 const tabsEl=$('tabs');
 TABS.forEach(([id,label],i)=>{const b=mk('button',null,`<span class="tc">${i+1}</span>${label}`);b.type='button';b.setAttribute('role','tab');b.dataset.t=id;b.setAttribute('aria-selected','false');b.onclick=()=>nav(id);tabsEl.appendChild(b);});
@@ -812,7 +862,7 @@ async function route(){
     if(DAYTABS.has(tab)){await loadDay(S.day);if(my!==routing)return;if(S.rendered!==S.day)renderDay();sset('aiVoiceDash.lastDay',String(S.day));}
     else if(tab==='home'){await loadDay(S.day);if(my!==routing)return;renderHome();}
     else if(tab==='map')renderMap(p.mapDay);
-    else if(tab==='lib'){await libLoad();if(my!==routing)return;renderLib(p.page,p.week);}
+    else if(tab==='lib'){await libLoad();if(my!==routing)return;renderLib(p.page,p.week,p.libDay);}
     else if(tab==='motion')renderMotion();
   }catch(e){
     $('p-'+tab).innerHTML=DAYTABS.has(tab)?`<div class="msg" role="status">D${S.day} 자료는 아직 준비 중이에요. <a href="#map">과정 지도로 돌아가기</a></div>`:`<div class="msg" role="alert">데이터를 불러오지 못했어요. 저장소 맨 위에서 <code>python -m http.server</code>를 실행한 뒤 <code>/dashboard/index.html</code>로 여세요.</div>`;

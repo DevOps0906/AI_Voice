@@ -1,8 +1,8 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
 - 갱신: 2026-11-20
-- 현재 작업: 없음 — task-001~012 모두 완료, main 배포됨 (https://devops0906.github.io/AI_Voice/dashboard/)
-- 마지막으로 한 일: task-012 과정 지도 일차 번호 공 선택기(#map-d{n}) 구현·배포
+- 현재 작업: 없음 — task-001~013 모두 완료, main 배포됨 (https://devops0906.github.io/AI_Voice/dashboard/)
+- 마지막으로 한 일: task-013 번호 공=주차 보기, 문제 풀이 일차 탭(sticky·이전/다음), 자료실 왼쪽 보조 메뉴 구현·배포
 - 다음 한 걸음: 사용자 지시 대기 (사용자가 작업 중단을 요청함)
 - 열린 결정(사용자 확인 필요):
   - 정리 퀴즈 탭 fill·bucket·lab 문항 빈 화면 수정 여부 (tasks/README.md 발견한 문제)
