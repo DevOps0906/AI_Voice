@@ -262,6 +262,44 @@ table.lt td:first-child{font-weight:700;width:22%}
 .mc pre{margin:0;background:var(--soft);border-radius:6px;padding:8px 10px;font-size:.78rem;overflow-x:auto;max-width:100%;max-height:170px;white-space:pre}
 .mc details summary{cursor:pointer;font-size:.86rem;font-weight:700;min-height:var(--tap);display:flex;align-items:center}
 footer{margin-top:36px;color:var(--muted);font-size:.84rem}
+/* 자료실 */
+[hidden]{display:none!important}
+.lib-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:8px}
+@media (max-width:1199px){.lib-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){.lib-cards{grid-template-columns:minmax(0,1fr)}}
+.lib-c{display:flex;flex-direction:column;gap:4px;min-width:0;min-height:var(--tap);padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:0 0 6px 12px;color:var(--ink);text-decoration:none}
+.lib-c:hover{border-color:var(--ink);border-top-color:var(--c)}
+.lib-c b{font-size:1.02rem;overflow-wrap:anywhere}
+.lib-c span{color:var(--muted);font-size:.86rem;overflow-wrap:anywhere}
+.lib-c em{font-style:normal;margin-top:auto;padding-top:8px;font-weight:700;font-size:.88rem;color:var(--c)}
+.lib-back{display:inline-flex;align-items:center;min-height:var(--tap);font-weight:700;text-decoration:none}
+.lib-bar{display:flex;gap:6px;overflow-x:auto;max-width:100%;padding:2px 2px 8px;margin-bottom:4px}
+.lib-bar .chip{flex:0 0 auto;white-space:nowrap}
+.lib-q{display:block;width:100%;max-width:420px;margin:0 0 14px;border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:6px 12px;min-height:var(--tap)}
+.ls{margin:0 0 22px;min-width:0}
+.lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px 12px;flex-wrap:wrap;margin:0 0 8px}
+.lh h3{margin:0;font-size:1.05rem;overflow-wrap:anywhere;min-width:0}
+.lh a{font-size:.9rem;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;min-height:var(--tap)}
+.ls details>summary{cursor:pointer;font-weight:700;min-height:var(--tap);display:flex;align-items:center}
+.lg h4{margin:12px 0 6px;font-size:.88rem;color:var(--muted)}
+.lib-sum{font-weight:700;margin:0 0 12px}
+.lg-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:1199px){.lg-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){.lg-grid{grid-template-columns:minmax(0,1fr)}}
+.lg-card{display:flex;flex-direction:column;gap:8px;min-width:0;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--c);border-radius:0 0 6px 12px;padding:12px 14px}
+.lg-card h3{margin:0;font-size:.98rem;line-height:1.35;overflow-wrap:anywhere}
+.lg-card h3 b{color:var(--c);margin-right:6px}
+.lg-card a{margin-top:auto;font-weight:700;font-size:.9rem;text-decoration:none;display:inline-flex;align-items:center;min-height:var(--tap)}
+.gn-flow{list-style:none;margin:0;padding:0 16px 0 0;display:flex;flex-wrap:wrap;gap:6px 18px}
+.gn-flow li{position:relative;display:flex;align-items:center;gap:6px;min-width:0;border:1.5px solid var(--c);border-radius:6px;padding:3px 8px;font-size:.82rem;font-weight:700;overflow-wrap:anywhere;background:var(--soft)}
+.gn-flow li i{font-style:normal;color:var(--c);font-size:.72rem}
+.gn-flow li:not(:last-child)::after{content:"\2192";position:absolute;right:-15px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:700}
+.scen pre{margin:0 0 8px;background:var(--soft);border-radius:6px;padding:8px 10px;font-size:.84rem;overflow-x:auto;max-width:100%}
+.lib-it{margin:0 0 8px;padding-left:20px;overflow-wrap:anywhere}
+.apv{margin:0 0 14px;min-width:0}
+.apv .row{margin:0 0 8px}
+.apv strong{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
+.apf{display:block;width:100%;aspect-ratio:16/10;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
 /* 모바일: 레일 → 상단 가로 탭 */
 @media (max-width:767px){
   .shell{grid-template-columns:minmax(0,1fr)}
@@ -342,6 +380,7 @@ footer{margin-top:36px;color:var(--muted);font-size:.84rem}
   <section class="panel" id="p-learned" role="tabpanel"></section>
   <section class="panel" id="p-tasks" role="tabpanel"></section>
   <section class="panel" id="p-quiz" role="tabpanel"></section>
+  <section class="panel" id="p-lib" role="tabpanel"></section>
   <section class="panel" id="p-motion" role="tabpanel"></section>
     <footer>자료: <a href="https://github.com/DevOps0906/AI_Voice" target="_blank" rel="noopener">DevOps0906/AI_Voice</a> (원본 강의 imguru-mooc/AI_Voice의 포크) · 이 대시보드는 링크로 연결만 해요.</footer>
 </main>
@@ -476,9 +515,10 @@ const head=(tab,h2,lead)=>{const d=DATA[S.day],m=d.meta;return `<div class="eyeb
 function renderMap(){
   const p=$('p-map');const byW={};S.course.forEach(c=>(byW[c.week]=byW[c.week]||[]).push(c));
   const ready=S.course.filter(c=>c.ready).length;
-  p.innerHTML=`<div class="eyebrow">S0 · 과정 지도</div><h2>음성 AI 전문가 과정 지도</h2><p class="lead">${S.course.length}일 중 ${ready}일이 준비됐어요. 준비된 일차를 누르면 오늘의 흐름으로 이동해요.</p>`+
+  p.innerHTML=`<div class="eyebrow">S0 · 과정 지도</div><h2>음성 AI 전문가 과정 지도</h2><p class="lead">${S.course.length}일 중 ${ready}일이 준비됐어요. 준비된 일차를 누르면 오늘의 흐름으로 이동해요.</p>`+libCards()+`<h3 class="sec">주차별 일차</h3>`+
   Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="week"><h3>${w}주차 <small>${esc(ds[0].module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`;
     return c.ready?`<a class="st${c.day===S.day?' cur':''}" ${col} href="#d${c.day}-flow"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비됨</em></a>`:`<div class="st soon" ${col} aria-disabled="true"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비 중</em></div>`;}).join('')+`</div></div>`;}).join('');
+  libLoad().then(libFillTotals).catch(()=>{p.querySelectorAll('[data-lk]').forEach(e=>e.textContent='-');});
 }
 function renderFlow(){
   const d=DATA[S.day],f=flowOf(d);
@@ -555,20 +595,9 @@ function renderTasks(){
 function seeded(id,n,ans){let x=1;for(const ch of id)x=(x*31+ch.charCodeAt(0))%2147483647;const a=[...Array(n).keys()];
   for(let i=n-1;i>0;i--){x=(x*16807)%2147483647;const j=x%(i+1);[a[i],a[j]]=[a[j],a[i]];}
   let guard=0;while(a.join()===ans.join()&&guard++<n)a.push(a.shift());return a;}
-function renderQuiz(){
-  const d=DATA[S.day],gs=(d.worksheet&&d.worksheet.groups)||[],res={};let gcur=0;
-  const total=gs.reduce((a,g)=>a+g.qs.length,0);
-  $('p-quiz').innerHTML=head('S7','정리 퀴즈',d.title)+`<div class="bar"><span id="qN"></span><div class="track"><i id="qB"></i></div></div><div class="qchips" id="qChips"></div><div id="qBody"></div>
-  <p class="note">문제는 원본 워크시트(${esc((d.worksheet&&d.worksheet.source)||'')})에서 가져왔어요. 푼 기록은 저장되지 않아요.</p>`;
-  const upd=()=>{const ans=Object.keys(res).length,ok=Object.values(res).filter(Boolean).length;$('qN').textContent=`${ans} / ${total} 풀이 · 정답 ${ok}`;$('qB').style.width=(total?ans/total*100:0)+'%';
-    $('qChips').querySelectorAll('[data-g]').forEach((b,i)=>{const n=Object.keys(res).filter(k=>k.startsWith(i+'-')).length;b.textContent=`${gs[i].title} (${n}/${gs[i].qs.length})`;});};
-  const fin=(card,id,q,ok,extra)=>{res[id]=ok;card.classList.add('done',ok?'ok':'bad');
-    if(!ok){card.classList.add('shk');setTimeout(()=>card.classList.remove('shk'),400);}
-    card.querySelector('.fb').innerHTML=`<b>${ok?'정답':'오답'}</b> ${extra||''}${esc(q.w||'')}`;
-    card.querySelectorAll('button,select,input').forEach(x=>x.disabled=true);upd();};
-  function build(q,gi,qi){
-    const id=gi+'-'+qi,card=mk('div','scen');
-    card.innerHTML=`<div class="q"><span class="qn">${qi+1}.</span>${esc(q.p)}</div><div class="body"></div><div class="fb" aria-live="polite"></div>`;
+function buildQ(q,id,n,fin){
+    const card=mk('div','scen');
+    card.innerHTML=`<div class="q"><span class="qn">${n}.</span>${esc(q.p)}</div><div class="body"></div><div class="fb" aria-live="polite"></div>`;
     const body=card.querySelector('.body');
     if(q.ty==='mc'||q.ty==='ox'){
       const o=q.ty==='ox'?['O 맞다','X 틀리다']:q.o,right=q.ty==='ox'?(q.a?0:1):q.a;
@@ -597,6 +626,18 @@ function renderQuiz(){
       body.querySelector('.btn').onclick=chk;inp.onkeydown=e=>{if(e.key==='Enter')chk();};
     }
     return card;}
+function renderQuiz(){
+  const d=DATA[S.day],gs=(d.worksheet&&d.worksheet.groups)||[],res={};let gcur=0;
+  const total=gs.reduce((a,g)=>a+g.qs.length,0);
+  $('p-quiz').innerHTML=head('S7','정리 퀴즈',d.title)+`<div class="bar"><span id="qN"></span><div class="track"><i id="qB"></i></div></div><div class="qchips" id="qChips"></div><div id="qBody"></div>
+  <p class="note">문제는 원본 워크시트(${esc((d.worksheet&&d.worksheet.source)||'')})에서 가져왔어요. 푼 기록은 저장되지 않아요.</p>`;
+  const upd=()=>{const ans=Object.keys(res).length,ok=Object.values(res).filter(Boolean).length;$('qN').textContent=`${ans} / ${total} 풀이 · 정답 ${ok}`;$('qB').style.width=(total?ans/total*100:0)+'%';
+    $('qChips').querySelectorAll('[data-g]').forEach((b,i)=>{const n=Object.keys(res).filter(k=>k.startsWith(i+'-')).length;b.textContent=`${gs[i].title} (${n}/${gs[i].qs.length})`;});};
+  const fin=(card,id,q,ok,extra)=>{res[id]=ok;card.classList.add('done',ok?'ok':'bad');
+    if(!ok){card.classList.add('shk');setTimeout(()=>card.classList.remove('shk'),400);}
+    card.querySelector('.fb').innerHTML=`<b>${ok?'정답':'오답'}</b> ${extra||''}${esc(q.w||'')}`;
+    card.querySelectorAll('button,select,input').forEach(x=>x.disabled=true);upd();};
+  const build=(q,gi,qi)=>buildQ(q,gi+'-'+qi,qi+1,fin);
   function showG(g){gcur=g;const b=$('qBody');b.innerHTML='';
     Object.keys(res).forEach(k=>{if(k.startsWith(g+'-'))delete res[k];});
     gs[g].qs.forEach((q,qi)=>b.appendChild(build(q,g,qi)));
@@ -605,6 +646,96 @@ function renderQuiz(){
   $('qChips').innerHTML=gs.map((g,i)=>`<button class="chip" type="button" data-g="${i}" aria-pressed="false">${esc(g.title)}</button>`).join('');
   $('qChips').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{if(+b.dataset.g!==gcur)showG(+b.dataset.g);});
   if(gs.length)showG(0);else $('qBody').innerHTML='<p class="note">이 일차에는 퀴즈가 없어요.</p>';
+}
+/* 자료실 */
+const LIBS={concepts:['개념 정리','일차별 핵심 개념을 한 줄로 모아 봐요.','--a1'],quiz:['문제 풀이','워크시트 문제를 일차별로 풀어 봐요.','--a2'],graphs:['그래프 정리','일차마다 소리가 흘러가는 흐름을 한눈에 봐요.','--a3'],anims:['애니메이션 정리','수업용 애니메이션을 페이지 안에서 미리 봐요.','--a4']};
+let LIB=null,LIBQ=null;
+function libLoad(){if(LIB)return Promise.resolve(LIB);
+  return LIBQ||(LIBQ=jget('../data/library.json').then(j=>(LIB=j.days)).catch(e=>{LIBQ=null;throw e;}));}
+const libSum=(days,k)=>days.reduce((a,d)=>a+d[k].length,0);
+const libStat=days=>({concepts:'개념 '+libSum(days,'concepts')+'개',quiz:libSum(days,'questions')+'문항',graphs:'흐름 그래프 '+S.course.length+'개',anims:libSum(days,'anims')+'종'});
+function libCards(){const st=LIB?libStat(LIB):null;
+  return `<h3 class="sec">자료실</h3><div class="lib-cards">${Object.keys(LIBS).map(k=>`<a class="lib-c" style="--c:var(${LIBS[k][2]})" href="#lib-${k}"><b>${LIBS[k][0]}</b><span>${LIBS[k][1]}</span><em data-lk="${k}">${st?esc(st[k]):'…'}</em></a>`).join('')}</div>`;}
+function libFillTotals(days){const st=libStat(days);document.querySelectorAll('#p-map [data-lk]').forEach(e=>e.textContent=st[e.dataset.lk]);}
+const libText=q=>[q.p,q.w,q.c||'',...(q.items||[]),...(q.cats||[]),...(q.o||[]),...(q.steps||[]),...(q.left||[]),...(q.right||[])].join(' ').toLowerCase();
+function renderLib(page,week){
+  const days=LIB,p=$('p-lib'),T=LIBS[page],weeks=[...new Set(days.map(d=>d.week))];
+  if(week&&!weeks.includes(week))week=0;
+  const wd=days.filter(d=>!week||d.week===week);
+  const items=d=>page==='concepts'?d.concepts:page==='quiz'?d.questions:page==='anims'?d.anims:[d];
+  const list=wd.filter(d=>items(d).length);
+  const cnt=page==='graphs'?wd.length:list.reduce((a,d)=>a+items(d).length,0);
+  const unit={concepts:'개념 ',quiz:'문항 ',graphs:'흐름 그래프 ',anims:'애니메이션 '}[page],suf=page==='anims'?'종':'개';
+  const wlab=week?week+'주차':'전체';
+  const hashW=w=>'#lib-'+page+(w?'-w'+w:'');
+  let selDay=0,term='';
+  const search=page==='concepts'||page==='quiz';
+  p.innerHTML=`<a class="lib-back" href="#map">← 과정 지도</a><div class="eyebrow">자료실</div><h2>${T[0]}</h2><p class="lead">${wlab} · ${unit}${cnt}${suf} · ${page==='graphs'?wd.length:list.length}일</p>
+  <div class="lib-bar" role="group" aria-label="주차 선택">${[0,...weeks].map(w=>`<button class="chip" type="button" data-w="${w}" aria-pressed="${w===week}">${w?w+'주차':'전체'}</button>`).join('')}</div>
+  ${week?`<div class="lib-bar" role="group" aria-label="일차 선택"><button class="chip" type="button" data-d="0" aria-pressed="true" style="--c:var(--a5)">전체 일차</button>${(page==='graphs'?wd:list).map(d=>`<button class="chip" type="button" data-d="${d.day}" aria-pressed="false" style="--c:var(--a5)">D${d.day}</button>`).join('')}</div>`:''}
+  ${search?`<input class="lib-q" type="search" placeholder="${page==='quiz'?'문제 검색':'개념 검색'}" aria-label="${page==='quiz'?'문제':'개념'} 검색" autocomplete="off">`:''}
+  ${page==='quiz'?'<p class="lib-sum" id="lbSum" role="status">맞힌 수 0 / 푼 수 0</p>':''}
+  <div id="lbBody"></div>`;
+  const body=$('lbBody'),secs=[];
+  const head=d=>`<div class="lh"><h3>D${d.day} · ${esc(d.title)}</h3><a href="#d${d.day}-flow">이 일차 열기 →</a></div>`;
+  const res={};
+  const sum=()=>{const e=$('lbSum');if(e)e.textContent='맞힌 수 '+Object.values(res).filter(Boolean).length+' / 푼 수 '+Object.keys(res).length;};
+  const fin=(card,id,q,ok,extra)=>{res[id]=ok;card.classList.add('done',ok?'ok':'bad');
+    if(!ok){card.classList.add('shk');setTimeout(()=>card.classList.remove('shk'),400);}
+    card.querySelector('.fb').innerHTML=`<b>${ok?'정답':'오답'}</b> ${extra||''}${esc(q.w||'')}`;
+    card.querySelectorAll('button,select,input').forEach(x=>x.disabled=true);sum();};
+  const hit=t=>!term||t.includes(term);
+  const buildL=(q,id,n)=>{
+    if(['mc','ox','multi','match','order','num'].includes(q.ty))return buildQ(q,id,n,fin);
+    const card=mk('div','scen');
+    card.innerHTML=`<div class="q"><span class="qn">${n}.</span>${esc(q.p)}</div>${q.c?`<pre><code>${esc(q.c)}</code></pre>`:''}${q.items?`<ul class="lib-it">${q.items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}<div class="acts"><button type="button" class="btn" aria-expanded="false">정답 보기</button></div><div class="fb" aria-live="polite"></div>`;
+    const bt=card.querySelector('button'),fb=card.querySelector('.fb');
+    const ans=q.ty==='fill'&&q.a?'정답: '+q.a.map(esc).join(' / ')+'. ':q.ty==='bucket'&&q.items&&q.cats?'정답: '+q.items.map((t,i)=>esc(t)+' → '+esc(q.cats[q.a[i]])).join(' / ')+'. ':'';
+    bt.onclick=()=>{const on=!card.classList.contains('done');card.classList.toggle('done',on);bt.setAttribute('aria-expanded',on);bt.textContent=on?'정답 닫기':'정답 보기';if(on)fb.innerHTML=ans+esc(q.w||'');};
+    return card;};
+  if(page==='graphs'){
+    body.innerHTML=`<div class="lg-grid">${wd.map(d=>{const f=flowOf(d),col=`style="--c:var(${AC[(d.week-1)%5]})"`;
+      return `<article class="lg-card" ${col} data-d="${d.day}"><h3><b>D${d.day}</b>${esc(d.title)}</h3><ol class="gn-flow" aria-label="D${d.day} 흐름">${f.st.map((x,i)=>`<li><i>${i+1}</i>${esc((x[0]+' '+x[1]).trim())}</li>`).join('')}</ol><a href="#d${d.day}-flow">오늘의 흐름에서 보기 →</a></article>`;}).join('')}</div>`;
+    body.querySelectorAll('.lg-card').forEach(e=>secs.push({el:e,day:+e.dataset.d,n:1}));
+  }else{
+    list.forEach((d,si)=>{const el=mk('section','ls');el.dataset.d=d.day;const sec={el,day:d.day,n:items(d).length};
+      if(page==='concepts'){const hc=d.concepts.some(x=>x.code);
+        el.innerHTML=head(d)+`<div class="tw"><table class="lt"><thead><tr><th>개념</th><th>한 줄 정리</th>${hc?'<th>코드</th>':''}</tr></thead><tbody>${d.concepts.map(x=>`<tr data-s="${esc((x.concept+' '+x.summary+' '+x.code).toLowerCase())}"><td>${md(x.concept)}</td><td data-l="정리">${md(x.summary)}</td>${hc?`<td data-l="코드">${x.code?`<code>${esc(x.code)}</code>`:'-'}</td>`:''}</tr>`).join('')}</tbody></table></div>`;
+        sec.upd=()=>{let n=0;el.querySelectorAll('tbody tr').forEach(r=>{const h=hit(r.dataset.s);r.hidden=!h;if(h)n++;});sec.n=n;};
+      }else if(page==='quiz'){
+        const txt=d.questions.map(libText);let built=false;
+        el.innerHTML=head(d)+`<details${si===0?' open':''}><summary></summary><div class="qb"></div></details>`;
+        const det=el.querySelector('details'),sm=el.querySelector('summary'),qb=el.querySelector('.qb');
+        const label=()=>{sm.textContent='문항 '+sec.n+'개'+(term?' (검색 결과)':'');};
+        const gv=()=>qb.querySelectorAll('.lg').forEach(g=>g.hidden=!g.querySelector('.scen:not([hidden])'));
+        const fill=()=>{if(built||!det.open)return;built=true;let gl=null,gd=null;
+          d.questions.forEach((q,i)=>{if(q.g!==gl||!gd){gl=q.g;gd=mk('div','lg',q.g?`<h4>${esc(q.g)}</h4>`:'');qb.appendChild(gd);}
+            const c=buildL(q,d.day+'-'+i,i+1);c.dataset.i=i;c.hidden=!hit(txt[i]);gd.appendChild(c);});gv();};
+        sec.upd=()=>{sec.n=txt.filter(hit).length;label();
+          if(built){qb.querySelectorAll('.scen').forEach(c=>c.hidden=!hit(txt[+c.dataset.i]));gv();}};
+        det.addEventListener('toggle',fill);label();fill();
+      }else{
+        el.innerHTML=head(d)+`<div class="acards">${d.anims.map((a,i)=>`<button type="button" style="--c:var(${AC[i%5]})" data-h="${esc(a.hash)}" data-t="${esc(a.title)}" aria-pressed="false"><b>D${d.day}-${i+1}</b><span>${esc(a.title)}</span>${a.desc?`<small>${esc(a.desc)}</small>`:''}</button>`).join('')}</div>`;
+      }
+      body.appendChild(el);secs.push(sec);});
+    if(page==='anims'){
+      const pv=mk('div','apv',`<div class="row"><strong></strong><a class="btn" target="_blank" rel="noopener" href="#">새 창으로 열기 ↗</a><button class="btn" type="button">닫기</button></div><iframe class="apf" title="애니메이션 미리보기" loading="lazy"></iframe>`);
+      const fr=pv.querySelector('iframe'),close=()=>{pv.remove();fr.removeAttribute('src');body.querySelectorAll('.acards button').forEach(b=>b.setAttribute('aria-pressed','false'));};
+      pv.querySelector('button').onclick=close;
+      body.querySelectorAll('.acards button').forEach(b=>b.onclick=()=>{
+        if(b.getAttribute('aria-pressed')==='true'){close();return;}
+        body.querySelectorAll('.acards button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+        const day=b.closest('.ls').dataset.d,u='d'+day+'/animation.html#'+b.dataset.h;
+        b.closest('.acards').after(pv);pv.querySelector('strong').textContent='D'+day+' · '+b.dataset.t;pv.querySelector('a').href=u;fr.src=u;});
+    }
+  }
+  const apply=()=>{secs.forEach(s=>{if(s.upd)s.upd();s.el.hidden=(selDay&&s.day!==selDay)||(!!term&&s.n===0);});};
+  p.querySelectorAll('[data-w]').forEach(b=>b.onclick=()=>{const h=hashW(+b.dataset.w);if(location.hash!==h)location.hash=h;});
+  p.querySelectorAll('.lib-bar [data-d]').forEach(b=>b.onclick=()=>{selDay=+b.dataset.d;
+    p.querySelectorAll('.lib-bar [data-d]').forEach(x=>x.setAttribute('aria-pressed',x===b));apply();});
+  const qi=p.querySelector('.lib-q');
+  if(qi)qi.oninput=()=>{term=qi.value.trim().toLowerCase();apply();};
+  document.title=T[0]+' · 자료실 · 학습 대시보드';
 }
 /* 홈 대시보드 */
 const hwArr=n=>{try{const a=JSON.parse(sget('aiVoiceDash.hw.d'+n)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}};
@@ -634,7 +765,7 @@ function renderHome(){
   </div>
   <h3 class="sec">메뉴</h3>
   <div class="hm-menu">${TABS.slice(1).map(([id],i)=>`<a class="hm-m" href="${hashOf(id,S.day)}"><span class="hm-n">${i+2}</span><span class="hm-mb"><b>${MDESC[id][0]}</b><span>${MDESC[id][1]}</span><em>${esc(stat[id])}</em></span></a>`).join('')}</div>
-  <h3 class="sec">주차 한눈에</h3>
+  <h3 class="sec">교육내용 선택하기</h3>
   <div class="hm-wk">${Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="hm-wr"><b>${w}주차</b><small>${esc(ds[0].module)}</small><div class="hm-pills">${ds.map(c=>{const ck=hwAny(c.day)?'<i>✓</i>':'';return c.ready?`<a class="hm-p${c.day===S.day?' cur':''}" href="#d${c.day}-flow">D${c.day}${ck}</a>`:`<span class="hm-p soon" aria-disabled="true">D${c.day}</span>`;}).join('')}</div></div>`;}).join('')}</div>
   <div class="row"><a class="btn" href="#map">과정 지도 전체 보기 →</a></div>`;
   $('p-home').querySelectorAll('.hm-day').forEach(b=>b.onclick=()=>pickHomeDay(+b.dataset.d));
@@ -644,8 +775,10 @@ function renderDay(){stopTour();const d=DATA[S.day];renderFlow();renderGoals();r
 
 /* ── 라우팅 ── */
 const hashOf=(tab,day)=>tab==='home'||tab==='map'||tab==='motion'?'#'+tab:'#d'+day+'-'+tab;
+const railTab=t=>t==='lib'?'map':t;
 function nav(tab){const h=hashOf(tab,S.day);if(location.hash===h)route();else location.hash=h;}
 function parse(){const h=location.hash.replace(/^#/,'');if(h==='home'||h==='map'||h==='motion')return {tab:h};
+  const l=/^lib-(concepts|quiz|graphs|anims)(?:-w(\d))?$/.exec(h);if(l)return {tab:'lib',page:l[1],week:+(l[2]||0)};
   const m=/^d(\d+)-(flow|goals|anim|files|learned|tasks|quiz)$/.exec(h);return m?{tab:m[2],day:+m[1]}:{tab:'home'};}
 const tabsEl=$('tabs');
 TABS.forEach(([id,label],i)=>{const b=mk('button',null,`<span class="tc">${i+1}</span>${label}`);b.type='button';b.setAttribute('role','tab');b.dataset.t=id;b.setAttribute('aria-selected','false');b.onclick=()=>nav(id);tabsEl.appendChild(b);});
@@ -659,6 +792,7 @@ async function route(){
     if(DAYTABS.has(tab)){await loadDay(S.day);if(my!==routing)return;if(S.rendered!==S.day)renderDay();sset('aiVoiceDash.lastDay',String(S.day));}
     else if(tab==='home'){await loadDay(S.day);if(my!==routing)return;renderHome();}
     else if(tab==='map')renderMap();
+    else if(tab==='lib'){await libLoad();if(my!==routing)return;renderLib(p.page,p.week);}
     else if(tab==='motion')renderMotion();
   }catch(e){
     $('p-'+tab).innerHTML=DAYTABS.has(tab)?`<div class="msg" role="status">D${S.day} 자료는 아직 준비 중이에요. <a href="#map">과정 지도로 돌아가기</a></div>`:`<div class="msg" role="alert">데이터를 불러오지 못했어요. 저장소 맨 위에서 <code>python -m http.server</code>를 실행한 뒤 <code>/dashboard/index.html</code>로 여세요.</div>`;
@@ -666,7 +800,7 @@ async function route(){
   if(my!==routing)return;
   if(tab!==active)stopTour();
   active=tab;S.tab=tab;
-  tabBtns.forEach(b=>{const on=b.dataset.t===tab;b.setAttribute('aria-selected',on);if(on)b.classList.add('seen');});
+  tabBtns.forEach(b=>{const on=b.dataset.t===railTab(tab);b.setAttribute('aria-selected',on);if(on)b.classList.add('seen');});
   document.querySelectorAll('section.panel').forEach(s=>s.classList.toggle('active',s.id==='p-'+tab));
   if(tab==='anim')syncAnim();
   if(tab==='flow'){FL.last=-2;}
@@ -674,7 +808,7 @@ async function route(){
 }
 addEventListener('hashchange',route);
 addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)||e.altKey||e.ctrlKey||e.metaKey)return;
-  const i=tabBtns.findIndex(b=>b.dataset.t===active);
+  const i=tabBtns.findIndex(b=>b.dataset.t===railTab(active));
   if(e.key==='ArrowRight'&&i<tabBtns.length-1)nav(tabBtns[i+1].dataset.t);
   if(e.key==='ArrowLeft'&&i>0)nav(tabBtns[i-1].dataset.t);});
 $('daySel').onchange=e=>{S.day=+e.target.value;S.anim=null;nav(DAYTABS.has(active)?active:(active==='motion'||active==='home'?active:'flow'));};
