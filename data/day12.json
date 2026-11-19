@@ -1,0 +1,912 @@
+{
+  "day": 12,
+  "title": "Whisper Full Fine-tuning: Seq2SeqTrainer · Data Collator · 학습 모니터링",
+  "meta": {
+    "week": 3,
+    "module": "M3",
+    "hours": 4,
+    "tag": ""
+  },
+  "goals": [
+    "Fine-tuning이 무엇이고 Full · Encoder 고정 · LoRA(D13)가 어떻게 다른지 말할 수 있다.",
+    "Teacher forcing과 Cross-Entropy loss로 Whisper가 '정답 다음 글자 맞히기'를 배우는 원리를 설명한다.",
+    "길이가 다른 샘플을 묶는 Data Collator를 만들고, 패딩을 −100으로 바꾸는 이유를 안다.",
+    "생성 결과로 CER을 재는 `compute_metrics` 를 만들고 학습 전 성능(baseline)을 잰다.",
+    "`Seq2SeqTrainingArguments` · `Seq2SeqTrainer` 로 Whisper small을 한국어 데이터에 Full Fine-tuning 한다.",
+    "TensorBoard(· 선택 W&B)로 loss · CER 곡선을 보고 과적합 · 학습률 문제를 읽어 낸다.",
+    "학습 전 · 후 받아쓰기를 비교하고, 모델을 저장해 `pipeline`으로 다시 불러 쓴다."
+  ],
+  "periods": [
+    {
+      "n": 1,
+      "topic": "Fine-tuning 개념, Teacher forcing, 데이터 준비 (Zeroth 학습 세트)",
+      "parts": "Part 0 ~ 2, 워크시트 1교시"
+    },
+    {
+      "n": 2,
+      "topic": "Data Collator, 평가 지표(CER), 학습 전 성능 재기",
+      "parts": "Part 3 ~ 4, 워크시트 2교시"
+    },
+    {
+      "n": 3,
+      "topic": "학습 설정 · Trainer · 학습 실행 (약 20~30분), 그동안 메모리 · 학습률 이야기",
+      "parts": "Part 5, 워크시트 3교시"
+    },
+    {
+      "n": 4,
+      "topic": "TensorBoard 곡선 읽기, 전 · 후 비교, 저장 · 추론",
+      "parts": "Part 6 ~ 8, 워크시트 4교시 · 노션 제출"
+    }
+  ],
+  "parts": [
+    {
+      "n": 0,
+      "title": "준비"
+    },
+    {
+      "n": 1,
+      "title": "Fine-tuning이란: '이미 똑똑한 모델에게 과외하기'"
+    },
+    {
+      "n": 2,
+      "title": "데이터 준비: Zeroth-Korean 학습 세트 + 공식 시험 세트"
+    },
+    {
+      "n": 3,
+      "title": "Data Collator: 길이가 다른 샘플을 한 묶음으로"
+    },
+    {
+      "n": 4,
+      "title": "모델 불러오기와 평가 지표 (학습 전 성능 재기)"
+    },
+    {
+      "n": 5,
+      "title": "학습 설정과 Seq2SeqTrainer"
+    },
+    {
+      "n": 6,
+      "title": "학습 모니터링: 곡선 읽기"
+    },
+    {
+      "n": 7,
+      "title": "전 · 후 비교, 저장, 다시 불러 쓰기"
+    },
+    {
+      "n": 8,
+      "title": "정리 & 과제"
+    }
+  ],
+  "blanks": 9,
+  "anims": [
+    {
+      "hash": "flow",
+      "title": "오늘의 흐름",
+      "desc": ""
+    },
+    {
+      "hash": "finetune",
+      "title": "Fine-tuning 방식",
+      "desc": ""
+    },
+    {
+      "hash": "teacher",
+      "title": "Teacher forcing",
+      "desc": ""
+    },
+    {
+      "hash": "collator",
+      "title": "Data Collator",
+      "desc": ""
+    },
+    {
+      "hash": "lr",
+      "title": "학습률 실험실",
+      "desc": ""
+    },
+    {
+      "hash": "memory",
+      "title": "GPU 메모리",
+      "desc": ""
+    },
+    {
+      "hash": "loop",
+      "title": "학습 한 step",
+      "desc": ""
+    },
+    {
+      "hash": "metrics",
+      "title": "CER 계산",
+      "desc": ""
+    },
+    {
+      "hash": "curves",
+      "title": "곡선 읽기",
+      "desc": ""
+    }
+  ],
+  "road": [
+    {
+      "p": "Part 1",
+      "t": "Fine-tuning 개념",
+      "c": "--net",
+      "go": "finetune",
+      "items": [
+        "사전학습 모델을 우리 데이터로 조금 더 학습",
+        "Full · Encoder 고정 · LoRA(D13)",
+        "Teacher forcing: decoder 입력 = 정답을 한 칸 민 것"
+      ],
+      "q": "(빈칸 없음) 🎬 D12-3 Teacher forcing도 보기",
+      "more": [
+        {
+          "hash": "teacher",
+          "label": "Teacher forcing"
+        }
+      ]
+    },
+    {
+      "p": "Part 2",
+      "t": "데이터 준비",
+      "c": "--asr",
+      "go": "flow",
+      "items": [
+        "Zeroth 학습 세트 스트리밍 2,000개 (≈ 4.6시간)",
+        "공식 시험 세트에서 100개 (화자 겹침 없음)",
+        "set_transform: 꺼낼 때마다 특징 · 토큰"
+      ],
+      "q": "(빈칸 없음) ❓ remove_unused_columns=False 이유"
+    },
+    {
+      "p": "Part 3",
+      "t": "Data Collator",
+      "c": "--llm",
+      "go": "collator",
+      "items": [
+        "input_features: 쌓기 (batch, 80, 3000)",
+        "labels: 채우기 → 채운 칸 −100",
+        "맨 앞 <|startoftranscript|> 빼기"
+      ],
+      "q": "🧩 빈칸 1, 2: -100, self.decoder_start_token_id"
+    },
+    {
+      "p": "Part 4",
+      "t": "모델 · 평가 지표",
+      "c": "--s2s",
+      "go": "metrics",
+      "items": [
+        "label_ids −100 → pad_token_id",
+        "batch_decode → normalize → jiwer.cer(정답, 예측)",
+        "generation_config.language = \"korean\""
+      ],
+      "q": "🧩 빈칸 3, 4, 5: pad_token_id, label_str, \"korean\""
+    },
+    {
+      "p": "Part 5",
+      "t": "학습 설정 · 실행",
+      "c": "--tts",
+      "go": "lr",
+      "items": [
+        "lr 1e-5 · warmup · 8 × 2 · fp16",
+        "predict_with_generate=True · best 체크포인트",
+        "Seq2SeqTrainer(data_collator=collator) → train()"
+      ],
+      "q": "🧩 빈칸 6, 7, 8: 1e-5, True, collator",
+      "more": [
+        {
+          "hash": "memory",
+          "label": "GPU 메모리"
+        },
+        {
+          "hash": "loop",
+          "label": "학습 한 step"
+        }
+      ]
+    },
+    {
+      "p": "Part 6",
+      "t": "모니터링",
+      "c": "--bad",
+      "go": "curves",
+      "items": [
+        "TensorBoard: train/loss · eval/cer · learning_rate",
+        "과적합 · 학습률 문제 읽기",
+        "log_history로 직접 그리기"
+      ],
+      "q": "🧩 빈칸 9: \"eval_cer\""
+    },
+    {
+      "p": "Part 7",
+      "t": "비교 · 저장",
+      "c": "--ok",
+      "go": "metrics",
+      "items": [
+        "같은 문장 학습 전 · 후 나란히",
+        "save_model + processor.save_pretrained",
+        "pipeline(\"automatic-speech-recognition\", model=폴더)"
+      ],
+      "q": "(빈칸 없음) → D13 LoRA · D14 Hub 업로드"
+    }
+  ],
+  "learned": [
+    {
+      "concept": "Fine-tuning",
+      "summary": "사전학습 모델을 우리 데이터로 조금 더 학습",
+      "code": "WhisperForConditionalGeneration.from_pretrained(...)"
+    },
+    {
+      "concept": "Teacher forcing",
+      "summary": "정답 앞부분을 보고 다음 토큰 맞히기, loss = −log P(정답)",
+      "code": "model(input_features=..., labels=...)"
+    },
+    {
+      "concept": "set_transform",
+      "summary": "꺼낼 때마다 특징 · 토큰 만들기",
+      "code": "ds.set_transform(prepare_batch)"
+    },
+    {
+      "concept": "Data Collator",
+      "summary": "묶음 만들기, 패딩 → −100, 시작 토큰 빼기",
+      "code": "masked_fill(mask.ne(1), -100)"
+    },
+    {
+      "concept": "compute_metrics",
+      "summary": "생성 → 글자 → 정규화 → CER",
+      "code": "jiwer.cer(label_str, pred_str)"
+    },
+    {
+      "concept": "학습 설정",
+      "summary": "lr 1e-5 · warmup · 8×2 · fp16 · 생성 평가",
+      "code": "Seq2SeqTrainingArguments(...)"
+    },
+    {
+      "concept": "Trainer",
+      "summary": "반복 학습 · 평가 · 저장을 대신",
+      "code": "Seq2SeqTrainer(..., data_collator=collator)"
+    },
+    {
+      "concept": "모니터링",
+      "summary": "곡선으로 과적합 · 학습률 문제 읽기",
+      "code": "%tensorboard, trainer.state.log_history"
+    },
+    {
+      "concept": "저장 · 추론",
+      "summary": "모델 + processor 한 폴더 → pipeline",
+      "code": "save_model, save_pretrained, pipeline(...)"
+    }
+  ],
+  "homework": [
+    "학습률 실험: `learning_rate`를 `1e-4`와 `1e-6`으로 바꿔(다른 값은 그대로, `max_steps=100`) 학습한 뒤 오늘 결과(1e-5)와 eval CER 곡선을 한 그림에 겹쳐 그리고, 무엇이 달랐는지 세 줄로 쓰세요.",
+    "Encoder 고정: `model.freeze_encoder()`를 학습 전에 호출해 Decoder만 학습하고, GPU 최대 메모리 · 학습 시간 · 최종 CER을 Full Fine-tuning과 표로 비교하세요.",
+    "(선택) 내 목소리 시험: 뉴스 문장 3개와 평소 말투 문장 3개를 직접 녹음해 학습 전 · 후 모델로 받아쓰고 차이를 정리하세요."
+  ],
+  "worksheet": {
+    "source": "day12/worksheet.html",
+    "groups": [
+      {
+        "title": "1교시 · Fine-tuning 개념 · Teacher forcing · 데이터",
+        "anim": "D12-2 Fine-tuning 방식 · D12-3 Teacher forcing",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "Fine-tuning을 가장 잘 설명한 것은?",
+            "o": [
+              "모델을 처음부터 무작위 가중치로 학습",
+              "사전학습된 모델을 우리 데이터로 조금 더 학습해 가중치를 살짝 고치기",
+              "모델 크기를 줄이는 것",
+              "추론 속도를 높이는 양자화"
+            ],
+            "a": 1,
+            "w": "이미 68만 시간으로 공부한 Whisper에게 우리 분야 몇 시간을 더 가르칩니다.",
+            "an": "노트북 Part 1"
+          },
+          {
+            "ty": "match",
+            "p": "방식과 설명을 이으세요.",
+            "left": [
+              "Full Fine-tuning",
+              "Encoder 고정 (freeze_encoder)",
+              "LoRA",
+              "처음부터 학습"
+            ],
+            "right": [
+              "작은 덧붙임 행렬만 학습 (1~2%)",
+              "무작위 가중치에서 대량 데이터로 학습",
+              "모든 파라미터를 고침",
+              "Decoder만 고침"
+            ],
+            "a": [
+              2,
+              3,
+              0,
+              1
+            ],
+            "w": "학습하는 파라미터가 적을수록 메모리 · 시간이 줄고, 효과는 대체로 작아집니다.",
+            "an": "D12-2"
+          },
+          {
+            "ty": "ox",
+            "p": "Fine-tuning 때 학습률을 너무 크게 하면 모델이 원래 잘하던 것을 잊어버릴 수 있습니다.",
+            "a": true,
+            "w": "catastrophic forgetting. 그래서 사전학습 모델은 1e-5처럼 아주 작은 학습률을 씁니다.",
+            "an": "노트북 Part 1 비유"
+          },
+          {
+            "ty": "mc",
+            "p": "Teacher forcing에서 decoder 입력(decoder_input_ids)은?",
+            "o": [
+              "labels와 같은 순서",
+              "정답(labels)을 한 칸 오른쪽으로 민 것 (앞에 시작 토큰)",
+              "모델의 이전 예측",
+              "무작위 토큰"
+            ],
+            "a": 1,
+            "w": "학습 중에는 앞에서 틀려도 다음 입력에 정답을 넣어 줍니다.",
+            "an": "노트북 1-1 · 셀 출력 표"
+          },
+          {
+            "ty": "mc",
+            "p": "어떤 위치에서 모델이 정답 토큰에 확률 0.5를 줬다면 그 위치의 loss(−log p)는 약?",
+            "o": [
+              "0",
+              "0.69",
+              "2.3",
+              "0.5"
+            ],
+            "a": 1,
+            "w": "−log 0.5 ≈ 0.69. 확률 1이면 0, 0.1이면 2.3.",
+            "an": "📐 핵심 식"
+          },
+          {
+            "ty": "order",
+            "p": "Whisper 학습에서 loss가 계산되는 순서대로 놓으세요.",
+            "steps": [
+              "위치마다 −log P(정답) 평균",
+              "labels를 한 칸 밀어 decoder 입력 만들기",
+              "Encoder가 input_features(소리)를 읽음",
+              "Decoder가 위치마다 다음 토큰 확률 출력"
+            ],
+            "a": [
+              2,
+              1,
+              3,
+              0
+            ],
+            "w": "소리 읽기 → decoder 입력 → 확률 → loss.",
+            "an": "D12-3"
+          },
+          {
+            "ty": "ox",
+            "p": "실제로 받아쓸 때(generate)도 학습 때처럼 다음 입력에 정답 토큰을 넣어 줍니다.",
+            "a": false,
+            "w": "실제로는 정답이 없어 자기 예측을 넣습니다. 그래서 앞에서 틀리면 뒤도 흔들립니다(노출 편향).",
+            "an": "노트북 1-1 ❓"
+          },
+          {
+            "ty": "mc",
+            "p": "오늘 D11의 ko_asr_prepared 대신 Zeroth 학습 세트로 학습하는 이유는?",
+            "o": [
+              "D11 파일이 너무 커서",
+              "D11은 Zeroth 시험 세트를 섞어 썼으므로, 같은 시험 세트로 평가하면 데이터 누수가 생기기 때문",
+              "학습 세트가 더 깨끗해서",
+              "속도가 빨라서"
+            ],
+            "a": 1,
+            "w": "공식 시험 세트로 평가하려면 학습에 그 데이터가 섞이면 안 됩니다.",
+            "an": "노트북 Part 2 ⚠️"
+          },
+          {
+            "ty": "mc",
+            "p": "set_transform(prepare_batch)의 장점은?",
+            "o": [
+              "학습이 더 정확해진다",
+              "특징을 미리 저장하지 않고 꺼낼 때 만들어 디스크 · 메모리를 아낀다",
+              "GPU 계산이 줄어든다",
+              "데이터가 자동으로 섞인다"
+            ],
+            "a": 1,
+            "w": "대신 꺼낼 때마다 CPU 계산을 합니다. 2,000개를 미리 바꾸면 약 2 GB.",
+            "an": "노트북 2-1 표"
+          },
+          {
+            "ty": "multi",
+            "p": "set_transform과 Trainer를 함께 쓸 때 알아야 할 것을 모두 고르세요.",
+            "o": [
+              "remove_unused_columns=False를 줘야 한다",
+              "원래 열(audio, text)은 모델 forward의 인자가 아니다",
+              "transform이 input_features · labels를 만들어 준다",
+              "set_transform을 쓰면 GPU가 필요 없다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "열 지우기를 끄지 않으면 Trainer가 audio · text를 지워 transform이 재료를 잃습니다.",
+            "an": "노트북 2-1 ❓"
+          }
+        ]
+      },
+      {
+        "title": "2교시 · Data Collator · 평가 지표",
+        "anim": "D12-4 Data Collator · D12-8 CER 계산",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "Data Collator가 하는 일은?",
+            "o": [
+              "소리를 녹음한다",
+              "길이가 다른 샘플들을 패딩해 한 묶음(텐서)으로 만든다",
+              "모델을 저장한다",
+              "학습률을 정한다"
+            ],
+            "a": 1,
+            "w": "input_features는 쌓고, labels는 가장 긴 길이로 채웁니다.",
+            "an": "노트북 Part 3"
+          },
+          {
+            "ty": "mc",
+            "p": "labels의 채운 칸을 −100으로 바꾸는 이유는?",
+            "o": [
+              "메모리를 아끼려고",
+              "PyTorch CrossEntropy가 −100을 건너뛰어 loss에서 빼기 위해",
+              "모델이 −100을 맞히게 하려고",
+              "토크나이저 규칙이라서"
+            ],
+            "a": 1,
+            "w": "ignore_index=−100. 채운 칸을 학습하면 엉뚱한 것을 배웁니다.",
+            "an": "빈칸 실습 1"
+          },
+          {
+            "ty": "ox",
+            "p": "Whisper의 pad 토큰은 &lt;|endoftext|&gt;와 같아서, 채운 칸을 그대로 두면 '끝난 뒤에도 끝 토큰을 계속 내라'고 배우게 됩니다.",
+            "a": true,
+            "w": "그래서 −100 처리가 꼭 필요합니다.",
+            "an": "빈칸 1 해설 · D12-4"
+          },
+          {
+            "ty": "mc",
+            "p": "Collator에서 labels 맨 앞의 &lt;|startoftranscript|&gt;를 빼는 이유는?",
+            "o": [
+              "필요 없는 토큰이라서",
+              "모델이 decoder 입력을 만들 때 시작 토큰을 스스로 앞에 붙이므로 두 번 들어가지 않게",
+              "한국어가 아니라서",
+              "길이를 줄이려고"
+            ],
+            "a": 1,
+            "w": "labels를 오른쪽으로 밀면서 decoder_start_token_id를 붙입니다(Part 1).",
+            "an": "빈칸 실습 2"
+          },
+          {
+            "ty": "match",
+            "p": "Collator 처리와 결과를 이으세요.",
+            "left": [
+              "feature_extractor.pad(..., return_tensors=\"pt\")",
+              "tokenizer.pad(...)",
+              "masked_fill(attention_mask.ne(1), -100)",
+              "labels[:, 1:]"
+            ],
+            "right": [
+              "채운 칸을 loss 제외로 표시",
+              "맨 앞 시작 토큰 제거",
+              "(batch, 80, 3000) 텐서",
+              "labels를 가장 긴 길이로 채우고 attention_mask 생성"
+            ],
+            "a": [
+              2,
+              3,
+              0,
+              1
+            ],
+            "w": "소리 쪽 쌓기 → 글자 쪽 채우기 → −100 → 시작 토큰 빼기.",
+            "an": "노트북 Part 3 표"
+          },
+          {
+            "ty": "mc",
+            "p": "compute_metrics에서 label_ids의 −100을 pad_token_id로 되돌리는 이유는?",
+            "o": [
+              "CER을 낮추려고",
+              "−100은 어휘에 없는 번호라 batch_decode로 글자로 바꿀 수 없어서",
+              "모델이 다시 학습하도록",
+              "속도 때문에"
+            ],
+            "a": 1,
+            "w": "pad로 바꾸면 skip_special_tokens=True가 깨끗이 지워 줍니다.",
+            "an": "빈칸 실습 3"
+          },
+          {
+            "ty": "mc",
+            "p": "jiwer.cer의 인자 순서로 옳은 것은?",
+            "o": [
+              "jiwer.cer(pred_str, label_str)",
+              "jiwer.cer(label_str, pred_str)",
+              "순서는 상관없다",
+              "jiwer.cer(label_ids, pred_ids)"
+            ],
+            "a": 1,
+            "w": "정답(reference)이 먼저. 분모가 정답 길이입니다(D10).",
+            "an": "빈칸 실습 4"
+          },
+          {
+            "ty": "ox",
+            "p": "Zeroth 전사에는 문장 부호가 없고 Whisper는 마침표를 붙이므로, 정규화 없이 CER을 재면 실제보다 나빠 보입니다.",
+            "a": true,
+            "w": "normalize()로 문장 부호 · 띄어쓰기 차이를 지운 뒤 비교합니다.",
+            "an": "빈칸 4 해설 · D12-8"
+          },
+          {
+            "ty": "order",
+            "p": "compute_metrics 안의 처리 순서대로 놓으세요.",
+            "steps": [
+              "jiwer.cer(정답, 예측) × 100",
+              "label_ids의 −100 → pad_token_id",
+              "normalize()로 정리",
+              "batch_decode(..., skip_special_tokens=True)"
+            ],
+            "a": [
+              1,
+              3,
+              2,
+              0
+            ],
+            "w": "되돌리기 → 글자로 → 정리 → CER.",
+            "an": "노트북 Part 4 👣"
+          },
+          {
+            "ty": "multi",
+            "p": "model.generation_config에 language=\"korean\", task=\"transcribe\"를 넣는 효과를 모두 고르세요.",
+            "o": [
+              "평가 때 언어 감지 실수가 없어진다",
+              "labels 앞쪽 특수 토큰과 같은 조건으로 생성한다",
+              "번역이 아니라 받아쓰기를 한다",
+              "학습률이 자동으로 정해진다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "학습 · 평가 · 추론 조건을 맞추는 설정입니다.",
+            "an": "빈칸 실습 5"
+          }
+        ]
+      },
+      {
+        "title": "3교시 · 학습 설정 · Trainer · 메모리",
+        "anim": "D12-5 학습률 실험실 · D12-6 GPU 메모리 · D12-7 학습 한 step",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "Whisper small Fine-tuning에 흔히 쓰는 학습률은?",
+            "o": [
+              "1e-1",
+              "1e-3",
+              "1e-5",
+              "1e-9"
+            ],
+            "a": 2,
+            "w": "사전학습 모델은 아주 작게 고칩니다. 모델이 클수록 더 작게.",
+            "an": "빈칸 실습 6"
+          },
+          {
+            "ty": "mc",
+            "p": "warmup_steps의 역할은?",
+            "o": [
+              "학습 끝에 학습률을 높인다",
+              "처음 몇 step 동안 학습률을 0에서 천천히 올려 초반의 큰 흔들림을 막는다",
+              "GPU를 데운다",
+              "평가를 미룬다"
+            ],
+            "a": 1,
+            "w": "그 뒤 linear decay로 끝까지 조금씩 줄어듭니다.",
+            "an": "노트북 Part 5 그림 · D12-5"
+          },
+          {
+            "ty": "mc",
+            "p": "per_device_train_batch_size=8, gradient_accumulation_steps=2일 때 실제 묶음 크기는?",
+            "o": [
+              "4",
+              "8",
+              "10",
+              "16"
+            ],
+            "a": 3,
+            "w": "기울기를 두 번 모아 한 번 고치므로 16개 효과, 메모리는 8개 분량.",
+            "an": "노트북 Part 5 표"
+          },
+          {
+            "ty": "ox",
+            "p": "transformers 5.x에서 Whisper와 gradient accumulation을 함께 쓸 때 노트북은 model.accepts_loss_kwargs = False로 loss가 accum배로 커지는 문제를 막습니다.",
+            "a": true,
+            "w": "이 줄이 없으면 기록된 loss가 약 2배로 보이고 실제로도 학습률을 2배로 쓴 효과가 납니다.",
+            "an": "노트북 Part 4 ⚠️"
+          },
+          {
+            "ty": "match",
+            "p": "GPU 메모리 항목과 크기 기준을 이으세요.",
+            "left": [
+              "가중치 (fp32)",
+              "기울기",
+              "Adam 상태 (m, v)",
+              "activation"
+            ],
+            "right": [
+              "batch 크기에 비례",
+              "학습 파라미터 × 8바이트",
+              "학습 파라미터 × 4바이트",
+              "전체 파라미터 × 4바이트"
+            ],
+            "a": [
+              3,
+              2,
+              1,
+              0
+            ],
+            "w": "Full Fine-tuning은 가중치보다 기울기 + Adam + activation이 더 큽니다.",
+            "an": "D12-6"
+          },
+          {
+            "ty": "multi",
+            "p": "CUDA out of memory가 났을 때 시도할 방법을 모두 고르세요.",
+            "o": [
+              "batch를 줄이고 accum을 늘린다",
+              "gradient_checkpointing=True",
+              "model.freeze_encoder()",
+              "learning_rate를 올린다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "학습률은 메모리와 관계없습니다. 최후에는 LoRA(D13).",
+            "an": "노트북 5-1 ⚠️ · D12-6"
+          },
+          {
+            "ty": "mc",
+            "p": "predict_with_generate=True로 하면 평가 때 무엇을 하나요?",
+            "o": [
+              "teacher forcing loss만 계산",
+              "실제로 generate로 받아쓰게 해서 compute_metrics로 CER 계산",
+              "학습을 건너뜀",
+              "모델을 저장"
+            ],
+            "a": 1,
+            "w": "생성은 느리므로 평가 세트를 작게(100개) 둡니다.",
+            "an": "빈칸 실습 7"
+          },
+          {
+            "ty": "order",
+            "p": "Trainer가 한 step에서 하는 일을 순서대로 놓으세요.",
+            "steps": [
+              "optimizer.step (가중치 고치기)",
+              "Collator로 묶음 만들기",
+              "loss.backward (기울기)",
+              "forward → loss"
+            ],
+            "a": [
+              1,
+              3,
+              2,
+              0
+            ],
+            "w": "꺼내기 · 묶기 → 순전파 · loss → 역전파 → 고치기 (accum이면 고치기 전에 반복).",
+            "an": "D12-7"
+          },
+          {
+            "ty": "ox",
+            "p": "load_best_model_at_end=True, metric_for_best_model=\"cer\"이면 greater_is_better=True로 해야 합니다.",
+            "a": false,
+            "w": "CER은 낮을수록 좋으므로 greater_is_better=False.",
+            "an": "노트북 Part 5 표 · 체크포인트 그림"
+          },
+          {
+            "ty": "mc",
+            "p": "transformers 5.x의 Seq2SeqTrainer에서 processor를 넘기는 인자 이름은?",
+            "o": [
+              "tokenizer=",
+              "processing_class=",
+              "processor=",
+              "feature_extractor="
+            ],
+            "a": 1,
+            "w": "4.x의 tokenizer= 자리가 processing_class=로 바뀌었습니다.",
+            "an": "빈칸 8 해설"
+          }
+        ]
+      },
+      {
+        "title": "4교시 · 모니터링 · 비교 · 저장",
+        "anim": "D12-9 곡선 읽기",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "train loss는 계속 내려가는데 eval loss와 CER이 어느 순간부터 오른다면?",
+            "o": [
+              "학습률이 너무 작다",
+              "과적합",
+              "데이터가 너무 많다",
+              "정상"
+            ],
+            "a": 1,
+            "w": "학습 데이터를 외우기 시작한 것 → best 체크포인트 사용, 데이터 늘리기, step 줄이기.",
+            "an": "노트북 Part 6 표 · D12-9"
+          },
+          {
+            "ty": "mc",
+            "p": "loss가 크게 튀고 내려가지 않는다면 먼저 의심할 것은?",
+            "o": [
+              "학습률이 너무 큼",
+              "평가 세트가 작음",
+              "모델 저장 위치",
+              "TensorBoard 오류"
+            ],
+            "a": 0,
+            "w": "학습률을 낮추고 warmup을 늘립니다.",
+            "an": "D12-9"
+          },
+          {
+            "ty": "ox",
+            "p": "loss 곡선이 거의 평평하다면 학습률이 너무 작을 수 있습니다.",
+            "a": true,
+            "w": "고치는 양이 너무 작으면 300 step 동안 거의 변하지 않습니다.",
+            "an": "노트북 Part 6 표"
+          },
+          {
+            "ty": "mc",
+            "p": "trainer.state.log_history에서 평가 기록만 고르는 방법은?",
+            "o": [
+              "\"loss\"가 있는 기록",
+              "\"eval_cer\"가 있는 기록",
+              "step이 짝수인 기록",
+              "마지막 기록"
+            ],
+            "a": 1,
+            "w": "compute_metrics의 cer는 평가 때 eval_cer로 기록됩니다.",
+            "an": "빈칸 실습 9"
+          },
+          {
+            "ty": "match",
+            "p": "도구와 쓰임을 이으세요.",
+            "left": [
+              "TensorBoard",
+              "W&B (Weights & Biases)",
+              "log_history",
+              "best_model_checkpoint"
+            ],
+            "right": [
+              "CER이 가장 낮았던 체크포인트 경로",
+              "Colab 안에서 바로 보는 학습 곡선",
+              "웹 대시보드로 여러 실험 비교 · 공유 (API 키 필요)",
+              "파이썬에서 직접 기록 꺼내 그리기"
+            ],
+            "a": [
+              1,
+              2,
+              3,
+              0
+            ],
+            "w": "오늘은 TensorBoard가 기본, W&B는 선택.",
+            "an": "노트북 Part 6"
+          },
+          {
+            "ty": "mc",
+            "p": "Zeroth로 Fine-tuning한 뒤 CER이 내려간 이유로 노트북이 강조한 것은?",
+            "o": [
+              "소리를 완벽히 듣게 되어서",
+              "띄어쓰기 · 문장 부호 · 숫자 표기 등 이 데이터셋의 받아쓰기 규칙에 맞춰진 부분도 크다",
+              "모델이 커져서",
+              "평가 세트가 바뀌어서"
+            ],
+            "a": 1,
+            "w": "그래서 D14에서 다른 데이터에서도 좋아졌는지 확인합니다.",
+            "an": "노트북 Part 7 결과 읽기"
+          },
+          {
+            "ty": "ox",
+            "p": "뉴스 낭독으로 Fine-tuning한 모델은 회의 녹음 · 영어 문장도 반드시 더 잘 받아씁니다.",
+            "a": false,
+            "w": "말투가 다르면 보장되지 않고, 원래 실력이 떨어질 수도 있습니다(catastrophic forgetting).",
+            "an": "노트북 Part 7 ❓"
+          },
+          {
+            "ty": "order",
+            "p": "학습한 모델을 다시 쓰는 순서대로 놓으세요.",
+            "steps": [
+              "pipeline(\"automatic-speech-recognition\", model=폴더)",
+              "processor.save_pretrained(폴더)",
+              "trainer.save_model(폴더)",
+              "Google Drive에 복사 (세션 종료 대비)"
+            ],
+            "a": [
+              2,
+              1,
+              3,
+              0
+            ],
+            "w": "모델 + processor를 한 폴더에 → 보관 → pipeline으로 불러오기.",
+            "an": "노트북 7-1"
+          },
+          {
+            "ty": "multi",
+            "p": "Fine-tuning 결과를 제대로 평가하기 위해 할 일을 모두 고르세요.",
+            "o": [
+              "같은 문장의 학습 전 · 후 결과를 나란히 읽기",
+              "학습에 쓰지 않은 화자 · 데이터로 평가",
+              "원래 잘하던 일반 문장 · 다른 도메인도 따로 평가",
+              "train loss만 보고 판단"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "train loss는 학습 데이터에 대한 점수일 뿐입니다.",
+            "an": "노트북 Part 7"
+          },
+          {
+            "ty": "mc",
+            "p": "여러 도메인(의료 · 법률 · 산업)을 오가야 할 때 D13에서 배울 유리한 방법은?",
+            "o": [
+              "도메인마다 Full Fine-tuning 모델을 따로 저장",
+              "LoRA: 원래 모델은 두고 작은 덧붙임만 바꿔 끼우기",
+              "학습률을 0으로",
+              "평가를 생략"
+            ],
+            "a": 1,
+            "w": "LoRA 덧붙임은 수십 MB라 도메인별로 갈아 끼우기 쉽습니다.",
+            "an": "다음 시간 (D13)"
+          }
+        ]
+      }
+    ]
+  },
+  "files": [
+    {
+      "name": "D12_Whisper_FullFinetuning_slides.pdf",
+      "kind": "pdf",
+      "size": 1150589,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_slides.pdf",
+      "colab": null,
+      "pages": 20
+    },
+    {
+      "name": "D12_Whisper_FullFinetuning_slides.pptx",
+      "kind": "pptx",
+      "size": 1490007,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_slides.pptx",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "D12_Whisper_FullFinetuning_강사용.ipynb",
+      "kind": "ipynb",
+      "size": 1447981,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "pages": null
+    },
+    {
+      "name": "D12_Whisper_FullFinetuning_실습.ipynb",
+      "kind": "ipynb",
+      "size": 1421332,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EC%8B%A4%EC%8A%B5.ipynb",
+      "pages": null
+    },
+    {
+      "name": "animation.html",
+      "kind": "html",
+      "size": 57288,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/animation.html",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "worksheet.html",
+      "kind": "html",
+      "size": 36075,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/worksheet.html",
+      "colab": null,
+      "pages": null
+    }
+  ]
+}

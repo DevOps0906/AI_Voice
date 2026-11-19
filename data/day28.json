@@ -1,0 +1,881 @@
+{
+  "day": 28,
+  "title": "Pipecat 심화: VAD 튜닝 · Turn Detection · Interruption(Barge-in) · Metrics",
+  "meta": {
+    "week": 6,
+    "module": "M6",
+    "hours": 4,
+    "tag": ""
+  },
+  "goals": [
+    "Silero VAD의 네 가지 손잡이(`confidence` · `start_secs` · `stop_secs` · `min_volume`)를 바꾸며, 말 중간 쉼과 배경 소리(TV)에 VAD가 어떻게 반응하는지 잰다.",
+    "'조용하면 끝'(Speech Timeout)과 '말을 듣고 판단'(Smart Turn) 두 턴 판단 방법을, 중간에 쉬는 말 한 마디로 비교한다.",
+    "비서가 말하는 도중 사용자가 끼어들면(Barge-in) `InterruptionFrame`이 파이프라인을 어떻게 멈추는지 보고, 반응 시간을 잰다.",
+    "끼어들기를 끄거나(`enable_interruptions=False`), 첫 안내(녹취 고지 등)가 끝날 때까지 사용자 말을 막는(Mute) 설정을 비교한다.",
+    "Metrics(`MetricsFrame`의 TTFB · 처리 시간)와 `UserBotLatencyObserver`로 '말 끝 → 첫 소리'를 서비스별로 나눠 재고, 직접 만든 LLM 서비스에도 TTFB를 붙인다."
+  ],
+  "periods": [
+    {
+      "n": 1,
+      "topic": "D27 복습(도구 상자), VAD의 네 손잡이: 쉼 · 배경 소리",
+      "parts": "Part 0 ~ 1, 워크시트 1교시"
+    },
+    {
+      "n": 2,
+      "topic": "Turn Detection: Speech Timeout vs Smart Turn",
+      "parts": "Part 2, 워크시트 2교시"
+    },
+    {
+      "n": 3,
+      "topic": "Interruption(Barge-in) · 끼어들기 끄기 · Mute",
+      "parts": "Part 3, 워크시트 3교시"
+    },
+    {
+      "n": 4,
+      "topic": "Metrics · UserBotLatencyObserver · 설정별 지연 비교, 정리",
+      "parts": "Part 4 ~ 5, 워크시트 4교시"
+    }
+  ],
+  "parts": [
+    {
+      "n": 0,
+      "title": "준비 (D27과 같음 + 복습 셀)"
+    },
+    {
+      "n": 1,
+      "title": "VAD 튜닝: 쉼은 '말 끝'인가, TV 소리는 '말'인가"
+    },
+    {
+      "n": 2,
+      "title": "Turn Detection: '조용하면 끝' vs '말을 듣고 판단'"
+    },
+    {
+      "n": 3,
+      "title": "Interruption (Barge-in): 비서 말을 끊고 들어오기"
+    },
+    {
+      "n": 4,
+      "title": "Metrics: '말 끝 → 첫 소리'를 서비스별로 나눠 재기"
+    },
+    {
+      "n": 5,
+      "title": "정리 · 과제"
+    }
+  ],
+  "blanks": 9,
+  "anims": [
+    {
+      "hash": "flow",
+      "title": "오늘의 흐름",
+      "desc": ""
+    },
+    {
+      "hash": "vad",
+      "title": "VAD 손잡이",
+      "desc": ""
+    },
+    {
+      "hash": "volume",
+      "title": "min_volume · TV",
+      "desc": ""
+    },
+    {
+      "hash": "turn",
+      "title": "턴 판단 두 가지",
+      "desc": ""
+    },
+    {
+      "hash": "barge",
+      "title": "끼어들기 타임라인",
+      "desc": ""
+    },
+    {
+      "hash": "mode",
+      "title": "끼어들기 설정",
+      "desc": ""
+    },
+    {
+      "hash": "metrics",
+      "title": "지연 분해",
+      "desc": ""
+    },
+    {
+      "hash": "budget",
+      "title": "지연 예산",
+      "desc": ""
+    },
+    {
+      "hash": "recap",
+      "title": "오늘 정리",
+      "desc": ""
+    }
+  ],
+  "road": [
+    {
+      "p": "Part 0",
+      "t": "D27 복습",
+      "c": "--net",
+      "go": "flow",
+      "items": [
+        "Recorder · run_frames · mic · FlowLog",
+        "WhisperSTT · KoTTS · LocalLLM · RawPCMSerializer",
+        "make_bot(stop, start, mute) · ws_call()"
+      ],
+      "q": "(빈칸 없음)"
+    },
+    {
+      "p": "Part 1",
+      "t": "VAD 튜닝",
+      "c": "--asr",
+      "go": "vad",
+      "items": [
+        "confidence · start_secs · stop_secs · min_volume",
+        "쉼이 있는 말: stop_secs별 구간 수",
+        "TV 소리: min_volume으로 거르기"
+      ],
+      "q": "🧩 빈칸 1 · 2: stop_secs, min_volume",
+      "more": [
+        {
+          "hash": "volume",
+          "label": "min_volume · TV"
+        }
+      ]
+    },
+    {
+      "p": "Part 2",
+      "t": "Turn Detection",
+      "c": "--llm",
+      "go": "turn",
+      "items": [
+        "Speech Timeout = 시계",
+        "Smart Turn v3.2 = 말투 (소리 8초)",
+        "같은 말에서 턴 나눔 비교"
+      ],
+      "q": "🧩 빈칸 3 · 4: LocalSmartTurnAnalyzerV3, TurnAnalyzerUserTurnStopStrategy"
+    },
+    {
+      "p": "Part 3",
+      "t": "Interruption",
+      "c": "--tts",
+      "go": "barge",
+      "items": [
+        "턴 시작 → InterruptionFrame → 모두 멈춤",
+        "A 켜짐 · B 끔 · C Mute",
+        "말한 만큼만 기록"
+      ],
+      "q": "🧩 빈칸 5 · 6 · 7: InterruptionFrame, enable_interruptions, MuteUntilFirstBotComplete…",
+      "more": [
+        {
+          "hash": "mode",
+          "label": "끼어들기 설정"
+        }
+      ]
+    },
+    {
+      "p": "Part 4",
+      "t": "Metrics",
+      "c": "--s2s",
+      "go": "metrics",
+      "items": [
+        "enable_metrics · MetricsFrame",
+        "TTFB · Processing · Usage",
+        "UserBotLatencyObserver"
+      ],
+      "q": "🧩 빈칸 8 · 9: MetricsFrame, stop_ttfb_metrics",
+      "more": [
+        {
+          "hash": "budget",
+          "label": "지연 예산"
+        }
+      ]
+    },
+    {
+      "p": "Part 5",
+      "t": "정리",
+      "c": "--bad",
+      "go": "recap",
+      "items": [
+        "손잡이 표",
+        "과제: 현장 녹음 튜닝 · 맞장구 · p50 / p90",
+        "D29 LiveKit 예고"
+      ],
+      "q": "워크시트 4교시"
+    }
+  ],
+  "learned": [
+    {
+      "concept": "VAD `stop_secs`",
+      "summary": "쉼을 견디게 하지만 모든 턴이 느려짐 → 0.2초 두고 턴 판단에서 기다리기",
+      "code": "VADParams(stop_secs=0.2)"
+    },
+    {
+      "concept": "VAD `min_volume`",
+      "summary": "작은 배경 목소리(TV) 무시, 너무 올리면 작은 목소리를 놓침",
+      "code": "VADParams(min_volume=0.75)"
+    },
+    {
+      "concept": "Speech Timeout",
+      "summary": "말 끝 뒤 N초 조용하면 턴 끝 (시계)",
+      "code": "SpeechTimeoutUserTurnStopStrategy(user_speech_timeout=0.6)"
+    },
+    {
+      "concept": "Smart Turn",
+      "summary": "소리의 말끝 억양으로 '끝냈나' 확률 (말투)",
+      "code": "TurnAnalyzerUserTurnStopStrategy(turn_analyzer=LocalSmartTurnAnalyzerV3())"
+    },
+    {
+      "concept": "Interruption",
+      "summary": "턴 시작 → `InterruptionFrame` → 모두 멈춤 → 말한 만큼만 기록",
+      "code": "InterruptionFrame"
+    },
+    {
+      "concept": "끼어들기 끄기",
+      "summary": "턴은 처리하되 비서 말을 끊지 않음",
+      "code": "VADUserTurnStartStrategy(enable_interruptions=False)"
+    },
+    {
+      "concept": "Mute",
+      "summary": "첫 발화(녹취 고지)가 끝날 때까지 사용자 입력 무시",
+      "code": "MuteUntilFirstBotCompleteUserMuteStrategy()"
+    },
+    {
+      "concept": "Metrics",
+      "summary": "서비스별 TTFB · 처리 시간 · 사용량",
+      "code": "PipelineParams(enable_metrics=True) · MetricsFrame"
+    },
+    {
+      "concept": "직접 만든 서비스",
+      "summary": "start → stop 짝으로 TTFB 보고",
+      "code": "start_ttfb_metrics() · stop_ttfb_metrics()"
+    },
+    {
+      "concept": "전체 지연",
+      "summary": "턴마다 사용자 말 끝 → 봇 첫 소리",
+      "code": "UserBotLatencyObserver · on_latency_measured"
+    }
+  ],
+  "homework": [
+    "현장 녹음 튜닝: 휴대폰으로 '쉬어 가며 말하기' 3개 · 'TV 켜고 말하기' 3개를 녹음해(본인 목소리, 키 · 녹음은 노션에 올리지 않음) Part 1 · 2 표를 다시 만들고, 내 환경에 맞는 `min_volume` · 턴 전략을 정해 근거와 함께 적으세요.",
+    "맞장구 실험: 비서 말 도중 '네'만 말하는 소리를 만들어 설정 A와 `MinWordsUserTurnStartStrategy(min_words=3)`를 비교하세요(끊기는지, 반응 시간은 얼마나 늦어지는지).",
+    "지연 예산표: Part 4 비교를 각 설정 5턴씩 돌려 p50 · p90을 표로 만들고, '말 끝 → 첫 소리 p50 ≤ 1.2초'를 만족하는 조합을 찾으세요."
+  ],
+  "worksheet": {
+    "source": "day28/worksheet.html",
+    "groups": [
+      {
+        "title": "1교시 · VAD 튜닝",
+        "anim": "D28-2 VAD 손잡이 · D28-3 min_volume과 TV 소리",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 1: '이만큼 조용해야 말 끝'을 정하는 VADParams 손잡이는?",
+            "o": [
+              "stop_secs",
+              "start_secs",
+              "confidence",
+              "min_volume"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "빈칸 1"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 2: 작은 배경 목소리(TV)를 무시하게 하는 손잡이는?",
+            "o": [
+              "start_secs",
+              "sample_rate",
+              "min_volume",
+              "stop_secs"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "빈칸 2"
+          },
+          {
+            "ty": "mc",
+            "p": "Pipecat VADParams의 기본값 조합으로 맞는 것은?",
+            "o": [
+              "confidence 0.7 · start 0.2 · stop 0.2 · min_volume 0.6",
+              "confidence 0.5 · start 1.0 · stop 1.0 · min_volume 0.1",
+              "confidence 0.9 · start 0 · stop 0.8 · min_volume 0.9",
+              "모두 0"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "Part 1 표"
+          },
+          {
+            "ty": "mc",
+            "p": "volume = (LUFS + 110) / 100일 때 min_volume 0.6은 몇 LUFS인가?",
+            "o": [
+              "−60 LUFS",
+              "−6 LUFS",
+              "−110 LUFS",
+              "−50 LUFS"
+            ],
+            "a": 3,
+            "w": "0.6 × 100 − 110",
+            "an": "Part 1 📐"
+          },
+          {
+            "ty": "mc",
+            "p": "Silero의 말소리 확률만으로 TV 속 아나운서 목소리를 거르기 어려운 이유는?",
+            "o": [
+              "확률이 항상 0이므로",
+              "TV 속 소리도 사람 목소리라 확률이 높게 나오므로",
+              "Silero가 한국어를 모르므로",
+              "TV 소리는 16 kHz가 아니므로"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 2 해설"
+          },
+          {
+            "ty": "ox",
+            "p": "stop_secs를 길게 하면 말 중간 쉼에서 덜 끊기지만, 모든 턴의 '말 끝' 감지가 그만큼 늦어집니다.",
+            "a": true,
+            "w": "",
+            "an": "빈칸 1 해설"
+          },
+          {
+            "ty": "ox",
+            "p": "Pipecat은 쉼을 견디려면 VAD stop_secs를 크게 늘리는 것을 권장합니다.",
+            "a": false,
+            "w": "VAD는 0.2초로 두고 턴 판단 전략에서 기다리는 것을 권장",
+            "an": "Part 1 ⚠️"
+          },
+          {
+            "ty": "match",
+            "p": "손잡이와 키웠을 때의 효과를 이으세요.",
+            "left": [
+              "start_secs",
+              "stop_secs",
+              "min_volume"
+            ],
+            "right": [
+              "작은 소리를 무시",
+              "기침 · '음'에 덜 반응",
+              "쉼을 덜 자름"
+            ],
+            "a": [
+              1,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "Part 1 표"
+          },
+          {
+            "ty": "multi",
+            "p": "시끄러운 거리 전화에서 VAD를 맞출 때 할 만한 것을 모두 고르세요.",
+            "o": [
+              "min_volume · confidence 올리기",
+              "start_secs 조금 늘리기",
+              "입력에 잡음 제거 필터 걸기",
+              "stop_secs를 3초로"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 1 ❓"
+          },
+          {
+            "ty": "order",
+            "p": "VAD가 '말 시작'을 판단하는 순서대로 놓으세요.",
+            "steps": [
+              "start_secs 동안 이어지면 '말 시작'",
+              "20 ms 소리 조각 도착",
+              "확률 ≥ confidence 이고 volume ≥ min_volume인지",
+              "VADUserStartedSpeakingFrame 내보냄"
+            ],
+            "a": [
+              1,
+              2,
+              0,
+              3
+            ],
+            "w": "",
+            "an": "Part 1 💬"
+          }
+        ]
+      },
+      {
+        "title": "2교시 · Turn Detection",
+        "anim": "D28-4 턴 판단 두 가지",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 3: Pipecat에 들어 있는 로컬 Smart Turn 분석기 클래스는?",
+            "o": [
+              "SileroVADAnalyzer",
+              "WhisperSTT",
+              "TurnTrackingObserver",
+              "LocalSmartTurnAnalyzerV3"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 3"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 4: Smart Turn 분석기를 받아 턴 끝을 정하는 stop 전략은?",
+            "o": [
+              "MinWordsUserTurnStartStrategy",
+              "TurnAnalyzerUserTurnStopStrategy",
+              "SpeechTimeoutUserTurnStopStrategy",
+              "VADUserTurnStartStrategy"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 4"
+          },
+          {
+            "ty": "mc",
+            "p": "Smart Turn이 판단에 쓰는 입력은?",
+            "o": [
+              "받아쓴 글자",
+              "LLM의 답",
+              "사용자 이름",
+              "마지막 약 8초의 소리"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "Part 2 표"
+          },
+          {
+            "ty": "mc",
+            "p": "Speech Timeout 0.6초 · VAD stop_secs 0.2초일 때, 말 중간 쉼이 몇 초보다 길면 턴이 쪼개지나?",
+            "o": [
+              "0.6초",
+              "3초",
+              "약 0.8초",
+              "0.2초"
+            ],
+            "a": 2,
+            "w": "0.2 + 0.6",
+            "an": "빈칸 4 해설"
+          },
+          {
+            "ty": "mc",
+            "p": "Smart Turn이 '계속 말할 것'이라 판단했는데 사용자가 정말 말을 끝냈을 때의 안전장치는?",
+            "o": [
+              "일정 시간(기본 3초) 조용하면 끝으로 봄",
+              "영원히 기다림",
+              "LLM이 대신 판단",
+              "통화를 끊음"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "Part 2 ❓"
+          },
+          {
+            "ty": "ox",
+            "p": "Speech Timeout은 소리의 억양 · 말끝을 보고 턴 끝을 판단합니다.",
+            "a": false,
+            "w": "시계(조용한 시간)만 봅니다. 말투는 Smart Turn",
+            "an": "Part 2 표"
+          },
+          {
+            "ty": "ox",
+            "p": "stop 전략과 turn 분석기가 나뉘어 있어 분석기만 다른 것으로 바꿀 수 있습니다.",
+            "a": true,
+            "w": "",
+            "an": "빈칸 4 해설"
+          },
+          {
+            "ty": "match",
+            "p": "전략과 비유를 이으세요.",
+            "left": [
+              "SpeechTimeoutUserTurnStopStrategy",
+              "TurnAnalyzerUserTurnStopStrategy + Smart Turn",
+              "SmartTurnParams.stop_secs"
+            ],
+            "right": [
+              "최악의 경우를 막는 시간 상한",
+              "시계",
+              "말투"
+            ],
+            "a": [
+              1,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "Part 2"
+          },
+          {
+            "ty": "multi",
+            "p": "Smart Turn을 쓸 때 확인해야 할 것을 모두 고르세요.",
+            "o": [
+              "현장 목소리 · 언어에서의 정확도",
+              "턴마다 더해지는 추론 시간",
+              "안전장치 대기 시간",
+              "LLM 토큰 가격"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "빈칸 3 해설"
+          },
+          {
+            "ty": "order",
+            "p": "쉼이 있는 말에서 Smart Turn 쪽에 일어나는 일을 순서대로 놓으세요.",
+            "steps": [
+              "두 번째 말 끝에서 높은 확률 → 턴 끝",
+              "첫 말 끝(쉼)에서 VAD 말 끝",
+              "Smart Turn 낮은 확률 → 기다림",
+              "사용자가 다시 말함"
+            ],
+            "a": [
+              1,
+              2,
+              3,
+              0
+            ],
+            "w": "",
+            "an": "Part 2 그림"
+          }
+        ]
+      },
+      {
+        "title": "3교시 · Interruption · Mute",
+        "anim": "D28-5 끼어들기 타임라인 · D28-6 끼어들기 설정",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 5: 사용자 턴이 시작될 때 파이프라인 전체에 '모두 멈춰'를 알리는 Frame은?",
+            "o": [
+              "CancelFrame",
+              "TTSStoppedFrame",
+              "InterruptionFrame",
+              "EndFrame"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "빈칸 5"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 6: 턴 시작 전략이 끼어들기 신호를 보내지 않게 하는 인자는?",
+            "o": [
+              "enable_interruptions=False",
+              "allow_barge=False",
+              "mute=True",
+              "stop_secs=0"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "빈칸 6"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 7: 비서의 첫 발화가 끝날 때까지 사용자 입력을 막는 전략은?",
+            "o": [
+              "FunctionCallUserMuteStrategy",
+              "VADUserTurnStartStrategy",
+              "MuteUntilFirstBotCompleteUserMuteStrategy",
+              "AlwaysUserMuteStrategy"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "빈칸 7"
+          },
+          {
+            "ty": "mc",
+            "p": "끼어들기 후 봇 쪽 Aggregator가 대화 기록에 남기는 것은?",
+            "o": [
+              "사용자 말만",
+              "실제로 내보낸 부분까지만",
+              "LLM이 만든 답 전체",
+              "아무것도 남기지 않음 (항상)"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "Part 3 👣"
+          },
+          {
+            "ty": "mc",
+            "p": "녹취 고지처럼 끝까지 들려줘야 하는 첫 안내에 알맞은 설정은?",
+            "o": [
+              "A. 기본(끼어들기 켜짐)",
+              "VAD stop_secs 0",
+              "Smart Turn 끄기",
+              "C. 첫 발화까지 Mute"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 7 해설"
+          },
+          {
+            "ty": "ox",
+            "p": "InterruptionFrame은 SystemFrame이라 대기 줄을 기다리지 않고 전달됩니다.",
+            "a": true,
+            "w": "",
+            "an": "Part 3 👣"
+          },
+          {
+            "ty": "ox",
+            "p": "끼어들기를 끄면(B) 사용자가 비서 말 도중 한 말은 버려집니다.",
+            "a": false,
+            "w": "버리지 않고 비서 말이 끝난 뒤 처리 (버리는 것은 Mute)",
+            "an": "빈칸 6 해설"
+          },
+          {
+            "ty": "match",
+            "p": "설정과 결과를 이으세요.",
+            "left": [
+              "A. 끼어들기 켜짐",
+              "B. 끼어들기 끔",
+              "C. 첫 발화까지 Mute"
+            ],
+            "right": [
+              "안내를 끝까지 한 뒤 사용자 말에 답함",
+              "안내를 끝까지 하고 그 사이 사용자 말은 없던 일",
+              "안내가 끊기고 곧바로 사용자 말에 답함"
+            ],
+            "a": [
+              2,
+              0,
+              1
+            ],
+            "w": "",
+            "an": "Part 3 표"
+          },
+          {
+            "ty": "multi",
+            "p": "맞장구('네', '음')에 비서가 멈추지 않게 하는 방법을 모두 고르세요.",
+            "o": [
+              "MinWordsUserTurnStartStrategy(min_words=3)",
+              "VAD start_secs를 조금 늘림",
+              "backchannel 감지 모델",
+              "TTS 목소리를 바꿈"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 3 ❓"
+          },
+          {
+            "ty": "order",
+            "p": "끼어들기 한 번의 순서대로 놓으세요.",
+            "steps": [
+              "InterruptionFrame → 모두 멈춤",
+              "VADUserStartedSpeakingFrame",
+              "BotStoppedSpeakingFrame",
+              "user_agg가 턴 시작 판단"
+            ],
+            "a": [
+              1,
+              3,
+              0,
+              2
+            ],
+            "w": "",
+            "an": "Part 3 👣"
+          }
+        ]
+      },
+      {
+        "title": "4교시 · Metrics · 지연",
+        "anim": "D28-7 지연 분해 · D28-8 지연 예산 손잡이",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 8: 서비스들이 성능 수치를 담아 보내는 Frame은?",
+            "o": [
+              "StartFrame",
+              "MetricsFrame",
+              "TextFrame",
+              "ErrorFrame"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 8"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 9: start_ttfb_metrics()와 짝을 이뤄 첫 결과에서 부르는 메서드는?",
+            "o": [
+              "push_frame()",
+              "start_processing_metrics()",
+              "cancel()",
+              "stop_ttfb_metrics()"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 9"
+          },
+          {
+            "ty": "mc",
+            "p": "Metrics를 켜는 PipelineParams 설정은?",
+            "o": [
+              "audio_out_enabled=True",
+              "enable_metrics=True",
+              "enable_rtvi=True",
+              "idle_timeout_secs=None"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "Part 4 표"
+          },
+          {
+            "ty": "mc",
+            "p": "STT 서비스의 TTFB가 뜻하는 것은?",
+            "o": [
+              "VAD 말 끝 → 받아쓰기 결과",
+              "통화 시작 → 끝",
+              "LLM 첫 글자 → TTS",
+              "사용자 말 시작 → 끝"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "Part 4 표"
+          },
+          {
+            "ty": "mc",
+            "p": "턴마다 '사용자 말 끝 → 봇 첫 소리'를 이벤트로 주는 Observer는?",
+            "o": [
+              "BargeLog",
+              "WhisperSTT",
+              "UserBotLatencyObserver",
+              "FlowLog"
+            ],
+            "a": 2,
+            "w": "on_latency_measured",
+            "an": "Part 4"
+          },
+          {
+            "ty": "ox",
+            "p": "직접 만든 서비스도 can_generate_metrics()를 True로 하고 TTFB 시작 · 멈춤을 부르면 MetricsFrame을 보냅니다.",
+            "a": true,
+            "w": "",
+            "an": "빈칸 9 해설"
+          },
+          {
+            "ty": "ox",
+            "p": "'말 끝 → 첫 소리'는 STT · LLM · TTS TTFB의 합과 항상 정확히 같습니다.",
+            "a": false,
+            "w": "턴 판단 대기 · 첫 문장 모으기 등 어느 서비스도 재지 않는 시간이 더해짐",
+            "an": "Part 4 표 읽기"
+          },
+          {
+            "ty": "match",
+            "p": "Metrics 종류와 뜻을 이으세요.",
+            "left": [
+              "TTFBMetricsData",
+              "ProcessingMetricsData",
+              "LLMUsageMetricsData"
+            ],
+            "right": [
+              "토큰 사용량",
+              "첫 결과까지",
+              "처리 전체 시간"
+            ],
+            "a": [
+              1,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "Part 4 표"
+          },
+          {
+            "ty": "multi",
+            "p": "'말 끝 → 첫 소리 p50 1.0초'를 맞추려 할 때 효과 있는 손잡이를 모두 고르세요.",
+            "o": [
+              "Speech Timeout → Smart Turn",
+              "더 작은 · 생각 모드 끈 LLM",
+              "첫 문장을 짧게 시작하라는 프롬프트",
+              "VAD stop_secs를 0.05초로"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 4 ❓"
+          },
+          {
+            "ty": "order",
+            "p": "한 턴의 지연 조각을 시간 순서대로 놓으세요.",
+            "steps": [
+              "TTS TTFB",
+              "턴 판단 대기",
+              "LLM TTFB",
+              "STT TTFB"
+            ],
+            "a": [
+              1,
+              3,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "Part 4 📐"
+          }
+        ]
+      }
+    ]
+  },
+  "files": [
+    {
+      "name": "D28_Pipecat심화_slides.pdf",
+      "kind": "pdf",
+      "size": 812498,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day28/D28_Pipecat%EC%8B%AC%ED%99%94_slides.pdf",
+      "colab": null,
+      "pages": 20
+    },
+    {
+      "name": "D28_Pipecat심화_slides.pptx",
+      "kind": "pptx",
+      "size": 1052948,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day28/D28_Pipecat%EC%8B%AC%ED%99%94_slides.pptx",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "D28_Pipecat심화_강사용.ipynb",
+      "kind": "ipynb",
+      "size": 781440,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day28/D28_Pipecat%EC%8B%AC%ED%99%94_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day28/D28_Pipecat%EC%8B%AC%ED%99%94_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "pages": null
+    },
+    {
+      "name": "D28_Pipecat심화_실습.ipynb",
+      "kind": "ipynb",
+      "size": 761527,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day28/D28_Pipecat%EC%8B%AC%ED%99%94_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day28/D28_Pipecat%EC%8B%AC%ED%99%94_%EC%8B%A4%EC%8A%B5.ipynb",
+      "pages": null
+    },
+    {
+      "name": "animation.html",
+      "kind": "html",
+      "size": 44951,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day28/animation.html",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "worksheet.html",
+      "kind": "html",
+      "size": 31211,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day28/worksheet.html",
+      "colab": null,
+      "pages": null
+    }
+  ]
+}

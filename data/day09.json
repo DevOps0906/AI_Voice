@@ -1,0 +1,911 @@
+{
+  "day": 9,
+  "title": "Timestamp & 화자 분리: WhisperX 단어 정렬 · pyannote Speaker Diarization",
+  "meta": {
+    "week": 2,
+    "module": "M2",
+    "hours": 4,
+    "tag": ""
+  },
+  "goals": [
+    "Whisper의 문장 시각과 단어 시각이 어떻게 만들어지는지 알고, 단어 시각이 왜 몇백 ms씩 어긋나는지 직접 재 본다.",
+    "D6의 CTC를 이용한 강제 정렬(forced alignment) 을 작은 격자(trellis)로 직접 계산해 본다.",
+    "WhisperX로 단어마다 정확한 시작 · 끝 시각을 얻고, SRT 자막 파일을 만든다.",
+    "화자 분리(Speaker Diarization) 의 세 단계(말 구간 → 목소리 지문 → 묶기)를 직접 만들어 본다.",
+    "pyannote로 화자 분리를 하고, DER(놓침 · 잘못 감지 · 화자 혼동)로 평가한다.",
+    "단어 시각과 화자를 합쳐 \"누가 · 언제 · 무엇을\" 말했는지 적힌 회의록을 만든다 (D10 미니 프로젝트의 재료)."
+  ],
+  "periods": [
+    {
+      "n": 1,
+      "topic": "시각이 왜 필요한가, Whisper 단어 시각의 한계, 강제 정렬(격자) 직접 계산",
+      "parts": "Part 0 ~ 2, 워크시트 1교시"
+    },
+    {
+      "n": 2,
+      "topic": "WhisperX: 배치 받아쓰기 → wav2vec2 정렬 → 단어 시각 · 정렬 점수 · SRT 자막",
+      "parts": "Part 3, 워크시트 2교시"
+    },
+    {
+      "n": 3,
+      "topic": "화자 분리 직접 만들기: 말 구간 · 목소리 지문(ECAPA) · 코사인 유사도 · 군집",
+      "parts": "Part 4, 워크시트 3교시"
+    },
+    {
+      "n": 4,
+      "topic": "pyannote 화자 분리 · DER 평가 · 단어에 화자 붙이기 · 회의록",
+      "parts": "Part 5 ~ 7, 워크시트 4교시 · 노션 제출"
+    }
+  ],
+  "parts": [
+    {
+      "n": 0,
+      "title": "준비"
+    },
+    {
+      "n": 1,
+      "title": "시각이 왜 필요한가, Whisper 단어 시각의 한계"
+    },
+    {
+      "n": 2,
+      "title": "강제 정렬(forced alignment): 정답 글자를 소리에 맞추기"
+    },
+    {
+      "n": 3,
+      "title": "WhisperX: 빠른 받아쓰기 + 정확한 단어 시각"
+    },
+    {
+      "n": 4,
+      "title": "화자 분리 직접 만들기: 누가 말했나"
+    },
+    {
+      "n": 5,
+      "title": "pyannote 화자 분리와 DER 평가"
+    },
+    {
+      "n": 6,
+      "title": "단어에 화자 붙이기 → 회의록"
+    },
+    {
+      "n": 7,
+      "title": "정리 & 과제"
+    }
+  ],
+  "blanks": 9,
+  "anims": [
+    {
+      "hash": "flow",
+      "title": "오늘의 흐름",
+      "desc": ""
+    },
+    {
+      "hash": "stamps",
+      "title": "문장 시각 vs 단어 시각",
+      "desc": ""
+    },
+    {
+      "hash": "trellis",
+      "title": "격자 따라가기",
+      "desc": ""
+    },
+    {
+      "hash": "wxpipe",
+      "title": "WhisperX 파이프라인",
+      "desc": ""
+    },
+    {
+      "hash": "embed",
+      "title": "목소리 지문",
+      "desc": ""
+    },
+    {
+      "hash": "cluster",
+      "title": "군집 합치기",
+      "desc": ""
+    },
+    {
+      "hash": "der",
+      "title": "DER 계산기",
+      "desc": ""
+    },
+    {
+      "hash": "assign",
+      "title": "단어에 화자 붙이기",
+      "desc": ""
+    },
+    {
+      "hash": "minutes",
+      "title": "회의록 만들기",
+      "desc": ""
+    }
+  ],
+  "road": [
+    {
+      "p": "Part 1",
+      "t": "Whisper 시각의 한계",
+      "c": "--net",
+      "go": "stamps",
+      "items": [
+        "자막 · 검색 · 회의록 = 단어마다 시작 · 끝 시각 필요",
+        "문장 시각: 시각 토큰(0.02초 눈금, D7)",
+        "단어 시각: cross-attention으로 추정 → 수백 ms 어긋남"
+      ],
+      "q": "🧩 빈칸 1: word_timestamps=True"
+    },
+    {
+      "p": "Part 2",
+      "t": "강제 정렬",
+      "c": "--s2s",
+      "go": "trellis",
+      "items": [
+        "정답 글자를 알고, 언제인지만 찾기",
+        "wav2vec2(CTC) 20 ms 확률표 위의 격자",
+        "머물기 vs 넘어가기 → 거꾸로 따라가기"
+      ],
+      "q": "🧩 빈칸 2, 3: tokens, 320"
+    },
+    {
+      "p": "Part 3",
+      "t": "WhisperX",
+      "c": "--asr",
+      "go": "wxpipe",
+      "items": [
+        "VAD → faster-whisper 배치 받아쓰기(시각 토큰 없이)",
+        "load_align_model(\"ko\") → align() → 단어 start · end · score",
+        "정렬 점수 낮은 단어 = 의심, SRT 자막 만들기"
+      ],
+      "q": "🧩 빈칸 4, 5: \"ko\", 1000"
+    },
+    {
+      "p": "Part 4",
+      "t": "화자 분리 직접",
+      "c": "--llm",
+      "go": "embed",
+      "items": [
+        "말 구간 → 목소리 지문(ECAPA 192차원) → 묶기",
+        "코사인 유사도: 길이 말고 방향",
+        "응집형 군집: 가까운 것부터 합치고 멈출 곳"
+      ],
+      "q": "🧩 빈칸 6, 7: b, 3",
+      "more": [
+        {
+          "hash": "cluster",
+          "label": "군집 합치기"
+        }
+      ]
+    },
+    {
+      "p": "Part 5",
+      "t": "pyannote · DER",
+      "c": "--tts",
+      "go": "der",
+      "items": [
+        "DiarizationPipeline(token) → community-1 (gated)",
+        "num_speakers / min · max_speakers",
+        "DER = (놓침 + 잘못 감지 + 혼동) ÷ 전체 말 시간"
+      ],
+      "q": "🧩 빈칸 8: \"confusion\""
+    },
+    {
+      "p": "Part 6",
+      "t": "회의록",
+      "c": "--bad",
+      "go": "assign",
+      "items": [
+        "assign_word_speakers: 가장 많이 겹치는 화자",
+        "같은 화자 단어를 한 줄로",
+        "등록 음성으로 이름 붙이기(화자 식별)"
+      ],
+      "q": "🧩 빈칸 9: spk",
+      "more": [
+        {
+          "hash": "minutes",
+          "label": "회의록 만들기"
+        }
+      ]
+    }
+  ],
+  "learned": [
+    {
+      "concept": "단어 시각이 필요한 곳",
+      "summary": "자막 · 검색 · 노래방 자막 · 화자 붙이기",
+      "code": ""
+    },
+    {
+      "concept": "Whisper 단어 시각",
+      "summary": "cross-attention으로 추정, 수백 ms 어긋남",
+      "code": "word_timestamps=True"
+    },
+    {
+      "concept": "강제 정렬",
+      "summary": "정답 글자를 CTC 확률표 위에서 순서대로 맞춤",
+      "code": "move = trellis[t, :-1] + em[t, tokens]"
+    },
+    {
+      "concept": "프레임",
+      "summary": "wav2vec2 한 칸 = 320샘플 = 20 ms",
+      "code": "FRAME_SEC = 320 / SR"
+    },
+    {
+      "concept": "WhisperX",
+      "summary": "VAD + 배치 받아쓰기 + wav2vec2 정렬 (+ pyannote)",
+      "code": "load_model → transcribe → load_align_model → align"
+    },
+    {
+      "concept": "SRT",
+      "summary": "`시:분:초,밀리초`",
+      "code": "int(round(t * 1000))"
+    },
+    {
+      "concept": "화자 분리",
+      "summary": "말 구간 → 목소리 지문 → 묶기, 결과는 이름 없는 번호",
+      "code": ""
+    },
+    {
+      "concept": "코사인 유사도",
+      "summary": "길이 말고 방향만 비교",
+      "code": "a @ b / (‖a‖ ‖b‖)"
+    },
+    {
+      "concept": "응집형 군집",
+      "summary": "가까운 것부터 합치고 멈출 곳 정하기",
+      "code": "AgglomerativeClustering(n_clusters=3)"
+    },
+    {
+      "concept": "pyannote",
+      "summary": "학습된 분할 + 지문 + 군집, HF 토큰 필요",
+      "code": "DiarizationPipeline(token)(audio, num_speakers=3)"
+    },
+    {
+      "concept": "DER",
+      "summary": "(놓침 + 잘못 감지 + 혼동) ÷ 전체 말 시간",
+      "code": "DiarizationErrorRate()(ref, hyp, detailed=True)"
+    },
+    {
+      "concept": "단어에 화자",
+      "summary": "가장 많이 겹치는 화자",
+      "code": "whisperx.assign_word_speakers(df, aligned)"
+    },
+    {
+      "concept": "화자 식별",
+      "summary": "등록 음성과 지문 비교로 이름 붙이기",
+      "code": "linear_sum_assignment"
+    }
+  ],
+  "homework": [
+    "내 회의 녹음으로: 2~3명이 함께 말한 3분 녹음(동의를 받은 것)을 올려 WhisperX + 화자 분리로 회의록을 만드세요. 틀린 곳(화자 · 단어 시각)을 3군데 찾아 왜 틀렸는지(겹쳐 말하기, 짧은 맞장구, 비슷한 목소리, 잡음 등) 적으세요.",
+    "멈출 곳 실험: Part 4에서 `n_clusters=None, distance_threshold=`를 0.3 / 0.5 / 0.7 / 0.9로 바꿔 화자 수와 DER이 어떻게 바뀌는지 표로 정리하세요.",
+    "자막 비교: 같은 녹음으로 Whisper `word_timestamps` 시각과 WhisperX 시각으로 SRT를 각각 만들고, 동영상 플레이어에서 보며 어느 쪽이 자연스러운지 두세 문장으로 쓰세요."
+  ],
+  "worksheet": {
+    "source": "day09/worksheet.html",
+    "groups": [
+      {
+        "title": "1교시 · 단어 시각 · 강제 정렬",
+        "anim": "D9-2 문장 시각 vs 단어 시각 · D9-3 격자 따라가기",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "받아쓰기 결과에 '단어마다의 시작 · 끝 시각'이 꼭 필요한 일이 아닌 것은?",
+            "o": [
+              "자막 만들기",
+              "회의록에서 단어마다 화자 붙이기",
+              "녹음에서 특정 단어가 나온 순간으로 바로 가기",
+              "녹음 전체의 글자 오류율(CER) 계산"
+            ],
+            "a": 3,
+            "w": "CER은 글자만 비교하므로 시각이 필요 없습니다. 나머지 셋은 단어가 '언제' 나왔는지 알아야 합니다.",
+            "an": "노트북 Part 1 도입"
+          },
+          {
+            "ty": "mc",
+            "p": "faster-whisper에서 단어 시각을 받으려면 transcribe()에 무엇을 켜야 하나요?",
+            "o": [
+              "vad_filter=True",
+              "word_timestamps=True",
+              "without_timestamps=True",
+              "beam_size=5"
+            ],
+            "a": 1,
+            "w": "기본은 문장(구간) 시각만 줍니다. word_timestamps=True를 켜면 단어마다 start · end가 생깁니다.",
+            "an": "빈칸 실습 1"
+          },
+          {
+            "ty": "ox",
+            "p": "Whisper의 단어 시각은 모델이 학습 때 단어마다의 정답 시각을 배워서 직접 내놓는 값입니다.",
+            "a": false,
+            "w": "Whisper는 문장(자막 줄) 단위 시각만 배웠습니다. 단어 시각은 받아 적은 뒤 cross-attention을 보고 추정합니다.",
+            "an": "노트북 Part 1 ❓"
+          },
+          {
+            "ty": "mc",
+            "p": "Whisper 단어 시각이 자주 어긋나는 모습으로 알맞은 것은?",
+            "o": [
+              "항상 정확히 20 ms씩 늦다",
+              "발화 앞뒤의 쉼(무음)까지 첫 · 마지막 단어가 늘어나거나 당겨진다",
+              "단어 순서가 뒤바뀐다",
+              "모든 단어 길이가 같아진다"
+            ],
+            "a": 1,
+            "w": "attention이 실제 소리와 다른 곳을 볼 수 있어서 경계가 수백 ms씩 흔들리고, 무음에 끌려가기 쉽습니다.",
+            "an": "D9-2 무음 끌림"
+          },
+          {
+            "ty": "match",
+            "p": "시각의 종류와 만드는 방법을 이으세요.",
+            "left": [
+              "Whisper 문장 시각",
+              "Whisper 단어 시각",
+              "WhisperX 단어 시각",
+              "WhisperX 받아쓰기 단계의 구간 시각"
+            ],
+            "right": [
+              "VAD로 묶은 말 구간의 시작 · 끝",
+              "받아 적으며 쓰는 시각 토큰 (0.02초 눈금)",
+              "wav2vec2 CTC 확률표 위의 강제 정렬",
+              "cross-attention을 보고 DTW로 추정"
+            ],
+            "a": [
+              1,
+              3,
+              2,
+              0
+            ],
+            "w": "WhisperX는 받아쓰기 단계에서 시각 토큰을 쓰지 않고, 정렬 단계에서 단어 시각을 만듭니다.",
+            "an": "노트북 Part 1 표 · Part 3"
+          },
+          {
+            "ty": "mc",
+            "p": "강제 정렬(forced alignment)을 가장 잘 설명한 것은?",
+            "o": [
+              "소리에서 글자를 새로 받아 적는 일",
+              "이미 아는 글자를 순서대로 소리의 위치에 맞추는 일",
+              "두 녹음의 길이를 같게 맞추는 일",
+              "화자별로 소리를 나누는 일"
+            ],
+            "a": 1,
+            "w": "노래방 가사 맞추기처럼, 글자(가사)는 알고 '언제'만 찾습니다.",
+            "an": "노트북 Part 2"
+          },
+          {
+            "ty": "order",
+            "p": "강제 정렬을 하는 순서대로 놓으세요.",
+            "steps": [
+              "끝 칸에서 거꾸로 따라가며 글자마다 시작 프레임을 읽음",
+              "wav2vec2가 20 ms마다 글자 확률표를 냄",
+              "프레임 번호 × 0.02초로 시각을 계산",
+              "격자 칸마다 머물기 · 넘어가기 중 좋은 점수를 적음"
+            ],
+            "a": [
+              1,
+              3,
+              0,
+              2
+            ],
+            "w": "확률표 → 격자 채우기 → 거꾸로 따라가기 → 초로 바꾸기.",
+            "an": "D9-3 · 빈칸 2 · 3"
+          },
+          {
+            "ty": "mc",
+            "p": "격자에서 '넘어가기(move)' 점수는 어떻게 계산하나요?",
+            "o": [
+              "같은 칸 + blank 점수",
+              "왼쪽 위 칸(한 글자 앞) + 그 프레임의 다음 정답 글자 점수",
+              "아래 칸 + 무작위 점수",
+              "모든 칸의 평균"
+            ],
+            "a": 1,
+            "w": "move = trellis[t, :-1] + em[t, tokens]. 머물기는 trellis[t, 1:] + em[t, blank].",
+            "an": "빈칸 실습 2"
+          },
+          {
+            "ty": "ox",
+            "p": "격자 위의 길은 글자 순서를 건너뛰거나 거꾸로 갈 수 없고, 한 글자에 오래 머물 수는 있습니다.",
+            "a": true,
+            "w": "그래서 정답 글자 순서가 그대로 유지되면서 '언제'만 정해집니다.",
+            "an": "노트북 Part 2 🍎"
+          },
+          {
+            "ty": "multi",
+            "p": "wav2vec2 프레임과 시각에 대해 옳은 것을 모두 고르세요.",
+            "o": [
+              "프레임 하나는 320샘플이다",
+              "16 kHz에서 프레임 하나는 20 ms이다",
+              "시작 프레임 10은 0.20초이다",
+              "프레임 길이는 녹음마다 달라진다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "합성곱 보폭 5×2×2×2×2×2×2 = 320 → 320 ÷ 16000 = 0.02초. 모델 구조로 정해져 있어 녹음마다 바뀌지 않습니다.",
+            "an": "빈칸 실습 3"
+          }
+        ]
+      },
+      {
+        "title": "2교시 · WhisperX",
+        "anim": "D9-4 WhisperX 파이프라인",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "WhisperX에 대한 설명으로 옳은 것은?",
+            "o": [
+              "Whisper를 처음부터 다시 학습한 새 모델",
+              "VAD + faster-whisper 배치 받아쓰기 + wav2vec2 정렬(+ pyannote)을 묶은 도구",
+              "영어만 정렬할 수 있다",
+              "GPU가 없으면 쓸 수 없다"
+            ],
+            "a": 1,
+            "w": "새 모델이 아니라 조립품입니다. 받아쓰기는 faster-whisper(D8), 정렬은 wav2vec2(D6), 화자 분리는 pyannote.",
+            "an": "노트북 Part 3"
+          },
+          {
+            "ty": "order",
+            "p": "WhisperX로 단어 시각을 얻는 코드 순서대로 놓으세요.",
+            "steps": [
+              "whisperx.align(result['segments'], a_model, meta, audio, DEVICE)",
+              "whisperx.load_model('small', DEVICE, compute_type=CT)",
+              "whisperx.load_align_model(language_code='ko', device=DEVICE)",
+              "result = model.transcribe(audio, batch_size=8)"
+            ],
+            "a": [
+              1,
+              3,
+              2,
+              0
+            ],
+            "w": "받아쓰기 모델 → 받아쓰기 → 정렬 모델 → 정렬.",
+            "an": "노트북 Part 3 셀"
+          },
+          {
+            "ty": "ox",
+            "p": "WhisperX의 transcribe() 결과 segments의 시각은 이미 단어 단위로 정확합니다.",
+            "a": false,
+            "w": "받아쓰기 단계는 시각 토큰 없이 VAD 묶음(최대 30초)을 받아 적어서, 구간 시각은 묶음의 시작 · 끝일 뿐입니다.",
+            "an": "노트북 Part 3 결과 읽기"
+          },
+          {
+            "ty": "mc",
+            "p": "whisperx.load_align_model에 언어 코드를 넘기는 이유는?",
+            "o": [
+              "번역할 언어를 정하려고",
+              "언어마다 글자 목록이 달라 그 언어용 wav2vec2 모델을 골라야 해서",
+              "VAD를 켜려고",
+              "배치 크기를 정하려고"
+            ],
+            "a": 1,
+            "w": "한국어는 kresnik/wav2vec2-large-xlsr-korean처럼 한국어 글자로 학습된 CTC 모델을 씁니다.",
+            "an": "빈칸 실습 4"
+          },
+          {
+            "ty": "match",
+            "p": "WhisperX 결과의 항목과 뜻을 이으세요.",
+            "left": [
+              "w['start'], w['end']",
+              "w['score']",
+              "aligned['segments']",
+              "return_char_alignments=True"
+            ],
+            "right": [
+              "문장 단위로 다시 나뉜 구간 목록",
+              "글자마다의 시각도 함께 받기",
+              "단어의 시작 · 끝 시각(초)",
+              "그 자리에서 얼마나 그 글자 소리 같았나 (0~1)"
+            ],
+            "a": [
+              2,
+              3,
+              0,
+              1
+            ],
+            "w": "정렬 후에는 문장 나누기도 함께 되어 구간이 문장 단위가 됩니다.",
+            "an": "노트북 3 코드 해설"
+          },
+          {
+            "ty": "mc",
+            "p": "정렬 점수(score)가 유난히 낮은 단어가 뜻할 가능성이 큰 것은?",
+            "o": [
+              "가장 정확하게 받아 적은 단어",
+              "받아쓰기가 틀렸거나 소리가 뭉개진 곳",
+              "가장 긴 단어",
+              "화자가 바뀐 곳"
+            ],
+            "a": 1,
+            "w": "정렬은 틀린 글자도 어떻게든 맞추지만 그 자리의 점수가 낮게 나옵니다. 검토할 단어를 고르는 데 씁니다.",
+            "an": "노트북 3-2"
+          },
+          {
+            "ty": "mc",
+            "p": "SRT 자막에서 3.25초를 바르게 쓴 것은?",
+            "o": [
+              "00:00:03.250",
+              "00:00:03,250",
+              "0:3:25",
+              "3250ms"
+            ],
+            "a": 1,
+            "w": "SRT는 시:분:초,밀리초(쉼표). VTT는 마침표를 씁니다.",
+            "an": "빈칸 실습 5"
+          },
+          {
+            "ty": "mc",
+            "p": "srt_time()에서 초를 밀리초로 바꾸는 식은?",
+            "o": [
+              "t / 1000",
+              "t * 60",
+              "int(round(t * 1000))",
+              "int(t) % 1000"
+            ],
+            "a": 2,
+            "w": "그다음 divmod로 시(3,600,000) · 분(60,000) · 초(1000)를 차례로 떼어 냅니다.",
+            "an": "빈칸 실습 5"
+          },
+          {
+            "ty": "ox",
+            "p": "노래방 자막처럼 지금 말하는 단어만 강조하려면 단어마다의 시각이 필요하고, 강제 정렬 시각이 더 자연스럽습니다.",
+            "a": true,
+            "w": "attention 추정 시각으로 하면 강조가 소리보다 앞서거나 늦게 움직입니다.",
+            "an": "노트북 3 ❓"
+          },
+          {
+            "ty": "multi",
+            "p": "WhisperX 정렬 단계에 대해 옳은 것을 모두 고르세요.",
+            "o": [
+              "Whisper가 받아 적은 글자를 '정답'으로 삼아 맞춘다",
+              "D6에서 배운 CTC 모델(wav2vec2)을 쓴다",
+              "단어 시각은 글자 시각을 띄어쓰기 단위로 묶어 만든다",
+              "정렬 단계가 받아쓰기의 틀린 글자를 자동으로 고쳐 준다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "정렬은 '언제'만 찾습니다. 틀린 글자는 고치지 못하고 점수만 낮게 나옵니다.",
+            "an": "노트북 Part 2 ❓ · Part 3"
+          }
+        ]
+      },
+      {
+        "title": "3교시 · 화자 분리 직접 만들기",
+        "anim": "D9-5 목소리 지문 · D9-6 군집 합치기",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "화자 분리(Speaker Diarization)의 결과로 알맞은 것은?",
+            "o": [
+              "'김팀장이 0.5~4.1초'처럼 실제 이름이 붙은 구간",
+              "'SPEAKER_00이 0.5~4.1초'처럼 이름 없는 번호가 붙은 구간",
+              "단어마다의 받아쓰기 글자",
+              "말한 사람의 나이와 성별"
+            ],
+            "a": 1,
+            "w": "화자 분리는 같은 사람끼리 묶기입니다. 이름은 화자 식별(등록 음성 비교) 단계에서 붙입니다.",
+            "an": "노트북 Part 4 도입"
+          },
+          {
+            "ty": "order",
+            "p": "화자 분리의 세 단계를 순서대로 놓으세요.",
+            "steps": [
+              "비슷한 지문끼리 묶기 (clustering)",
+              "말 구간 자르기 (segmentation)",
+              "조각마다 목소리 지문 만들기 (embedding)"
+            ],
+            "a": [
+              1,
+              2,
+              0
+            ],
+            "w": "말 구간 → 목소리 지문 → 묶기.",
+            "an": "노트북 Part 4 👣"
+          },
+          {
+            "ty": "mc",
+            "p": "목소리 지문(speaker embedding) 모델이 담도록 학습된 것은?",
+            "o": [
+              "무엇을 말했는지 (글자)",
+              "어떤 목소리인지 (말한 사람의 특징)",
+              "녹음 파일의 크기",
+              "말한 시각"
+            ],
+            "a": 1,
+            "w": "ECAPA-TDNN은 수천 명의 목소리로 '같은 사람이면 가깝게, 다른 사람이면 멀게' 학습했습니다.",
+            "an": "노트북 4-2"
+          },
+          {
+            "ty": "mc",
+            "p": "코사인 유사도 cos(a, b) = (a · b) ÷ (‖a‖ × ‖b‖)에서 길이로 나누는 이유는?",
+            "o": [
+              "계산을 빠르게 하려고",
+              "벡터 길이(소리 크기 등)와 상관없이 방향만 비교하려고",
+              "값을 항상 양수로 만들려고",
+              "차원을 줄이려고"
+            ],
+            "a": 1,
+            "w": "같은 목소리면 크게 말하든 작게 말하든 방향이 비슷합니다.",
+            "an": "빈칸 실습 6"
+          },
+          {
+            "ty": "ox",
+            "p": "같은 사람의 두 조각은 코사인 유사도가 1에 가깝고, 다른 사람끼리는 그보다 낮아야 묶기가 쉽습니다.",
+            "a": true,
+            "w": "히트맵에서 같은 사람끼리 밝은 블록이 보이면 지문이 제 역할을 하는 것입니다.",
+            "an": "빈칸 6 히트맵"
+          },
+          {
+            "ty": "mc",
+            "p": "응집형 군집(Agglomerative Clustering)이 반복하는 일은?",
+            "o": [
+              "무작위로 나눈 뒤 중심을 옮기기",
+              "가장 비슷한(가까운) 두 무리를 하나로 합치기",
+              "가장 먼 두 점을 지우기",
+              "모든 점을 한 번에 나누기"
+            ],
+            "a": 1,
+            "w": "처음엔 조각마다 각자 무리, 가까운 둘부터 합치다가 멈출 곳에서 멈춥니다.",
+            "an": "D9-6"
+          },
+          {
+            "ty": "match",
+            "p": "군집 설정과 결과를 이으세요.",
+            "left": [
+              "n_clusters=3",
+              "distance_threshold를 너무 크게",
+              "distance_threshold를 너무 작게",
+              "metric='cosine', linkage='average'"
+            ],
+            "right": [
+              "한 사람이 여러 번호로 쪼개짐",
+              "무리 사이 거리 = 모든 쌍의 코사인 거리 평균",
+              "3개 남을 때까지 합침",
+              "다른 사람끼리 합쳐짐"
+            ],
+            "a": [
+              2,
+              3,
+              0,
+              1
+            ],
+            "w": "화자 수를 알면 n_clusters, 모르면 거리 기준.",
+            "an": "빈칸 7 · ❓"
+          },
+          {
+            "ty": "ox",
+            "p": "결과 번호 SPK_0, SPK_1의 순서에는 의미가 있어서 SPK_0은 항상 처음 말한 사람입니다.",
+            "a": false,
+            "w": "번호는 아무 의미 없는 순서입니다. 정답과 비교할 때는 가장 잘 맞는 짝을 찾습니다.",
+            "an": "빈칸 7 해설"
+          },
+          {
+            "ty": "mc",
+            "p": "목소리가 비슷한 두 사람(예: 비슷한 나이의 남성 둘)이 있을 때 가장 늘기 쉬운 오류는?",
+            "o": [
+              "놓침",
+              "잘못 감지",
+              "화자 혼동",
+              "받아쓰기 오류"
+            ],
+            "a": 2,
+            "w": "지문이 비슷해 한 무리로 합쳐지거나 서로 바뀌어 붙습니다.",
+            "an": "D9-5 슬라이더"
+          },
+          {
+            "ty": "multi",
+            "p": "우리가 직접 만든 화자 분리의 약점을 모두 고르세요.",
+            "o": [
+              "두 사람이 겹쳐 말하는 구간을 다루지 못한다",
+              "쉼 없이 말이 이어지면 두 사람이 한 조각에 들어간다",
+              "화자 수를 알려 줘야 한다",
+              "받아쓰기 글자가 없으면 아예 동작하지 않는다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "화자 분리는 글자 없이 소리만으로 동작합니다.",
+            "an": "노트북 Part 4 약점 표"
+          }
+        ]
+      },
+      {
+        "title": "4교시 · pyannote · DER · 회의록",
+        "anim": "D9-7 DER · D9-8 단어에 화자 · D9-9 회의록",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "pyannote 모델(speaker-diarization-community-1)을 쓰기 전에 필요한 일은?",
+            "o": [
+              "모델을 직접 학습",
+              "Hugging Face에서 이용 조건 동의 + 토큰(HF_TOKEN) 준비",
+              "whisper.cpp 빌드",
+              "GPU 드라이버 재설치"
+            ],
+            "a": 1,
+            "w": "동의해야 받을 수 있는(gated) 모델입니다. 토큰은 Colab 보안 비밀에 HF_TOKEN으로 저장합니다.",
+            "an": "노트북 Part 5 🔑"
+          },
+          {
+            "ty": "match",
+            "p": "pyannote 옵션과 쓰는 상황을 이으세요.",
+            "left": [
+              "num_speakers=3",
+              "min_speakers=2, max_speakers=5",
+              "옵션 없음",
+              "pipeline.to(torch.device('cuda'))"
+            ],
+            "right": [
+              "범위만 알 때",
+              "GPU로 빠르게",
+              "모델이 알아서 정하게",
+              "화자 수를 정확히 알 때"
+            ],
+            "a": [
+              3,
+              0,
+              2,
+              1
+            ],
+            "w": "WhisperX에서는 DiarizationPipeline(token, device)(audio, num_speakers=3).",
+            "an": "노트북 Part 5 표"
+          },
+          {
+            "ty": "mc",
+            "p": "DER 식으로 옳은 것은?",
+            "o": [
+              "(놓침 + 잘못 감지 + 화자 혼동) ÷ 정답의 전체 말 시간",
+              "맞힌 시간 ÷ 전체 녹음 시간",
+              "틀린 단어 수 ÷ 전체 단어 수",
+              "화자 수 ÷ 정답 화자 수"
+            ],
+            "a": 0,
+            "w": "정답 말 시간 중 틀린 시간의 비율. 0%가 완벽.",
+            "an": "빈칸 실습 8"
+          },
+          {
+            "ty": "mc",
+            "p": "DER에서 '놓침 · 잘못 감지'가 크고 '화자 혼동'은 작다면 먼저 손볼 곳은?",
+            "o": [
+              "목소리 지문 모델",
+              "말 구간 찾기 (VAD · 분할)",
+              "군집 거리 기준",
+              "정렬 모델"
+            ],
+            "a": 1,
+            "w": "말이 있나 없나를 틀린 것이므로 구간 찾기 문제입니다. 혼동이 크면 지문 · 군집을 봅니다.",
+            "an": "빈칸 8 해설"
+          },
+          {
+            "ty": "ox",
+            "p": "결과 번호를 SPEAKER_00 ↔ SPEAKER_01로 바꿔 붙이면 DER이 크게 달라집니다.",
+            "a": false,
+            "w": "정답 이름과 결과 번호의 짝을 가장 잘 맞게 자동으로 찾아 계산하므로 같습니다.",
+            "an": "D9-7 번호 거꾸로"
+          },
+          {
+            "ty": "mc",
+            "p": "whisperx.assign_word_speakers는 단어에 어떤 화자를 붙이나요?",
+            "o": [
+              "단어 시작 시각에 말하던 화자",
+              "단어 시간과 가장 많이 겹치는 화자",
+              "가장 오래 말한 화자",
+              "무작위 화자"
+            ],
+            "a": 1,
+            "w": "겹치는 시간을 화자별로 더해 가장 큰 쪽. fill_nearest=True면 겹침이 없을 때 가장 가까운 화자.",
+            "an": "노트북 Part 6 · D9-8"
+          },
+          {
+            "ty": "ox",
+            "p": "화자 분리가 아주 정확해도 단어 시각이 수백 ms 흔들리면, 발화가 바뀌는 경계의 단어가 엉뚱한 화자에게 붙을 수 있습니다.",
+            "a": true,
+            "w": "그래서 WhisperX의 강제 정렬이 회의록 품질에 중요합니다.",
+            "an": "노트북 5-1 ❓ · D9-8"
+          },
+          {
+            "ty": "order",
+            "p": "회의록이 만들어지는 순서대로 놓으세요.",
+            "steps": [
+              "같은 화자의 연속된 단어를 한 줄로 묶기",
+              "단어 시각 정렬 (align)",
+              "받아쓰기 (transcribe)",
+              "단어마다 화자 번호 붙이기",
+              "등록 음성으로 번호에 이름 붙이기"
+            ],
+            "a": [
+              2,
+              1,
+              3,
+              4,
+              0
+            ],
+            "w": "글자 → 시각 → 화자 번호 → 이름 → 줄 묶기.",
+            "an": "D9-9"
+          },
+          {
+            "ty": "mc",
+            "p": "SPEAKER_00에 '김팀장'이라는 이름을 붙이는 방법으로 노트북에서 쓴 것은?",
+            "o": [
+              "받아쓰기 글자에서 이름 찾기",
+              "등록 음성 지문과 화자별 지문의 코사인 유사도로 짝 찾기",
+              "가장 먼저 말한 사람을 김팀장으로",
+              "pyannote가 자동으로 이름을 알려 줌"
+            ],
+            "a": 1,
+            "w": "화자 식별(identification). linear_sum_assignment로 겹치지 않게 가장 잘 맞는 짝을 찾습니다.",
+            "an": "노트북 6-2"
+          },
+          {
+            "ty": "multi",
+            "p": "회의 녹음 화자 분리를 실제 업무에 쓸 때 옳은 것을 모두 고르세요.",
+            "o": [
+              "녹음과 목소리 지문은 개인정보라 녹음 고지와 동의가 필요하다",
+              "겹쳐 말하기 · 짧은 맞장구는 틀리기 쉬운 곳이다",
+              "자동 이름 붙이기는 틀릴 수 있어 사람이 확인하는 단계를 둔다",
+              "DER이 낮으면 단어 시각은 신경 쓸 필요가 없다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "DER이 낮아도 단어 시각이 흔들리면 경계 단어의 화자가 틀립니다.",
+            "an": "노트북 6-2 ❓ · D34"
+          }
+        ]
+      }
+    ]
+  },
+  "files": [
+    {
+      "name": "D9_타임스탬프_화자분리_slides.pdf",
+      "kind": "pdf",
+      "size": 1097157,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_slides.pdf",
+      "colab": null,
+      "pages": 20
+    },
+    {
+      "name": "D9_타임스탬프_화자분리_slides.pptx",
+      "kind": "pptx",
+      "size": 1365665,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_slides.pptx",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "D9_타임스탬프_화자분리_강사용.ipynb",
+      "kind": "ipynb",
+      "size": 1234822,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "pages": null
+    },
+    {
+      "name": "D9_타임스탬프_화자분리_실습.ipynb",
+      "kind": "ipynb",
+      "size": 1206221,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "pages": null
+    },
+    {
+      "name": "animation.html",
+      "kind": "html",
+      "size": 57131,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/animation.html",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "worksheet.html",
+      "kind": "html",
+      "size": 37729,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/worksheet.html",
+      "colab": null,
+      "pages": null
+    }
+  ]
+}

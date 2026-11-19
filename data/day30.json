@@ -1,0 +1,832 @@
+{
+  "day": 30,
+  "title": "LiveKit 심화 & Speech-to-Speech: Multi-agent Handoff · SIP 전화 · OpenAI Realtime · Gemini Live",
+  "meta": {
+    "week": 6,
+    "module": "M6",
+    "hours": 4,
+    "tag": ""
+  },
+  "goals": [
+    "비서에게 도구(`@function_tool`) 를 주고, 통화 중에 예약 담당 → 수납 담당으로 넘기는 Multi-agent Handoff를 만든다. 담당이 바뀌어도 이어지는 정보는 `userdata` 에 담는다.",
+    "로컬 Qwen3 플러그인에 도구 호출(`FunctionToolCall`) 을 더해, 클라우드 LLM과 같은 방식으로 도구를 부르게 한다.",
+    "SIP 전화 연동의 구조(PSTN → SIP Trunk → Dispatch Rule → Room → Agent)를 설명하고, 인바운드 · 아웃바운드 요청을 코드로 만든다. 전화 음질(8 kHz · μ-law) 이 받아쓰기에 미치는 영향을 귀와 숫자로 확인한다.",
+    "Speech-to-Speech(S2S) 모델(OpenAI Realtime · Gemini Live)을 같은 대본(Agent)에 꽂아 보고, Cascade(STT → LLM → TTS) 와 지연 · 제어 · 비용을 비교한다.",
+    "전화 음질의 가짜 통화로 예약 → 수납 Handoff 전체 통화를 작업자(fake job)에서 돌리고, 통화 기록을 남긴다."
+  ],
+  "periods": [
+    {
+      "n": 1,
+      "topic": "D29 복습, 도구 호출 플러그인, `@function_tool`, `userdata`, Handoff",
+      "parts": "Part 0 ~ 1, 워크시트 1교시"
+    },
+    {
+      "n": 2,
+      "topic": "SIP 전화: 구조 · 전화 음질 · Trunk / Dispatch Rule / Outbound Call 요청",
+      "parts": "Part 2, 워크시트 2교시"
+    },
+    {
+      "n": 3,
+      "topic": "Speech-to-Speech: OpenAI Realtime · Gemini Live · Half-cascade",
+      "parts": "Part 3, 워크시트 3교시"
+    },
+    {
+      "n": 4,
+      "topic": "통합: 전화 음질 + Handoff 통화를 작업자로, 통화 기록, 정리",
+      "parts": "Part 4 ~ 5, 워크시트 4교시"
+    }
+  ],
+  "parts": [
+    {
+      "n": 0,
+      "title": "준비 (D29와 같은 모델 + Google 플러그인)"
+    },
+    {
+      "n": 1,
+      "title": "도구와 Multi-agent Handoff  ·  1교시"
+    },
+    {
+      "n": 2,
+      "title": "SIP 전화 연동: 전화가 방에 들어오는 길  ·  2교시"
+    },
+    {
+      "n": 3,
+      "title": "Speech-to-Speech: 귀 · 머리 · 입을 한 모델로  ·  3교시"
+    },
+    {
+      "n": 4,
+      "title": "통합: 전화 상담 리허설 (전화 음질 + Handoff + 작업자)  ·  4교시"
+    },
+    {
+      "n": 5,
+      "title": "정리"
+    }
+  ],
+  "blanks": 0,
+  "anims": [
+    {
+      "hash": "flow",
+      "title": "오늘의 흐름",
+      "desc": ""
+    },
+    {
+      "hash": "tools",
+      "title": "도구 호출 한 바퀴",
+      "desc": ""
+    },
+    {
+      "hash": "handoff",
+      "title": "Handoff · 공유 메모",
+      "desc": ""
+    },
+    {
+      "hash": "sip",
+      "title": "전화가 들어오는 길",
+      "desc": ""
+    },
+    {
+      "hash": "dispatch",
+      "title": "전화 한 통의 일생",
+      "desc": ""
+    },
+    {
+      "hash": "phone",
+      "title": "전화 음질",
+      "desc": ""
+    },
+    {
+      "hash": "s2s",
+      "title": "Cascade vs S2S",
+      "desc": ""
+    },
+    {
+      "hash": "caps",
+      "title": "능력 표 읽기",
+      "desc": ""
+    },
+    {
+      "hash": "recap",
+      "title": "정리 퀴즈",
+      "desc": ""
+    }
+  ],
+  "road": [
+    {
+      "p": "Part 0",
+      "t": "준비",
+      "c": "--net",
+      "go": "flow",
+      "items": [
+        "livekit-agents[silero,openai,google] 1.8.10",
+        "D29 부품 한 번에 (STT · TTS · 가짜 마이크 · 스피커)",
+        "사용자 말 세 마디: 예약 · 비용 · 인사"
+      ],
+      "q": "(빈칸 없음)"
+    },
+    {
+      "p": "Part 1",
+      "t": "도구 · Handoff",
+      "c": "--asr",
+      "go": "tools",
+      "items": [
+        "Qwen3 <tool_call> → FunctionToolCall",
+        "@function_tool · RunContext.userdata",
+        "도구가 Agent를 돌려주면 Handoff"
+      ],
+      "q": "🧩 빈칸 1 ~ 4: FunctionToolCall, function_tool, userdata, contains_agent_handoff",
+      "more": [
+        {
+          "hash": "handoff",
+          "label": "Handoff · 공유 메모"
+        }
+      ]
+    },
+    {
+      "p": "Part 2",
+      "t": "SIP 전화",
+      "c": "--llm",
+      "go": "sip",
+      "items": [
+        "PSTN → SIP Trunk → Dispatch Rule → Room",
+        "전화 음질 8 kHz · μ-law(μ=255)",
+        "Inbound Trunk · Dispatch Rule · CreateSIPParticipant"
+      ],
+      "q": "🧩 빈칸 5 · 6 · 7: 8000, 255, sip_call_to",
+      "more": [
+        {
+          "hash": "phone",
+          "label": "전화 음질"
+        }
+      ]
+    },
+    {
+      "p": "Part 3",
+      "t": "S2S",
+      "c": "--s2s",
+      "go": "s2s",
+      "items": [
+        "OpenAI Realtime · Gemini Live = RealtimeModel",
+        "같은 Agent · 도구, llm 자리만 교체",
+        "Half-cascade: modalities=[\"text\"] + 우리 TTS"
+      ],
+      "q": "🧩 빈칸 8 · 9: RealtimeModel, modalities",
+      "more": [
+        {
+          "hash": "caps",
+          "label": "능력 표 읽기"
+        }
+      ]
+    },
+    {
+      "p": "Part 4",
+      "t": "전화 리허설",
+      "c": "--tts",
+      "go": "dispatch",
+      "items": [
+        "rtc_session(agent_name=\"hanbit-phone\")",
+        "전화 음질 + Handoff + 고지 · 통화 기록",
+        "(시연) 진짜 전화 걸기"
+      ],
+      "q": "(빈칸 없음)"
+    },
+    {
+      "p": "Part 5",
+      "t": "정리",
+      "c": "--bad",
+      "go": "recap",
+      "items": [
+        "오늘 만든 것 표",
+        "Cascade vs S2S 선택 기준",
+        "7주차: FastAPI · Docker · 운영"
+      ],
+      "q": "워크시트 4교시"
+    }
+  ],
+  "learned": [],
+  "homework": [
+    "도구 호출 한 바퀴(주문 → 실행 → 결과 → 다시 말하기)를 설명하고, 로컬 LLM에도 붙였다.",
+    "예약 → 수납 Handoff가 `userdata`와 함께 일어나는 것을 글자 시험과 음성 리허설로 확인했다.",
+    "전화 음질이 받아쓰기에 미치는 영향을 소리 · 그림 · CER로 확인하고, SIP 요청서를 만들었다.",
+    "S2S 모델의 능력 표를 읽고, Cascade와 S2S 중 무엇을 고를지 근거를 말할 수 있다."
+  ],
+  "worksheet": {
+    "source": "day30/worksheet.html",
+    "groups": [
+      {
+        "title": "1교시 · 도구와 Handoff",
+        "anim": "D30-2 도구 호출 한 바퀴 · D30-3 Handoff와 공유 메모",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 1: '이 도구를 이 인자로 불러 달라'는 LiveKit의 주문서 클래스는?",
+            "o": [
+              "lk_llm.FunctionToolCall",
+              "lk_llm.FunctionCallOutput",
+              "lk_llm.ToolContext",
+              "lk_llm.ChatMessage"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "빈칸 1"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 2: Agent의 메서드를 LLM이 부를 수 있는 도구로 만드는 장식자는?",
+            "o": [
+              "@tool_method",
+              "@staticmethod",
+              "@function_tool",
+              "@llm.ai_callable"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "빈칸 2"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 3: 담당이 바뀌어도 통화 하나에 하나로 이어지는 공유 메모는?",
+            "o": [
+              "context.userdata",
+              "self.instructions",
+              "session.history",
+              "agent.chat_ctx"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "빈칸 3"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 4: 그 턴 사건 어딘가에 담당 교체가 있는지 시험하는 메서드는?",
+            "o": [
+              "result.expect.contains_function_call(...)",
+              "result.expect.next_event().is_message(...)",
+              "result.expect.no_more_events()",
+              "result.expect.contains_agent_handoff(...)"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 4"
+          },
+          {
+            "ty": "mc",
+            "p": "도구 안에서 Handoff를 일으키는 방법은?",
+            "o": [
+              "새 AgentSession을 만들어 방에 올린다",
+              "새 Agent 객체를 (할 말과 함께) 돌려준다",
+              "session.aclose()로 통화를 닫고 다시 연다",
+              "instructions를 새 지시문으로 덮어쓴다"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "Hana.transfer_to_billing"
+          },
+          {
+            "ty": "ox",
+            "p": "LLM이 도구 주문서를 쓰면, 예약 저장 같은 실제 일은 LLM이 아니라 우리 파이썬 함수가 합니다.",
+            "a": true,
+            "w": "",
+            "an": "1-1"
+          },
+          {
+            "ty": "ox",
+            "p": "로컬 Qwen 플러그인에서 도구가 있을 때 글자를 모았다 한 번에 보내면 첫 글자 TTFT가 짧아집니다.",
+            "a": false,
+            "w": "주문서인지 끝까지 봐야 해서 TTFT가 늘어나는 대가",
+            "an": "1-2 ⚖️"
+          },
+          {
+            "ty": "match",
+            "p": "@function_tool이 LLM용 설명서를 만들 때 쓰는 것을 이으세요.",
+            "left": [
+              "함수 이름",
+              "docstring",
+              "매개변수 타입 힌트"
+            ],
+            "right": [
+              "도구 설명 (언제 · 무엇을)",
+              "인자의 이름 · 형식",
+              "도구 이름"
+            ],
+            "a": [
+              2,
+              0,
+              1
+            ],
+            "w": "",
+            "an": "1-3"
+          },
+          {
+            "ty": "multi",
+            "p": "Billing에 book_appointment 도구를 주지 않은 이유로 맞는 것을 모두 고르세요.",
+            "o": [
+              "최소 권한: 수납 담당이 예약을 바꾸지 않게",
+              "지시문 · 도구가 짧을수록 LLM이 덜 헷갈림",
+              "필요하면 예약 담당으로 다시 넘기면 됨",
+              "Agent 하나에는 도구를 하나만 등록할 수 있어서"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 1 그림"
+          },
+          {
+            "ty": "order",
+            "p": "'스케일링 비용은 얼마예요?' 한 마디에 일어나는 일을 순서대로 놓으세요.",
+            "steps": [
+              "Billing.on_enter → generate_reply",
+              "Hana의 LLM이 transfer_to_billing 주문",
+              "Billing의 LLM이 get_price 주문 → 결과로 가격 안내",
+              "도구가 Billing(chat_ctx=...) 반환 → 담당 교체"
+            ],
+            "a": [
+              1,
+              3,
+              0,
+              2
+            ],
+            "w": "",
+            "an": "1-4 사건 표"
+          }
+        ]
+      },
+      {
+        "title": "2교시 · SIP 전화",
+        "anim": "D30-4 전화가 방에 들어오는 길 · D30-6 전화 음질 만들기",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 5: 전화망(G.711)의 샘플링 주파수는?",
+            "o": [
+              "16000 Hz",
+              "44100 Hz",
+              "48000 Hz",
+              "8000 Hz"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 5"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 6: 북미 · 한국 · 일본에서 쓰는 G.711 μ-law의 μ 값은?",
+            "o": [
+              "1024",
+              "255",
+              "87.6",
+              "128"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 6"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 7: CreateSIPParticipantRequest에서 전화를 걸 상대 번호 필드는?",
+            "o": [
+              "room_name",
+              "sip_trunk_id",
+              "sip_number",
+              "sip_call_to"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 7"
+          },
+          {
+            "ty": "mc",
+            "p": "Dispatch Rule이 하는 일은?",
+            "o": [
+              "통화 내용을 녹취해 정해진 저장소에 보관함",
+              "LLM의 답이 지시문을 지켰는지 검사함",
+              "걸려 온 전화를 넣을 방과 부를 비서를 정함",
+              "전화망 소리를 μ-law로 압축해 방에 전달함"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "Part 2 표"
+          },
+          {
+            "ty": "mc",
+            "p": "전화 음질에서 가장 크게 약해지는 소리는?",
+            "o": [
+              "ㅅ · ㅊ · ㅎ 같은 마찰음 (3.4 kHz 위)",
+              "아 · 어 · 오 같은 모음의 중간 대역 (1 kHz 근처)",
+              "크게 말한 소리 전체의 음량 (10 dB 이상)",
+              "문장 끝의 억양 변화 (높낮이 흐름)"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "2-1"
+          },
+          {
+            "ty": "ox",
+            "p": "전화 건 사람도 LiveKit 방에서는 참가자 한 명(kind = SIP)입니다.",
+            "a": true,
+            "w": "",
+            "an": "Part 2 💬"
+          },
+          {
+            "ty": "ox",
+            "p": "같은 8비트라도 μ-law는 작은 목소리의 SNR을 그냥 자르기보다 낮춥니다.",
+            "a": false,
+            "w": "μ-law가 작은 소리를 크게 펴서 SNR이 더 높음",
+            "an": "빈칸 5 · 6 출력"
+          },
+          {
+            "ty": "match",
+            "p": "Dispatch 규칙과 쓰임을 이으세요.",
+            "left": [
+              "Individual",
+              "Direct",
+              "Callee"
+            ],
+            "right": [
+              "모든 전화를 한 방 (컨퍼런스)",
+              "받은 번호별 방 (지점별 대표번호)",
+              "전화마다 새 방 (상담)"
+            ],
+            "a": [
+              2,
+              0,
+              1
+            ],
+            "w": "",
+            "an": "빈칸 7 해설"
+          },
+          {
+            "ty": "multi",
+            "p": "병원 대표번호에 AI 비서를 연결할 때 챙길 것을 모두 고르세요.",
+            "o": [
+              "녹취 · AI 상담 고지",
+              "사람 상담원으로 넘기는 길",
+              "개인 건강 정보 보관 규칙",
+              "전화번호를 로그에 그대로 출력"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 2 ❓"
+          },
+          {
+            "ty": "order",
+            "p": "비서가 환자에게 전화를 거는 순서를 놓으세요.",
+            "steps": [
+              "CreateSIPParticipant(sip_call_to=환자 번호)",
+              "Outbound Trunk 만들기",
+              "환자가 받으면 SIP 참가자로 방에 입장",
+              "create_dispatch로 새 방에 비서 배정"
+            ],
+            "a": [
+              1,
+              3,
+              0,
+              2
+            ],
+            "w": "",
+            "an": "2-2 👣"
+          }
+        ]
+      },
+      {
+        "title": "3교시 · Speech-to-Speech",
+        "anim": "D30-7 Cascade vs S2S 지연 · D30-8 능력 표 읽기",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 8: OpenAI Realtime을 LiveKit에 꽂는 클래스는?",
+            "o": [
+              "lk_google.realtime.RealtimeModel",
+              "lk_openai.LLM.with_realtime()",
+              "lk_openai.realtime.RealtimeModel",
+              "lk_openai.realtime.RealtimeSession"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "빈칸 8"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 9: S2S 모델이 글자로만 답하게 하는 인자는?",
+            "o": [
+              "modalities=[\"text\"]",
+              "voice=\"text-only\"",
+              "turn_detection=None",
+              "audio_output=False"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "빈칸 9"
+          },
+          {
+            "ty": "mc",
+            "p": "AgentSession에서 RealtimeModel을 꽂는 자리는?",
+            "o": [
+              "tts=",
+              "vad=",
+              "llm=",
+              "stt="
+            ],
+            "a": 2,
+            "w": "",
+            "an": "3-1"
+          },
+          {
+            "ty": "mc",
+            "p": "supports_say=False인 S2S 모델에서 인사를 시키는 방법은?",
+            "o": [
+              "agent.update_instructions(...)",
+              "session.generate_reply(instructions=...)",
+              "session.say(..., allow_interruptions=False)",
+              "session.update_agent(Greeter())"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 8 · 9 해설"
+          },
+          {
+            "ty": "mc",
+            "p": "Half-cascade의 구성은?",
+            "o": [
+              "우리 STT + S2S 모델(소리로 답)",
+              "우리 STT + LLM + 우리 TTS",
+              "S2S 모델 두 개(듣기 · 말하기)",
+              "S2S 모델(글자로 답) + 우리 TTS"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "Part 3 🧪"
+          },
+          {
+            "ty": "ox",
+            "p": "S2S 모델은 스스로 턴을 판단하므로 우리 VAD를 꼭 넣을 필요가 없습니다.",
+            "a": true,
+            "w": "turn_detection=True",
+            "an": "3-2 ⚠️"
+          },
+          {
+            "ty": "ox",
+            "p": "S2S는 중간 글자가 없어서 숫자 · 고유명사 읽기를 Cascade보다 쉽게 제어할 수 있습니다.",
+            "a": false,
+            "w": "반대: Cascade가 TTS 앞에서 글자를 고칠 수 있음",
+            "an": "Part 3 표"
+          },
+          {
+            "ty": "match",
+            "p": "방식과 특징을 이으세요.",
+            "left": [
+              "Cascade",
+              "Speech-to-Speech",
+              "Half-cascade"
+            ],
+            "right": [
+              "가장 짧은 지연 · 감정 반영",
+              "빠른 귀 · 머리 + 우리 목소리",
+              "로컬 가능 · 단계별 교체"
+            ],
+            "a": [
+              2,
+              0,
+              1
+            ],
+            "w": "",
+            "an": "Part 5 그림"
+          },
+          {
+            "ty": "multi",
+            "p": "Cascade를 고를 만한 이유를 모두 고르세요.",
+            "o": [
+              "예약 번호 · 가격을 정확히 읽어야 함",
+              "병원 정보가 외부로 나가면 안 됨",
+              "브랜드 목소리(복제)를 써야 함",
+              "무조건 가장 빠른 응답이 필요함"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 3 ❓"
+          },
+          {
+            "ty": "order",
+            "p": "Cascade 한 턴의 지연을 순서대로 놓으세요.",
+            "steps": [
+              "TTS 첫 소리(TTFB)",
+              "턴 끝 판단",
+              "LLM 첫 글자(TTFT)",
+              "STT 받아쓰기"
+            ],
+            "a": [
+              1,
+              3,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "D30-7"
+          }
+        ]
+      },
+      {
+        "title": "4교시 · 전화 리허설과 운영",
+        "anim": "D30-5 전화 한 통의 일생 · D30-9 정리 퀴즈",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "전화 전용 작업자를 '이 이름으로 부를 때만' 오게 하려면?",
+            "o": [
+              "AgentServer(ws_url=\"wss://hanbit-phone\")",
+              "@server.rtc_session(agent_name=\"hanbit-phone\")",
+              "@server.rtc_session(room=\"hanbit-phone\")",
+              "SIPDispatchRuleIndividual(room_prefix=\"call-\")"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "phone_entrypoint"
+          },
+          {
+            "ty": "mc",
+            "p": "진짜 전화일 때 발신 번호를 읽는 곳은?",
+            "o": [
+              "비서 참가자 attributes[\"lk.agent.state\"]",
+              "사용자 참가자 metadata[\"caller.phoneNumber\"]",
+              "Dispatch Rule의 room_prefix 뒤 글자",
+              "SIP 참가자 attributes[\"sip.phoneNumber\"]"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "2-3"
+          },
+          {
+            "ty": "mc",
+            "p": "통화가 끝날 때 기록을 저장하도록 등록하는 메서드는?",
+            "o": [
+              "server.simulate_job(...)",
+              "ctx.add_shutdown_callback(...)",
+              "ctx.add_participant_entrypoint(...)",
+              "session.history.to_dict(...)"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "phone_entrypoint"
+          },
+          {
+            "ty": "mc",
+            "p": "전화 리허설에서 턴 끝 판단을 0.8초로 늘린 이유는?",
+            "o": [
+              "말 중간 쉼에서 비서가 끼어드는 것을 줄이려고",
+              "전화망 지연을 메워 첫 소리를 더 빨리 내려고",
+              "μ-law 압축 잡음을 VAD가 말로 보지 않게 하려고",
+              "LLM이 답을 끝까지 쓸 시간을 더 주려고"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "Part 4 ✏️"
+          },
+          {
+            "ty": "mc",
+            "p": "리허설과 진짜 전화 사이에서 바뀌는 것은?",
+            "o": [
+              "도구 목록 (가짜 예약 ↔ 예약 API)",
+              "통화 기록 형식 (dict ↔ JSON 파일)",
+              "사용자 쪽 (가짜 마이크 ↔ SIP 참가자)",
+              "비서 쪽 대본 (Hana ↔ 전화 전용 대본)"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "Part 4 💬"
+          },
+          {
+            "ty": "ox",
+            "p": "통화 기록(call_….json)에는 개인정보가 들어 있으므로 최소 수집 · 마스킹 · 보관 기간이 필요합니다.",
+            "a": true,
+            "w": "",
+            "an": "Part 4 ❓"
+          },
+          {
+            "ty": "ox",
+            "p": "통화 시작의 녹취 · AI 고지는 기술과 무관하므로 생략해도 됩니다.",
+            "a": false,
+            "w": "",
+            "an": "phone_entrypoint 고지 문장"
+          },
+          {
+            "ty": "match",
+            "p": "통화 기록 항목과 뜻을 이으세요.",
+            "left": [
+              "function_call",
+              "agent_handoff",
+              "userdata"
+            ],
+            "right": [
+              "담당이 바뀐 시점",
+              "예약 · 이름 등 공유 메모",
+              "LLM이 쓴 도구 주문서"
+            ],
+            "a": [
+              2,
+              0,
+              1
+            ],
+            "w": "",
+            "an": "통화 기록 표"
+          },
+          {
+            "ty": "multi",
+            "p": "Cascade vs S2S 비교표에서 지연 숫자 외에 봐야 할 열을 모두 고르세요.",
+            "o": [
+              "숫자 읽기 제어",
+              "목소리 선택",
+              "로컬 가능",
+              "노트북 셀 개수"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "비교표"
+          },
+          {
+            "ty": "order",
+            "p": "전화 한 통의 일생을 순서대로 놓으세요.",
+            "steps": [
+              "Hana가 예약 → Billing으로 Handoff → 가격 안내",
+              "Dispatch Rule이 새 방 + hanbit-phone 배정",
+              "고지 · 인사",
+              "끊김 → shutdown callback으로 기록 저장"
+            ],
+            "a": [
+              1,
+              2,
+              0,
+              3
+            ],
+            "w": "",
+            "an": "D30-5"
+          }
+        ]
+      }
+    ]
+  },
+  "files": [
+    {
+      "name": "D30_LiveKit심화_S2S_slides.pdf",
+      "kind": "pdf",
+      "size": 862927,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_slides.pdf",
+      "colab": null,
+      "pages": 20
+    },
+    {
+      "name": "D30_LiveKit심화_S2S_slides.pptx",
+      "kind": "pptx",
+      "size": 1131619,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_slides.pptx",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "D30_LiveKit심화_S2S_강사용.ipynb",
+      "kind": "ipynb",
+      "size": 887240,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "pages": null
+    },
+    {
+      "name": "D30_LiveKit심화_S2S_실습.ipynb",
+      "kind": "ipynb",
+      "size": 865614,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EC%8B%A4%EC%8A%B5.ipynb",
+      "pages": null
+    },
+    {
+      "name": "animation.html",
+      "kind": "html",
+      "size": 49050,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/animation.html",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "worksheet.html",
+      "kind": "html",
+      "size": 31995,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/worksheet.html",
+      "colab": null,
+      "pages": null
+    }
+  ],
+  "homeworkSource": "오늘의 확인"
+}
