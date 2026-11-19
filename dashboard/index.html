@@ -96,6 +96,14 @@ h3{overflow-wrap:anywhere}
 .roaddetail ul{margin:0 0 8px;padding-left:20px;color:var(--muted)}
 .roaddetail p{margin:0 0 8px;font-weight:700}
 /* 지도 */
+.balls{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.ball{width:var(--tap);height:var(--tap);padding:0;border-radius:50%;border:2px solid var(--c,var(--a5));background:var(--panel);color:var(--ink);font-weight:800;font-size:.9rem;font-variant-numeric:tabular-nums;cursor:pointer}
+.ball.all{width:auto;padding:0 16px;border-radius:999px}
+.ball[aria-pressed="true"]{background:var(--c,var(--a5));color:#fff}
+:root[data-theme="dark"] .ball[aria-pressed="true"]{color:#0d1117}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .ball[aria-pressed="true"]{color:#0d1117}}
+.ball[aria-disabled="true"]{opacity:.4;cursor:default}
+.mapday{margin:0 0 22px}
 .week{margin:0 0 22px}
 .week h3{margin:0 0 8px;font-size:1rem;display:flex;gap:8px;align-items:baseline}
 .week h3 small{color:var(--muted);font-weight:500}
@@ -512,12 +520,23 @@ addEventListener('resize',kick);
 
 /* ── 화면 렌더 ── */
 const head=(tab,h2,lead)=>{const d=DATA[S.day],m=d.meta;return `<div class="eyebrow">${tab} · D${d.day} · ${m.week}주차 ${esc(m.module)} · ${m.hours}시간${m.tag?' · '+esc(m.tag):''}</div><h2>${esc(h2)}</h2>${lead?`<p class="lead">${esc(lead)}</p>`:''}`;};
-function renderMap(){
+let MAPSEL=0,MAPFOCUS=0;
+function renderMap(sel){
   const p=$('p-map');const byW={};S.course.forEach(c=>(byW[c.week]=byW[c.week]||[]).push(c));
   const ready=S.course.filter(c=>c.ready).length;
-  p.innerHTML=`<div class="eyebrow">S0 · 과정 지도</div><h2>음성 AI 전문가 과정 지도</h2><p class="lead">${S.course.length}일 중 ${ready}일이 준비됐어요. 준비된 일차를 누르면 오늘의 흐름으로 이동해요.</p>`+libCards()+`<h3 class="sec">주차별 일차</h3>`+
-  Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="week"><h3>${w}주차 <small>${esc(ds[0].module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`;
+  const cs=sel&&S.course.find(c=>c.day===sel&&c.ready);sel=cs?sel:0;MAPSEL=sel;
+  const balls=`<div class="balls" role="group" aria-label="일차 선택"><button class="ball all" type="button" data-n="0" aria-pressed="${!sel}" style="--c:var(--a5)">전체</button>`+S.course.map(c=>`<button class="ball" type="button" data-n="${c.day}" aria-pressed="${c.day===sel}"${c.ready?'':' aria-disabled="true" title="준비 중"'} style="--c:var(${AC[(c.week-1)%5]})">${c.day}</button>`).join('')+`</div>`;
+  const list=sel?`<div class="mapday" id="mapDay"><div class="msg" role="status">불러오는 중…</div></div>`:Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="week"><h3>${w}주차 <small>${esc(ds[0].module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`;
     return c.ready?`<a class="st${c.day===S.day?' cur':''}" ${col} href="#d${c.day}-flow"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비됨</em></a>`:`<div class="st soon" ${col} aria-disabled="true"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비 중</em></div>`;}).join('')+`</div></div>`;}).join('');
+  p.innerHTML=`<div class="eyebrow">S0 · 과정 지도</div><h2>음성 AI 전문가 과정 지도</h2><p class="lead">${S.course.length}일 중 ${ready}일이 준비됐어요. 준비된 일차를 누르면 오늘의 흐름으로 이동해요.</p>`+libCards()+`<h3 class="sec">주차별 일차</h3>`+balls+list;
+  p.querySelectorAll('.ball').forEach(b=>b.onclick=()=>{if(b.getAttribute('aria-disabled')==='true')return;const n=+b.dataset.n;MAPFOCUS=1;location.hash=n?'#map-d'+n:'#map';});
+  if(MAPFOCUS){MAPFOCUS=0;const f=p.querySelector('.ball[aria-pressed="true"]');if(f)f.focus({preventScroll:true});}
+  if(sel)loadDay(sel).then(d=>{if(MAPSEL!==sel||!$('mapDay'))return;const m=d.meta,files=d.files||[],colab=files.find(f=>/_실습\.ipynb$/.test(f.name)&&f.colab)||files.find(f=>f.colab);
+    $('mapDay').innerHTML=`<div class="hm-card"><div class="hm-lb">D${d.day} · ${m.week}주차 ${esc(m.module)}</div><h3 class="hm-ttl">${esc(d.title)}</h3>
+    <ul class="hm-goals">${d.goals.map(g=>`<li>${md(g)}</li>`).join('')}</ul>
+    <ul class="parts">${d.parts.map(x=>`<li><b>Part ${x.n}</b>${esc(x.title)}</li>`).join('')}</ul>
+    <div class="hm-act"><a class="btn go" href="#d${d.day}-flow">오늘의 흐름 →</a><a class="btn" href="#d${d.day}-anim">애니메이션</a><a class="btn" href="#d${d.day}-quiz">정리 퀴즈</a>${colab?`<a class="btn" href="${esc(colab.colab)}" target="_blank" rel="noopener">실습 노트북 Colab ↗</a>`:''}</div></div>`;
+  }).catch(()=>{if(MAPSEL===sel&&$('mapDay'))$('mapDay').innerHTML=`<div class="msg" role="status">D${sel} 자료를 불러오지 못했어요.</div>`;});
   libLoad().then(libFillTotals).catch(()=>{p.querySelectorAll('[data-lk]').forEach(e=>e.textContent='-');});
 }
 function renderFlow(){
@@ -778,6 +797,7 @@ const hashOf=(tab,day)=>tab==='home'||tab==='map'||tab==='motion'?'#'+tab:'#d'+d
 const railTab=t=>t==='lib'?'map':t;
 function nav(tab){const h=hashOf(tab,S.day);if(location.hash===h)route();else location.hash=h;}
 function parse(){const h=location.hash.replace(/^#/,'');if(h==='home'||h==='map'||h==='motion')return {tab:h};
+  const mp=/^map-d(\d+)$/.exec(h);if(mp)return {tab:'map',mapDay:+mp[1]};
   const l=/^lib-(concepts|quiz|graphs|anims)(?:-w(\d))?$/.exec(h);if(l)return {tab:'lib',page:l[1],week:+(l[2]||0)};
   const m=/^d(\d+)-(flow|goals|anim|files|learned|tasks|quiz)$/.exec(h);return m?{tab:m[2],day:+m[1]}:{tab:'home'};}
 const tabsEl=$('tabs');
@@ -791,7 +811,7 @@ async function route(){
   try{
     if(DAYTABS.has(tab)){await loadDay(S.day);if(my!==routing)return;if(S.rendered!==S.day)renderDay();sset('aiVoiceDash.lastDay',String(S.day));}
     else if(tab==='home'){await loadDay(S.day);if(my!==routing)return;renderHome();}
-    else if(tab==='map')renderMap();
+    else if(tab==='map')renderMap(p.mapDay);
     else if(tab==='lib'){await libLoad();if(my!==routing)return;renderLib(p.page,p.week);}
     else if(tab==='motion')renderMotion();
   }catch(e){

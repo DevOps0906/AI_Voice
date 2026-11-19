@@ -13,6 +13,7 @@
 | task-005 | Playwright 1440·1024·390 스크린샷·콘솔 0건(44일) | W6 | 008,009 | 낮음 | tester(haiku) | 완료(task-008 헤드리스 검사로 대체) |
 | task-010 | 홈 대시보드(메뉴 집합 화면) dashboard/index.html | W7 | 009 | 보통 | builder(sonnet) | 완료 |
 | task-011 | 교육내용 선택하기 + 과정 지도 자료실(개념·문제·그래프·애니메이션) | W8 | 010 | 보통 | builder(sonnet) | 완료 |
+| task-012 | 과정 지도 일차 번호 공 선택기(전체+1~N) | W9 | 011 | 보통 | builder(sonnet) | 완료 |
 
 상태: 대기 / 진행 / 완료 / 보류 · 위험도 → 워커 model: 낮음 haiku · 보통 sonnet · 높음 opus
 
