@@ -1,9 +1,9 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
 - 갱신: 2026-11-20
-- 현재 작업: 없음 — task-001~014 모두 완료, main 배포됨 (https://devops0906.github.io/AI_Voice/dashboard/)
-- 마지막으로 한 일: task-014 D1·D10 애니메이션 카드 코드 탭(Python 노트북 추출·JS·TS 참고 예시) 구현·배포
-- 다음 한 걸음: 사용자 지시 대기 (사용자가 작업 중단을 요청함)
+- 현재 작업: 없음 — task-001~019 모두 완료, main 배포됨 (https://devops0906.github.io/AI_Voice/dashboard/)
+- 마지막으로 한 일: task-015(주차 버튼·10문항 이동·이전 페이지)·017(D1·D10 코드 36개 단독 실행+라이브러리 표+run_code.py)·018(하위 메뉴·개념 학습 노트)·019(애니메이션 페이지 항목별 코드 상자) 배포
+- 다음 한 걸음: 나머지 42일 코드(756개) 주차별 병렬 작성 → run_code.py 검사 → 독립 리뷰 → 배포 (사용자가 D1·D10 확인 후)
 - 열린 결정(사용자 확인 필요):
   - 코드 탭 D2~D44 확장 여부 (확장 시 build_code.py MAP과 index.html CODE_DAYS에 일차 추가)
   - 정리 퀴즈 탭 fill·bucket·lab 문항 빈 화면 수정 여부 (tasks/README.md 발견한 문제)

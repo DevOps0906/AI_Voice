@@ -224,6 +224,29 @@ nav.tabs button{flex:0 0 auto;min-height:var(--tap);border:0;border-bottom:2px s
 nav.tabs button:hover{background:var(--soft);color:var(--ink)}
 nav.tabs button[aria-selected="true"]{color:var(--ink);font-weight:700;border-bottom-color:var(--a5)}
 nav.tabs button.seen::after{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--a1);margin-left:6px;vertical-align:middle}
+
+/* ---- 코드 상자 (task-019) ---- */
+.codebox{margin-top:22px;min-width:0;max-width:100%;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);box-shadow:var(--shadow);padding:14px 16px 16px;box-sizing:border-box}
+.codebox[hidden]{display:none}
+.codebox .cb-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:8px}
+.codebox h3{margin:0;font-size:var(--text-body);font-weight:700;flex:1 1 auto}
+.codebox .cb-tabs{display:flex;gap:2px;border:1px solid var(--line);border-radius:var(--radius-control);padding:2px;background:var(--soft)}
+.codebox .cb-tabs button{min-height:32px;border:0;border-radius:var(--radius-control);background:transparent;color:var(--muted);padding:2px 14px;font-size:var(--text-caption);font-weight:600;cursor:pointer}
+.codebox .cb-tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:var(--shadow)}
+.codebox .cb-copy{min-height:36px;padding:2px 12px;font-size:var(--text-caption)}
+.codebox .cb-src{margin:0 0 8px;color:var(--muted);font-size:var(--text-caption);overflow-wrap:anywhere}
+.codebox details.cb-libs{margin:0 0 10px;font-size:var(--text-caption)}
+.codebox details.cb-libs summary{cursor:pointer;font-weight:600;color:var(--ink);min-height:28px}
+.codebox .cb-tw{overflow-x:auto;max-width:100%;margin-top:6px}
+.codebox table{border-collapse:collapse;width:100%;min-width:520px}
+.codebox th,.codebox td{border-bottom:1px solid var(--line);padding:4px 8px;text-align:left;vertical-align:top}
+.codebox th{color:var(--muted);font-weight:600}
+.codebox td code{font-family:var(--font-mono);font-size:.92em;overflow-wrap:anywhere}
+.codebox a{color:var(--a5)}
+.codebox pre.cb-code{margin:0;overflow-x:auto;max-width:100%;background:var(--scope);color:var(--color-scope-fg);border:1px solid var(--line);border-radius:var(--radius-control);padding:10px 0;font-family:var(--font-mono);font-size:var(--text-caption);line-height:1.55;tab-size:4;counter-reset:cb}
+.codebox pre.cb-code .l{display:block;white-space:pre;padding:0 12px 0 0;width:max-content;min-width:100%;box-sizing:border-box}
+.codebox pre.cb-code .l::before{counter-increment:cb;content:counter(cb);display:inline-block;width:3.2ch;margin-right:1.2ch;text-align:right;color:#9198a1;user-select:none}
+.codebox .k{color:#ff7b72}.codebox .s{color:#a5d6ff}.codebox .c{color:#9ea7b3;font-style:italic}
 </style>
 <style>
 .lat{font-variant-numeric:tabular-nums}
@@ -699,6 +722,93 @@ new MutationObserver(markSeen).observe(document.querySelector('nav.tabs'),{subtr
 $('themeBtn').onclick=()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';};
 addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
   const i=tabs.findIndex(b=>b.getAttribute('aria-selected')==='true');if(e.key==='ArrowRight'&&i<tabs.length-1)tabs[i+1].click();if(e.key==='ArrowLeft'&&i>0)tabs[i-1].click();});
+})();
+</script>
+<script>
+/* 코드 상자(task-019): 활성 항목의 코드를 Python·TypeScript 탭으로. 원본 script 와 별개 블록. */
+(function(){
+const DAY=6,PM={},LS='aiVoiceDash.codeLang';
+const $=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;};
+const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const getLang=()=>{try{let v=localStorage.getItem(LS);if(v==='javascript')v='typescript';return v==='typescript'?'typescript':'python';}catch(e){return 'python';}};
+const setLang=l=>{try{localStorage.setItem(LS,l);}catch(e){}};
+const KW={python:'and|as|assert|async|await|break|class|continue|def|del|elif|else|except|False|finally|for|from|global|if|import|in|is|lambda|None|nonlocal|not|or|pass|raise|return|True|try|while|with|yield',
+ typescript:'abstract|as|async|await|break|case|catch|class|const|continue|default|delete|else|enum|export|extends|false|finally|for|from|function|if|implements|import|in|instanceof|interface|let|new|null|of|private|public|readonly|return|static|super|switch|this|throw|true|try|type|typeof|undefined|var|void|while|yield'};
+const RX={python:new RegExp(/(#[^\n]*)|("{3}[\s\S]*?"{3}|'{3}[\s\S]*?'{3}|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')/.source+'|\\b('+KW.python+')\\b','g'),
+ typescript:new RegExp(/(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(`(?:\\.|[^`\\])*`|"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')/.source+'|\\b('+KW.typescript+')\\b','g')};
+function hl(code,lang){
+  const wrap=(cls,t)=>t.split('\n').map(l=>'<span class="'+cls+'">'+esc(l)+'</span>').join('\n');
+  let out='',last=0,m;const re=RX[lang];re.lastIndex=0;
+  while((m=re.exec(code))){out+=esc(code.slice(last,m.index));out+=wrap(m[1]!=null?'c':m[2]!=null?'s':'k',m[0]);last=m.index+m[0].length;}
+  out+=esc(code.slice(last));
+  return out.split('\n').map(l=>'<span class="l">'+l+'</span>').join('');
+}
+function copy(text){
+  if(navigator.clipboard&&navigator.clipboard.writeText)return navigator.clipboard.writeText(text);
+  return new Promise((ok,no)=>{const t=document.createElement('textarea');t.value=text;t.style.cssText='position:fixed;opacity:0';document.body.appendChild(t);t.select();try{document.execCommand('copy')?ok():no();}catch(e){no(e);}t.remove();});
+}
+const LANGS=[['python','Python'],['typescript','TypeScript']];
+function init(data){
+  const box=$('section','codebox');box.id='codebox';box.setAttribute('aria-label','코드로 보기');box.hidden=true;
+  const head=$('div','cb-head'),h=$('h3',null,'코드로 보기');
+  const tl=$('div','cb-tabs');tl.setAttribute('role','tablist');tl.setAttribute('aria-label','언어');
+  const tb={};LANGS.forEach(([k,n])=>{const b=$('button',null,n);b.type='button';b.id='cb-t-'+k;b.setAttribute('role','tab');b.dataset.l=k;tl.appendChild(b);tb[k]=b;});
+  const cp=$('button','btn cb-copy','복사');cp.type='button';
+  head.append(h,tl,cp);
+  const src=$('p','cb-src'),libs=$('details','cb-libs'),pre=$('pre','cb-code');pre.tabIndex=0;
+  box.append(head,src,libs,pre);
+  let key=null,lang=getLang(),cur=null;
+  const avail=e=>LANGS.filter(([k])=>e&&e[k]).map(l=>l[0]);
+  function libList(e){let L=e.libs;if(L&&!Array.isArray(L))L=L[lang];return Array.isArray(L)?L:[];}
+  function render(){
+    const e=cur;if(!e){box.hidden=true;return;}
+    const av=avail(e);if(!av.length){box.hidden=true;return;}
+    if(av.indexOf(lang)<0)lang=av[0];
+    box.hidden=false;
+    LANGS.forEach(([k])=>{const on=k===lang;tb[k].hidden=av.indexOf(k)<0;tb[k].setAttribute('aria-selected',on);tb[k].tabIndex=on?0:-1;});
+    const od=Array.isArray(e.ord)?e.ord.map(r=>Array.isArray(r)?(r[0]===r[1]?r[0]:r[0]+'~'+r[1]):r).join(', '):'';
+    src.textContent=lang==='typescript'?'TypeScript · Node 26에서 실행 (node --experimental-strip-types)':['📓 '+(e.nb||''),e.part,od?'코드 셀 '+od:''].filter(x=>x&&x!=='📓 ').join(' · ');
+    src.hidden=!src.textContent;
+    const L=libList(e);libs.textContent='';libs.hidden=!L.length;
+    if(L.length){
+      libs.open=true;libs.appendChild($('summary',null,'사용 라이브러리 ('+L.length+')'));
+      const w=$('div','cb-tw'),t=$('table'),tr=$('tr');
+      ['이름','버전','용도','설치','문서'].forEach(x=>tr.appendChild($('th',null,x)));
+      const th=$('thead');th.appendChild(tr);t.appendChild(th);const bd=$('tbody');
+      L.forEach(x=>{const r=$('tr');
+        const c0=$('td');c0.appendChild($('code',null,x.name||''));
+        const c3=$('td');c3.appendChild($('code',null,x.install||''));
+        const c4=$('td');if(/^https?:\/\//.test(x.docs||'')){const a=$('a',null,'문서');a.href=x.docs;a.target='_blank';a.rel='noopener noreferrer';c4.appendChild(a);}
+        r.append(c0,$('td',null,x.version||''),$('td',null,x.purpose||''),c3,c4);bd.appendChild(r);});
+      t.appendChild(bd);w.appendChild(t);libs.appendChild(w);
+    }
+    pre.innerHTML=hl(e[lang],lang);
+    pre.setAttribute('aria-label',(lang==='python'?'Python':'TypeScript')+' 코드');
+  }
+  function sync(){
+    const p=document.querySelector('section.panel.active');if(!p)return;
+    const k=PM[p.id]||p.id;
+    if(box.parentNode!==p)p.appendChild(box);
+    if(k===key&&cur)return;
+    key=k;cur=data[k]||null;render();
+  }
+  tl.addEventListener('click',e=>{const b=e.target.closest('button[data-l]');if(!b)return;lang=b.dataset.l;setLang(lang);render();});
+  tl.addEventListener('keydown',e=>{
+    if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft'&&e.key!=='Home'&&e.key!=='End')return;
+    const av=avail(cur);if(av.length<2)return;e.stopPropagation();e.preventDefault();
+    let i=av.indexOf(lang);i=e.key==='Home'?0:e.key==='End'?av.length-1:(i+(e.key==='ArrowRight'?1:-1)+av.length)%av.length;
+    lang=av[i];setLang(lang);render();tb[lang].focus();});
+  cp.addEventListener('click',()=>{if(!cur)return;copy(cur[lang]).then(()=>{cp.textContent='복사됨';},()=>{cp.textContent='복사 실패';}).then(()=>setTimeout(()=>{cp.textContent='복사';},1500));});
+  const mo=new MutationObserver(sync);
+  document.querySelectorAll('section.panel').forEach(p=>mo.observe(p,{attributes:true,attributeFilter:['class']}));
+  addEventListener('hashchange',()=>setTimeout(sync,0));
+  sync();
+}
+const j=r=>r.ok?r.json():null;
+fetch('../../data/code/index.json').then(j).then(ix=>{
+  if(!ix||!ix[String(DAY)])return null;
+  return fetch('../../data/code/day'+String(DAY).padStart(2,'0')+'.json').then(j);
+}).then(d=>{if(d)init(d);}).catch(()=>{});
 })();
 </script>
 </body>

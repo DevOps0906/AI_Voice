@@ -16,6 +16,11 @@
 | task-012 | 과정 지도 일차 번호 공 선택기(전체+1~N) | W9 | 011 | 보통 | builder(sonnet) | 완료 |
 | task-013 | 번호 공=주차 보기 · 문제 풀이 일차 탭 · 자료실 왼쪽 메뉴 | W10 | 012 | 보통 | builder(sonnet) | 완료 |
 | task-014 | 애니메이션 카드 코드 탭(Python·JS·TS) D1·D10 | W11 | 013 | 보통 | builder(sonnet) | 완료 |
+| task-015 | 코드 전체·완성 코드(Python·TS만) · 주차 버튼 · 문제 10개 단위 이동 · 이전 페이지 버튼 | W12 | 014 | 보통 | builder(sonnet) | 완료 |
+| task-016 | 그래프 라이브러리 비교 페이지(D1, Canvas·Chart.js·D3·ECharts·Plotly) | W12 | — | 보통 | builder(sonnet) | 완료 |
+| task-017 | D1·D10 코드 단독 실행 보장 + 사용 라이브러리 정리 | W12 | 015 | 보통(난이도↑) | builder(opus) | 완료 |
+| task-018 | 과정 지도 하위 메뉴 + 개념 정리 보강(슬라이드 PDF·실습 노트북) | W13 | 017 | 보통 | builder(sonnet) | 완료 |
+| task-019 | 애니메이션 페이지 항목별 코드 상자(Python·TS, 44일 적용) | W13 | 017 | 보통 | builder(sonnet) | 완료 |
 
 상태: 대기 / 진행 / 완료 / 보류 · 위험도 → 워커 model: 낮음 haiku · 보통 sonnet · 높음 opus
 
