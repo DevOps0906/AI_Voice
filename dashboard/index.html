@@ -109,6 +109,47 @@ h3{overflow-wrap:anywhere}
 a.st:hover{border-color:var(--ink);border-top-color:var(--c)}
 .st.soon{opacity:.55;border-style:dashed;border-top-style:solid}
 .st.cur{box-shadow:inset 2px 0 0 var(--primary)}
+/* 홈 대시보드 */
+.hm-top{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px}
+@media (max-width:1199px){.hm-top{grid-template-columns:minmax(0,1fr)}}
+.hm-card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.hm-card h3{margin:0;font-size:1.05rem}
+.hm-lb{font-size:.84rem;font-weight:700;color:var(--primary)}
+.hm-ttl{font-size:1.35rem!important;font-weight:700;line-height:1.3;letter-spacing:-.02em;margin:0;overflow-wrap:anywhere}
+.hm-goals{margin:0;padding-left:20px;color:var(--muted);font-size:.92rem;display:grid;gap:2px}
+.hm-goals li{overflow-wrap:anywhere}
+.hm-card .bar{margin:0}
+.hm-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+a.btn{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink)}
+a.btn.go{color:var(--primary-fg)}
+.hm-sub{font-size:.84rem;color:var(--muted);margin:0}
+.hm-days{display:flex;flex-wrap:wrap;gap:6px}
+.hm-day{min-width:var(--tap);min-height:var(--tap);padding:0 10px;border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);cursor:pointer;font-weight:700;font-size:.9rem;font-variant-numeric:tabular-nums}
+.hm-day:hover:not(:disabled){border-color:var(--ink)}
+.hm-day[aria-pressed="true"]{background:var(--primary);color:var(--primary-fg);border-color:var(--primary)}
+.hm-day:disabled{opacity:.5;cursor:default;border-style:dashed}
+.hm-day i,.hm-p i{font-style:normal;color:var(--ok);margin-left:3px}
+.hm-day[aria-pressed="true"] i{color:inherit}
+.hm-menu{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:1199px){.hm-menu{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:767px){.hm-menu{grid-template-columns:minmax(0,1fr)}}
+.hm-m{display:grid;grid-template-columns:28px minmax(0,1fr);gap:12px;align-items:start;min-height:116px;padding:14px 16px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);color:var(--ink);text-decoration:none;min-width:0}
+.hm-m:hover{border-color:var(--a5)}
+.hm-n{width:28px;height:28px;border-radius:var(--radius);display:grid;place-items:center;background:var(--soft);border:1px solid var(--line);font-weight:700;font-size:.82rem;font-variant-numeric:tabular-nums}
+.hm-mb{display:flex;flex-direction:column;gap:2px;height:100%;min-width:0}
+.hm-mb b{font-size:1rem;overflow-wrap:anywhere}
+.hm-mb span{color:var(--muted);font-size:.86rem;overflow-wrap:anywhere}
+.hm-mb em{font-style:normal;margin-top:auto;padding-top:8px;font-weight:700;font-size:.88rem;color:var(--primary)}
+.hm-wk{display:grid;gap:6px}
+.hm-wr{display:grid;grid-template-columns:64px 52px minmax(0,1fr);gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:6px 14px}
+.hm-wr b{font-size:.92rem}
+.hm-wr small{color:var(--muted);font-weight:700}
+.hm-pills{display:flex;gap:6px;flex-wrap:wrap}
+a.hm-p,span.hm-p{display:inline-flex;align-items:center;min-height:var(--tap);padding:0 12px;border:1px solid var(--line);border-radius:999px;font-size:.86rem;font-weight:700;text-decoration:none;color:var(--ink)}
+a.hm-p:hover{border-color:var(--ink)}
+.hm-p.cur{border-color:var(--primary);color:var(--primary)}
+.hm-p.soon{opacity:.55;border-style:dashed}
+@media (max-width:767px){.hm-wr{grid-template-columns:auto minmax(0,1fr)}.hm-pills{grid-column:1/-1}}
 /* 목표 · 교시 */
 ol.goals{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:8px;counter-reset:g}
 ol.goals li{counter-increment:g;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;animation:gIn .5s ease both;animation-delay:calc(var(--i)*110ms)}
@@ -286,12 +327,13 @@ footer{margin-top:36px;color:var(--muted);font-size:.84rem}
 <body>
 <div class="shell">
 <aside class="rail">
-  <h1><a class="home" href="#map" title="메인 대시보드(과정 지도)로 가기"><small>음성 AI 전문가 과정</small>학습 대시보드</a></h1>
+  <h1><a class="home" href="#home" title="대시보드 홈으로 가기"><small>음성 AI 전문가 과정</small>학습 대시보드</a></h1>
   <label class="daysel">수업일<select id="daySel" aria-label="수업일 선택"></select></label>
   <nav class="tabs" role="tablist" aria-label="대시보드 탭" id="tabs"></nav>
   <div class="railfoot"><button id="themeBtn" type="button">☀/☾ 테마 바꾸기</button><span>← → 로 탭 이동</span></div>
 </aside>
 <main id="main">
+  <section class="panel" id="p-home" role="tabpanel"></section>
   <section class="panel" id="p-map" role="tabpanel"></section>
   <section class="panel" id="p-flow" role="tabpanel"></section>
   <section class="panel" id="p-goals" role="tabpanel"></section>
@@ -334,9 +376,9 @@ const DARK='rgba(13,17,23,.9)';
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
 /* ── 상태 · 데이터 ── */
-const TABS=[['map','과정 지도'],['flow','오늘의 흐름'],['goals','목표·교시'],['anim','애니메이션'],['files','수업 자료'],['learned','오늘 배운 것'],['tasks','과제·진도'],['quiz','정리 퀴즈'],['motion','모션 레퍼런스']];
+const TABS=[['home','대시보드'],['map','과정 지도'],['flow','오늘의 흐름'],['goals','목표·교시'],['anim','애니메이션'],['files','수업 자료'],['learned','오늘 배운 것'],['tasks','과제·진도'],['quiz','정리 퀴즈'],['motion','모션 레퍼런스']];
 const DAYTABS=new Set(['flow','goals','anim','files','learned','tasks','quiz']);
-const S={day:1,tab:'map',course:[],rendered:0,anim:null};
+const S={day:1,tab:'home',course:[],rendered:0,anim:null};
 const DATA={};
 const dn=n=>'day'+String(n).padStart(2,'0');
 async function jget(u){const r=await fetch(u);if(!r.ok)throw new Error(u+' '+r.status);return r.json();}
@@ -422,7 +464,7 @@ async function copy(s,btn){let ok=false;try{await navigator.clipboard.writeText(
 function drawMotion(dt,now){CVS.forEach(o=>{if(!o.cv.isConnected)return;const {c,w,h}=fit(o.cv);o.fn(c,w,h,RM?1:now,dt,o.st);});}
 
 /* ── 프레임 루프 ── */
-let active='map',lastTs=0;
+let active='home',lastTs=0;
 function drawActive(dt,now){if(active==='flow')drawFlow(dt);else if(active==='motion')drawMotion(dt,now);}
 function kick(){if(RM)drawActive(0.016,1);}
 function frame(ts){const dt=clamp((ts-lastTs)/1000||0.016,0.001,0.05);lastTs=ts;if(!RM)drawActive(dt,ts/1000);requestAnimationFrame(frame);}
@@ -564,13 +606,47 @@ function renderQuiz(){
   $('qChips').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{if(+b.dataset.g!==gcur)showG(+b.dataset.g);});
   if(gs.length)showG(0);else $('qBody').innerHTML='<p class="note">이 일차에는 퀴즈가 없어요.</p>';
 }
+/* 홈 대시보드 */
+const hwArr=n=>{try{const a=JSON.parse(sget('aiVoiceDash.hw.d'+n)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}};
+const hwAny=n=>hwArr(n).some(Boolean);
+const MDESC={map:['과정 지도','9주 전체 일정과 준비 상태'],flow:['오늘의 흐름','소리가 흘러가는 과정을 그림으로'],goals:['목표·교시','오늘 배울 것과 교시별 시간표'],anim:['애니메이션','수업용 애니메이션 모아 보기'],files:['수업 자료','슬라이드·노트북·워크시트 링크'],learned:['오늘 배운 것','개념을 한 줄로 정리한 표'],tasks:['과제·진도','과제 체크와 진행 막대'],quiz:['정리 퀴즈','문제를 풀며 확인하기'],motion:['모션 레퍼런스','화면 움직임 효과 모음']};
+async function pickHomeDay(n){S.day=n;S.anim=null;sset('aiVoiceDash.lastDay',String(n));$('daySel').value=String(n);
+  try{await loadDay(n);}catch(e){return;}if(active==='home')renderHome();}
+function renderHome(){
+  const d=DATA[S.day],m=d.meta,ready=S.course.filter(c=>c.ready).length;
+  const hw=d.homework||[],st=hwArr(S.day),hn=hw.filter((_,i)=>st[i]).length;
+  const nq=((d.worksheet&&d.worksheet.groups)||[]).reduce((a,g)=>a+g.qs.length,0);
+  const files=d.files||[],colab=files.find(f=>/_실습\.ipynb$/.test(f.name)&&f.colab)||files.find(f=>f.colab);
+  const doneDays=S.course.filter(c=>hwAny(c.day)).length,total=S.course.length;
+  const wkDays=S.course.filter(c=>c.week===m.week);
+  const stat={map:'과정 '+total+'일',flow:'Part '+d.parts.length+'개',goals:'목표 '+d.goals.length+'개',anim:'애니메이션 '+d.anims.length+'종',files:'자료 '+files.length+'개',learned:'개념 '+(d.learned||[]).length+'개',tasks:'과제 '+hn+'/'+hw.length,quiz:'퀴즈 '+nq+'문항',motion:'모션 '+(MOTION.fx.length+MOTION.js.length)+'종'};
+  const byW={};S.course.forEach(c=>(byW[c.week]=byW[c.week]||[]).push(c));
+  $('p-home').innerHTML=`<div class="eyebrow">음성 AI 전문가 과정</div><h2>학습 대시보드</h2><p class="lead">${Object.keys(byW).length}주 · ${total}일 · 준비된 일차 ${ready}일</p>
+  <div class="hm-top">
+   <div class="hm-card"><div class="hm-lb">D${d.day} · ${m.week}주차 ${esc(m.module)}</div><h3 class="hm-ttl">${esc(d.title)}</h3>
+    <ul class="hm-goals">${d.goals.slice(0,2).map(g=>`<li>${md(g)}</li>`).join('')}</ul>
+    ${hw.length?`<div class="bar"><span>과제 ${hn} / ${hw.length}</span><div class="track"><i style="width:${hn/hw.length*100}%"></i></div></div>`:`<p class="hm-sub">이 일차는 과제 절이 없어요.</p>`}
+    <div class="hm-act"><a class="btn go" href="#d${d.day}-flow">오늘의 흐름 →</a><a class="btn" href="#d${d.day}-anim">애니메이션</a><a class="btn" href="#d${d.day}-quiz">정리 퀴즈</a>${colab?`<a class="btn" href="${esc(colab.colab)}" target="_blank" rel="noopener">실습 노트북 Colab ↗</a>`:''}</div></div>
+   <div class="hm-card"><h3>전체 진도</h3>
+    <div class="bar"><span>${doneDays} / ${total}</span><div class="track"><i style="width:${total?doneDays/total*100:0}%"></i></div></div>
+    <p class="hm-sub">과제를 하나라도 체크한 일차 수</p><div class="hm-lb" style="color:var(--muted)">이번 주 · ${m.week}주차</div>
+    <div class="hm-days">${wkDays.map(c=>`<button type="button" class="hm-day" data-d="${c.day}" aria-pressed="${c.day===S.day}"${c.ready?'':' disabled'} aria-label="D${c.day}${hwAny(c.day)?' 체크함':''}">D${c.day}${hwAny(c.day)?'<i>✓</i>':''}</button>`).join('')}</div></div>
+  </div>
+  <h3 class="sec">메뉴</h3>
+  <div class="hm-menu">${TABS.slice(1).map(([id],i)=>`<a class="hm-m" href="${hashOf(id,S.day)}"><span class="hm-n">${i+2}</span><span class="hm-mb"><b>${MDESC[id][0]}</b><span>${MDESC[id][1]}</span><em>${esc(stat[id])}</em></span></a>`).join('')}</div>
+  <h3 class="sec">주차 한눈에</h3>
+  <div class="hm-wk">${Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="hm-wr"><b>${w}주차</b><small>${esc(ds[0].module)}</small><div class="hm-pills">${ds.map(c=>{const ck=hwAny(c.day)?'<i>✓</i>':'';return c.ready?`<a class="hm-p${c.day===S.day?' cur':''}" href="#d${c.day}-flow">D${c.day}${ck}</a>`:`<span class="hm-p soon" aria-disabled="true">D${c.day}</span>`;}).join('')}</div></div>`;}).join('')}</div>
+  <div class="row"><a class="btn" href="#map">과정 지도 전체 보기 →</a></div>`;
+  $('p-home').querySelectorAll('.hm-day').forEach(b=>b.onclick=()=>pickHomeDay(+b.dataset.d));
+  document.title='학습 대시보드 · 음성 AI 전문가 과정';
+}
 function renderDay(){stopTour();const d=DATA[S.day];renderFlow();renderGoals();renderAnim();renderFiles();renderLearned();renderTasks();renderQuiz();S.rendered=S.day;document.title='D'+d.day+' '+d.title+' · 학습 대시보드';}
 
 /* ── 라우팅 ── */
-const hashOf=(tab,day)=>tab==='map'||tab==='motion'?'#'+tab:'#d'+day+'-'+tab;
+const hashOf=(tab,day)=>tab==='home'||tab==='map'||tab==='motion'?'#'+tab:'#d'+day+'-'+tab;
 function nav(tab){const h=hashOf(tab,S.day);if(location.hash===h)route();else location.hash=h;}
-function parse(){const h=location.hash.replace(/^#/,'');if(h==='map'||h==='motion')return {tab:h};
-  const m=/^d(\d+)-(flow|goals|anim|files|learned|tasks|quiz)$/.exec(h);return m?{tab:m[2],day:+m[1]}:{tab:'map'};}
+function parse(){const h=location.hash.replace(/^#/,'');if(h==='home'||h==='map'||h==='motion')return {tab:h};
+  const m=/^d(\d+)-(flow|goals|anim|files|learned|tasks|quiz)$/.exec(h);return m?{tab:m[2],day:+m[1]}:{tab:'home'};}
 const tabsEl=$('tabs');
 TABS.forEach(([id,label],i)=>{const b=mk('button',null,`<span class="tc">${i+1}</span>${label}`);b.type='button';b.setAttribute('role','tab');b.dataset.t=id;b.setAttribute('aria-selected','false');b.onclick=()=>nav(id);tabsEl.appendChild(b);});
 const tabBtns=[...tabsEl.children];
@@ -580,7 +656,8 @@ async function route(){
   if(p.day){const c=S.course.find(x=>x.day===p.day);if(!c||!c.ready)tab='map';else S.day=p.day;}
   $('daySel').value=String(S.day);
   try{
-    if(DAYTABS.has(tab)){await loadDay(S.day);if(my!==routing)return;if(S.rendered!==S.day)renderDay();}
+    if(DAYTABS.has(tab)){await loadDay(S.day);if(my!==routing)return;if(S.rendered!==S.day)renderDay();sset('aiVoiceDash.lastDay',String(S.day));}
+    else if(tab==='home'){await loadDay(S.day);if(my!==routing)return;renderHome();}
     else if(tab==='map')renderMap();
     else if(tab==='motion')renderMotion();
   }catch(e){
@@ -600,7 +677,7 @@ addEventListener('keydown',e=>{if(/INPUT|SELECT|TEXTAREA/.test(document.activeEl
   const i=tabBtns.findIndex(b=>b.dataset.t===active);
   if(e.key==='ArrowRight'&&i<tabBtns.length-1)nav(tabBtns[i+1].dataset.t);
   if(e.key==='ArrowLeft'&&i>0)nav(tabBtns[i-1].dataset.t);});
-$('daySel').onchange=e=>{S.day=+e.target.value;S.anim=null;nav(DAYTABS.has(active)?active:(active==='motion'?'motion':'flow'));};
+$('daySel').onchange=e=>{S.day=+e.target.value;S.anim=null;nav(DAYTABS.has(active)?active:(active==='motion'||active==='home'?active:'flow'));};
 /* 테마 */
 const sv=sget('aiVoiceDash.theme');if(sv==='dark'||sv==='light')document.documentElement.dataset.theme=sv;
 $('themeBtn').onclick=()=>{const r=document.documentElement;const dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';sset('aiVoiceDash.theme',r.dataset.theme);};
@@ -610,7 +687,7 @@ $('themeBtn').onclick=()=>{const r=document.documentElement;const dark=r.dataset
     $('p-map').innerHTML=`<div class="msg" role="alert">과정 데이터를 불러오지 못했어요. 저장소 맨 위에서 <code>python -m http.server</code>를 실행한 뒤 <code>/dashboard/index.html</code>로 여세요.</div>`;
     $('p-map').classList.add('active');return;}
   $('daySel').innerHTML=S.course.map(c=>`<option value="${c.day}"${c.ready?'':' disabled'}>D${c.day} · ${esc(c.title)}${c.ready?'':' (준비 중)'}</option>`).join('');
-  const first=S.course.find(c=>c.ready);if(first)S.day=first.day;
+  const first=S.course.find(c=>c.ready),ld=S.course.find(c=>c.ready&&String(c.day)===sget('aiVoiceDash.lastDay'));if(ld)S.day=ld.day;else if(first)S.day=first.day;
   await route();requestAnimationFrame(frame);
 })();
 })();
