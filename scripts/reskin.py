@@ -122,6 +122,14 @@ main{padding:30px clamp(16px,3vw,40px) 60px;max-width:1120px;width:100%;min-widt
 }
 """
 
+# 원본에 있던 모바일 가로 넘침 보정 (CSS만, script 는 손대지 않음)
+DAY_FIX = {
+    2: ".pipewrap>*{min-width:0}\n",            # 1열 그리드에서 긴 pre.code 가 칸을 늘리던 문제
+    9: ".steplist>*{min-width:0;overflow-wrap:anywhere}\n",  # WhisperX 단계 목록의 긴 code
+    14: "pre.outbox{overflow-x:auto;max-width:100%}\n",  # 모델 카드 미리보기 긴 줄
+    29: ".tokgrid>*{min-width:0}\n",              # JWT 2열→1열 그리드 칸 늘어남
+}
+
 TOPBAR = ('<div class="topbar"><button id="themeBtn" class="btn" type="button">화면 모드 바꾸기</button>'
           '<span>키보드 ← → 로 탭을 넘길 수 있습니다.</span></div>\n')
 
@@ -172,7 +180,7 @@ def build(n):
     rail = n >= RAIL_FROM
     s = re.sub(r"<link[^>]*fonts\.g[^>]*>\n?", "", src)
     m = re.search(r"<style>\n?(.*?)</style>", s, re.S)
-    s = s[:m.start()] + PRETENDARD + "\n<style>" + restyle(m.group(1), rail) + "</style>" + s[m.end():]
+    s = s[:m.start()] + PRETENDARD + "\n<style>" + restyle(m.group(1), rail) + DAY_FIX.get(n, "") + "</style>" + s[m.end():]
     m = re.search(r"<script>(.*?)</script>", s, re.S)
     assert s.count("<script>") == 1
     s = s[:m.start(1)] + transform_script(m.group(1), rail) + s[m.end(1):]
