@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>그래프 라이브러리 비교 · D1</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --page:#f6f8fa;--panel:#ffffff;--ink:#1f2328;--muted:#59636e;--line:#d0d7de;--soft:#eaeef2;--input:#818b98;--primary:#0969da;--primary-fg:#ffffff;
+  --a1:#1b7c83;--a2:#9a6700;--a3:#bf3989;--a4:#8250df;--a5:#0969da;--ok:#1a7f37;--bad:#d1242f;
+  --scope:#0d1117;--scope-fg:#f0f6fc;--scope-mute:#9198a1;
+  --font-sans:"Pretendard Variable",Pretendard,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;--font-mono:ui-monospace,"SF Mono",Consolas,monospace;
+  --radius:6px;--shadow-pop:0 8px 24px rgb(140 149 159 / .2);--ring:0 0 0 2px rgb(9 105 218 / .4);
+  --fs:16px;--h1:2.05rem;--ph:260px;--cols:3;--tap:40px;
+  box-sizing:border-box;
+}
+@media (max-width:1199px){:root{--fs:15px;--h1:1.75rem;--ph:240px;--cols:2}}
+@media (max-width:767px){:root{--fs:14.5px;--h1:1.45rem;--ph:220px;--cols:1;--tap:44px}}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#0d1117;--panel:#151b23;--ink:#f0f6fc;--muted:#9198a1;--line:#3d444d;--soft:#212830;--input:#727b87;--primary:#4493f8;--primary-fg:#0d1117;
+  --a1:#39c5cf;--a2:#d29922;--a3:#db61a2;--a4:#ab7df8;--a5:#4493f8;--ok:#3fb950;--bad:#f85149;--shadow-pop:0 8px 24px rgb(1 4 9 / .6);--ring:0 0 0 2px rgb(68 147 248 / .5);}}
+:root[data-theme="dark"]{
+  --page:#0d1117;--panel:#151b23;--ink:#f0f6fc;--muted:#9198a1;--line:#3d444d;--soft:#212830;--input:#727b87;--primary:#4493f8;--primary-fg:#0d1117;
+  --a1:#39c5cf;--a2:#d29922;--a3:#db61a2;--a4:#ab7df8;--a5:#4493f8;--ok:#3fb950;--bad:#f85149;--shadow-pop:0 8px 24px rgb(1 4 9 / .6);--ring:0 0 0 2px rgb(68 147 248 / .5);}
+*,*::before,*::after{box-sizing:inherit}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-sans);font-size:var(--fs);line-height:1.6;overflow-x:hidden;
+  padding:env(safe-area-inset-top,0) env(safe-area-inset-right,0) env(safe-area-inset-bottom,0) env(safe-area-inset-left,0)}
+button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible,summary:focus-visible,pre:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+a{color:var(--primary)}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 20px 60px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.btn{min-height:var(--tap);padding:0 14px;border:1px solid var(--line);background:var(--panel);border-radius:var(--radius);cursor:pointer}
+.btn:hover{border-color:var(--primary)}
+.btn[aria-pressed="true"]{background:var(--primary);border-color:var(--primary);color:var(--primary-fg)}
+h1{font-size:var(--h1);letter-spacing:-.03em;line-height:1.2;margin:14px 0 6px}
+.lead{color:var(--muted);margin:0 0 16px;max-width:75ch}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;margin:0 0 14px;border-bottom:1px solid var(--line)}
+.tabs .btn{white-space:nowrap;flex:0 0 auto}
+.libline{font-size:.88rem;color:var(--muted);margin:0 0 12px;overflow-wrap:anywhere}
+.grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.card h3{font-size:1.05rem;margin:0}
+.card h3 small{color:var(--muted);font-weight:400}
+.ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:.9rem}
+.ctl label{display:inline-flex;align-items:center;gap:6px;min-height:var(--tap)}
+.plot{position:relative;height:var(--ph);width:100%;min-width:0;overflow:hidden}
+.plot canvas,.plot svg{display:block}
+.tip{position:absolute;pointer-events:none;background:var(--scope);color:var(--scope-fg);padding:4px 8px;border-radius:var(--radius);font-size:.85rem;white-space:nowrap;box-shadow:var(--shadow-pop);z-index:2}
+.tip[hidden]{display:none}
+.memo{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;font-size:.85rem;color:var(--muted);margin:0}
+.memo dt{font-weight:600;color:var(--ink)}.memo dd{margin:0}
+details.code{border-top:1px solid var(--line);padding-top:8px;min-width:0}
+details.code summary{cursor:pointer;font-weight:600;min-height:var(--tap);display:flex;align-items:center}
+.codebar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0}
+.codebar .btn{min-height:32px;padding:0 10px;font-size:.85rem}
+pre.src{margin:0;background:var(--scope);color:var(--scope-fg);border-radius:var(--radius);padding:10px 0;overflow:auto;max-height:380px;font:12.5px/1.5 var(--font-mono);counter-reset:ln}
+pre.src span{display:block;white-space:pre;padding-right:14px;width:max-content;min-width:100%}
+pre.src span::before{counter-increment:ln;content:counter(ln);display:inline-block;width:3.2em;padding-right:1em;text-align:right;color:var(--scope-mute);user-select:none}
+h2{font-size:1.35rem;margin:28px 0 10px}
+h2 small{color:var(--muted);font-weight:400;font-size:.7em}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--soft);white-space:nowrap}
+td.n{white-space:nowrap}
+.note{font-size:.85rem;color:var(--muted)}
+.err{color:var(--bad);padding:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <a href="../index.html#home" class="btn" style="display:inline-flex;align-items:center;text-decoration:none">← 대시보드로</a>
+    <button class="btn" id="theme" type="button">테마: 자동</button>
+  </div>
+  <h1>그래프 라이브러리 비교 · D1</h1>
+  <p class="lead">D1의 그래프 3종(샘플링 · 지연 예산 · 마이크 파형)을 라이브러리 5가지로 똑같이 그렸습니다. 값은 모두 <b>수업용 예시 값</b>입니다. 라이브러리 탭에서는 실제로 실행되는 코드를 그래프 아래에서 볼 수 있습니다.</p>
+  <div class="tabs" id="tabs" role="tablist" aria-label="라이브러리"></div>
+  <div id="view"></div>
+  <h2>비교 표 <small>크기·코드 줄 수는 실제로 잰 값</small></h2>
+  <div class="tw"><table id="cmp"></table></div>
+  <p class="note" id="notes"></p>
+</div>
+
+<!-- 공통 도우미 -->
+<script>
+const CURVE=Array.from({length:401},(_,i)=>({x:i/200,y:Math.sin(2*Math.PI*i/200)}));
+function samplesOf(k){return Array.from({length:2*k+1},(_,i)=>({x:i/k,y:Math.sin(2*Math.PI*i/k)}))}
+const LAT=[{n:'STT',v:300,c:'a1'},{n:'LLM',v:700,c:'a2'},{n:'TTS',v:400,c:'a3'}],GOAL=1500;
+function noise(t){return (Math.sin(Math.round(t*100)*12.9898)*43758.5453)%1}
+function voice(t){
+  const env=.15+.85*Math.pow(Math.abs(Math.sin(2*Math.PI*.7*t)),1.5);
+  const s=.55*Math.sin(2*Math.PI*4*t)+.3*Math.sin(2*Math.PI*9*t)+.15*Math.sin(2*Math.PI*17*t);
+  return Math.max(-1,Math.min(1,env*s+.08*noise(t)));
+}
+function voiceWin(t){return Array.from({length:200},(_,i)=>({x:-2+i*.01,y:voice(t-2+i*.01)}))}
+function tween(ms,step){
+  let id,t0=performance.now(),dead=false;
+  const f=now=>{if(dead)return;const p=Math.min(1,(now-t0)/ms);step(p);if(p<1)id=requestAnimationFrame(f)};
+  id=requestAnimationFrame(f);
+  return()=>{dead=true;cancelAnimationFrame(id)};
+}
+function loop(fps,ctl,step){
+  let id,last=0,t=0,dead=false;
+  const f=now=>{
+    if(dead)return;id=requestAnimationFrame(f);
+    if(ctl.v||now-last<1000/fps-2)return;
+    last=now;t+=1/fps;
+    const s=performance.now();step(t);ctl.ms=ctl.ms*.9+(performance.now()-s)*.1;
+  };
+  id=requestAnimationFrame(f);
+  return()=>{dead=true;cancelAnimationFrame(id)};
+}
+function mkCanvas(host){
+  const cv=document.createElement('canvas'),w=host.clientWidth,h=host.clientHeight,dpr=window.devicePixelRatio||1;
+  cv.width=w*dpr;cv.height=h*dpr;cv.style.cssText='width:100%;height:100%';
+  host.append(cv);const g=cv.getContext('2d');g.scale(dpr,dpr);
+  return {cv,g,w,h};
+}
+</script>
+
+<!-- 1. Canvas 2D -->
+<script>
+function canvasA(host,T,o){
+  const {g,w,h}=mkCanvas(host),m={l:40,r:12,t:12,b:28};
+  const X=x=>m.l+x/2*(w-m.l-m.r),Y=y=>m.t+(1-y)/2*(h-m.t-m.b);
+  const sets=[o.show8&&{pts:samplesOf(8),c:T.a2,r:4},o.show16&&{pts:samplesOf(16),c:T.a3,r:3}].filter(Boolean);
+  return tween(2400,p=>{
+    g.clearRect(0,0,w,h);
+    g.strokeStyle=T.line;g.fillStyle=T.muted;g.font='12px '+T.font;g.lineWidth=1;
+    [-1,0,1].forEach(v=>{g.beginPath();g.moveTo(m.l,Y(v));g.lineTo(w-m.r,Y(v));g.stroke();g.fillText(v,12,Y(v)+4)});
+    [0,.5,1,1.5,2].forEach(v=>g.fillText(v+' ms',X(v)-(v?14:4),h-8));
+    g.strokeStyle=T.a1;g.lineWidth=2;g.beginPath();
+    CURVE.forEach((q,i)=>i?g.lineTo(X(q.x),Y(q.y)):g.moveTo(X(q.x),Y(q.y)));g.stroke();
+    sets.forEach(d=>{
+      g.fillStyle=d.c;
+      d.pts.slice(0,Math.floor(p*d.pts.length)).forEach(q=>{g.beginPath();g.arc(X(q.x),Y(q.y),d.r,0,7);g.fill()});
+    });
+  });
+}
+function canvasB(host,T,o){
+  const {cv,g,w,h}=mkCanvas(host),m={l:12,r:12},bh=44,y0=(h-bh)/2;
+  const X=v=>m.l+v/1700*(w-m.l-m.r);
+  const tip=document.createElement('div');tip.className='tip';tip.hidden=true;host.append(tip);
+  let p=1,hover=-1;
+  const draw=q=>{
+    g.clearRect(0,0,w,h);g.font='12px '+T.font;g.textBaseline='middle';
+    g.fillStyle=T.muted;g.strokeStyle=T.line;g.lineWidth=1;
+    [0,500,1000,1500].forEach(v=>{g.beginPath();g.moveTo(X(v),y0-14);g.lineTo(X(v),y0+bh+14);g.stroke();g.fillText(v+' ms',X(v)-(v?14:0),h-14)});
+    let s=0;
+    LAT.forEach((d,i)=>{
+      g.globalAlpha=hover<0||hover===i?1:.45;g.fillStyle=T[d.c];
+      g.fillRect(X(s*q),y0,(X(d.v)-X(0))*q,bh);
+      g.globalAlpha=1;g.fillStyle=T.on;g.fillText(d.n+' '+d.v,X(s*q)+8,y0+bh/2);
+      s+=d.v;
+    });
+    g.setLineDash([6,4]);g.strokeStyle=T.ink;g.lineWidth=2;g.beginPath();g.moveTo(X(GOAL),y0-26);g.lineTo(X(GOAL),y0+bh+14);g.stroke();g.setLineDash([]);
+    g.fillStyle=T.ink;g.fillText('목표 1500 ms',X(GOAL)-84,y0-34);
+  };
+  cv.onpointermove=e=>{
+    const r=cv.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;let s=0;hover=-1;
+    LAT.forEach((d,i)=>{if(x>=X(s)&&x<=X(s+d.v)&&Math.abs(y-h/2)<bh/2)hover=i;s+=d.v});
+    tip.hidden=hover<0;
+    if(hover>=0){tip.textContent=LAT[hover].n+' '+LAT[hover].v+' ms';tip.style.left=Math.min(x+10,w-120)+'px';tip.style.top=(y-34)+'px'}
+    draw(p);
+  };
+  cv.onpointerleave=()=>{hover=-1;tip.hidden=true;draw(p)};
+  return tween(900,q=>{p=1-Math.pow(1-q,3);draw(p)});
+}
+function canvasC(host,T,o){
+  const {g,w,h}=mkCanvas(host),m={l:36,r:10,t:10,b:24};
+  const X=x=>m.l+(x+2)/2*(w-m.l-m.r),Y=y=>m.t+(1-y)/2*(h-m.t-m.b);
+  return loop(30,o.ctl,t=>{
+    g.clearRect(0,0,w,h);g.strokeStyle=T.line;g.fillStyle=T.muted;g.font='12px '+T.font;g.lineWidth=1;
+    [-1,0,1].forEach(v=>{g.beginPath();g.moveTo(m.l,Y(v));g.lineTo(w-m.r,Y(v));g.stroke();g.fillText(v,10,Y(v)+4)});
+    [-2,-1.5,-1,-.5,0].forEach(v=>g.fillText(v+' s',X(v)-(v?14:20),h-6));
+    g.strokeStyle=T.a4;g.lineWidth=1.5;g.beginPath();
+    voiceWin(t).forEach((q,i)=>i?g.lineTo(X(q.x),Y(q.y)):g.moveTo(X(q.x),Y(q.y)));g.stroke();
+  });
+}
+</script>
+
+<!-- 2. Chart.js -->
+<script>
+function chartjsA(host,T,o){
+  const cv=document.createElement('canvas');host.append(cv);
+  Chart.defaults.color=T.muted;Chart.defaults.borderColor=T.line;
+  const pts=(k,c,r)=>({data:samplesOf(k),showLine:false,pointRadius:r,backgroundColor:c,animation:{duration:200,delay:ctx=>ctx.dataIndex*2400/(2*k+1)}});
+  const ch=new Chart(cv,{type:'scatter',
+    data:{datasets:[
+      {data:CURVE,showLine:true,pointRadius:0,borderColor:T.a1,borderWidth:2,animation:false},
+      ...(o.show8?[pts(8,T.a2,4)]:[]),...(o.show16?[pts(16,T.a3,3)]:[])]},
+    options:{maintainAspectRatio:false,animations:{radius:{from:0}},plugins:{legend:{display:false}},
+      scales:{x:{min:0,max:2,ticks:{callback:v=>v+' ms'}},y:{min:-1,max:1,ticks:{stepSize:1}}}}});
+  return()=>ch.destroy();
+}
+function chartjsB(host,T,o){
+  const cv=document.createElement('canvas');host.append(cv);
+  Chart.defaults.color=T.muted;Chart.defaults.borderColor=T.line;
+  const goal={id:'goal',afterDatasetsDraw(c){
+    const {ctx,chartArea:a,scales:{x}}=c,px=x.getPixelForValue(GOAL);
+    ctx.save();ctx.setLineDash([6,4]);ctx.strokeStyle=T.ink;ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(px,a.top);ctx.lineTo(px,a.bottom);ctx.stroke();
+    ctx.fillStyle=T.ink;ctx.fillText('목표 1500 ms',px-70,a.top+10);ctx.restore();
+  }};
+  const ch=new Chart(cv,{type:'bar',plugins:[goal],
+    data:{labels:['지연'],datasets:LAT.map(d=>({label:d.n,data:[d.v],backgroundColor:T[d.c],barThickness:44}))},
+    options:{indexAxis:'y',maintainAspectRatio:false,animation:{duration:900},
+      scales:{x:{stacked:true,min:0,max:1700,ticks:{stepSize:500,maxRotation:0,callback:v=>v+' ms'}},y:{stacked:true,display:false}},
+      plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>c.dataset.label+' '+c.raw+' ms'}}}}});
+  return()=>ch.destroy();
+}
+function chartjsC(host,T,o){
+  const cv=document.createElement('canvas');host.append(cv);
+  Chart.defaults.color=T.muted;Chart.defaults.borderColor=T.line;
+  const ch=new Chart(cv,{type:'scatter',
+    data:{datasets:[{data:voiceWin(0),showLine:true,pointRadius:0,borderColor:T.a4,borderWidth:1.5}]},
+    options:{animation:false,maintainAspectRatio:false,events:[],plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{x:{min:-2,max:0,ticks:{callback:v=>v+' s'}},y:{min:-1,max:1,ticks:{stepSize:1}}}}});
+  const stop=loop(30,o.ctl,t=>{ch.data.datasets[0].data=voiceWin(t);ch.update('none')});
+  return()=>{stop();ch.destroy()};
+}
+</script>
+
+<!-- 3. D3 -->
+<script>
+function d3A(host,T,o){
+  const w=host.clientWidth,h=host.clientHeight,m={l:40,r:12,t:12,b:28};
+  const svg=d3.select(host).append('svg').attr('width',w).attr('height',h).style('color',T.muted).style('font-size','12px');
+  const x=d3.scaleLinear([0,2],[m.l,w-m.r]),y=d3.scaleLinear([-1,1],[h-m.b,m.t]);
+  svg.append('g').attr('transform',`translate(0,${h-m.b})`).call(d3.axisBottom(x).tickValues([0,.5,1,1.5,2]).tickFormat(v=>v+' ms'));
+  svg.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues([-1,0,1]));
+  svg.selectAll('.domain,.tick line').attr('stroke',T.line);
+  svg.append('path').datum(CURVE).attr('fill','none').attr('stroke',T.a1).attr('stroke-width',2)
+    .attr('d',d3.line().x(d=>x(d.x)).y(d=>y(d.y)));
+  [[o.show8,8,T.a2,4],[o.show16,16,T.a3,3]].filter(s=>s[0]).forEach(([,k,c,r])=>{
+    svg.append('g').selectAll('circle').data(samplesOf(k)).join('circle')
+      .attr('cx',d=>x(d.x)).attr('cy',d=>y(d.y)).attr('r',0).attr('fill',c)
+      .transition().delay((d,i)=>i*2400/(2*k+1)).duration(200).attr('r',r);
+  });
+  return()=>svg.selectAll('*').interrupt();
+}
+function d3B(host,T,o){
+  const w=host.clientWidth,h=host.clientHeight,bh=44;
+  const svg=d3.select(host).append('svg').attr('width',w).attr('height',h).style('color',T.muted).style('font-size','12px');
+  const x=d3.scaleLinear([0,1700],[12,w-12]);
+  const tip=d3.select(host).append('div').attr('class','tip').property('hidden',true);
+  let s=0;const seg=LAT.map(d=>({...d,s:(s+=d.v)-d.v}));
+  svg.append('g').attr('transform',`translate(0,${h/2+bh/2+14})`).call(d3.axisBottom(x).tickValues([0,500,1000,1500]).tickFormat(v=>v+' ms'));
+  svg.selectAll('.domain,.tick line').attr('stroke',T.line);
+  const bars=svg.selectAll('g.bar').data(seg).join('g').attr('class','bar');
+  const rects=bars.append('rect').attr('x',x(0)).attr('y',h/2-bh/2).attr('height',bh).attr('width',0).attr('fill',d=>T[d.c]);
+  const labels=bars.append('text').attr('x',d=>x(d.s)+8).attr('y',h/2+4).attr('fill',T.on).attr('opacity',0).text(d=>d.n+' '+d.v);
+  rects.transition().duration(900).ease(d3.easeCubicOut).attr('x',d=>x(d.s)).attr('width',d=>x(d.v)-x(0));
+  labels.transition().delay(600).duration(300).attr('opacity',1);
+  rects.on('pointermove',(e,d)=>{
+    const [px,py]=d3.pointer(e,host);
+    tip.property('hidden',false).text(d.n+' '+d.v+' ms').style('left',Math.min(px+10,w-120)+'px').style('top',(py-34)+'px');
+    rects.attr('opacity',r=>r===d?1:.45);
+  }).on('pointerleave',()=>{tip.property('hidden',true);rects.attr('opacity',1)});
+  svg.append('line').attr('x1',x(GOAL)).attr('x2',x(GOAL)).attr('y1',h/2-bh/2-26).attr('y2',h/2+bh/2+14)
+    .attr('stroke',T.ink).attr('stroke-width',2).attr('stroke-dasharray','6 4');
+  svg.append('text').attr('x',x(GOAL)-84).attr('y',h/2-bh/2-32).attr('fill',T.ink).text('목표 1500 ms');
+  return()=>svg.selectAll('*').interrupt();
+}
+function d3C(host,T,o){
+  const w=host.clientWidth,h=host.clientHeight,m={l:36,r:10,t:10,b:24};
+  const svg=d3.select(host).append('svg').attr('width',w).attr('height',h).style('color',T.muted).style('font-size','12px');
+  const x=d3.scaleLinear([-2,0],[m.l,w-m.r]),y=d3.scaleLinear([-1,1],[h-m.b,m.t]);
+  svg.append('g').attr('transform',`translate(0,${h-m.b})`).call(d3.axisBottom(x).tickValues([-2,-1.5,-1,-.5,0]).tickFormat(v=>v+' s'));
+  svg.append('g').attr('transform',`translate(${m.l},0)`).call(d3.axisLeft(y).tickValues([-1,0,1]));
+  svg.selectAll('.domain,.tick line').attr('stroke',T.line);
+  const path=svg.append('path').attr('fill','none').attr('stroke',T.a4).attr('stroke-width',1.5);
+  const ln=d3.line().x(d=>x(d.x)).y(d=>y(d.y));
+  return loop(30,o.ctl,t=>path.attr('d',ln(voiceWin(t))));
+}
+</script>
+
+<!-- 4. ECharts -->
+<script>
+function echartsA(host,T,o){
+  const c=echarts.init(host);
+  const ax=(min,max,fmt)=>({type:'value',min,max,axisLabel:{color:T.muted,formatter:fmt},axisLine:{lineStyle:{color:T.line}},splitLine:{lineStyle:{color:T.line}}});
+  const dots=(k,col,size)=>({type:'scatter',data:samplesOf(k).map(q=>[q.x,q.y]),symbolSize:size,itemStyle:{color:col},
+    animationDuration:200,animationDelay:i=>i*2400/(2*k+1)});
+  c.setOption({grid:{left:44,right:14,top:14,bottom:30},tooltip:{trigger:'item'},
+    xAxis:ax(0,2,'{value} ms'),yAxis:{...ax(-1,1),interval:1},
+    series:[{type:'line',data:CURVE.map(q=>[q.x,q.y]),showSymbol:false,silent:true,animation:false,lineStyle:{color:T.a1,width:2}},
+      ...(o.show8?[dots(8,T.a2,8)]:[]),...(o.show16?[dots(16,T.a3,6)]:[])]});
+  return()=>c.dispose();
+}
+function echartsB(host,T,o){
+  const c=echarts.init(host);
+  c.setOption({grid:{left:14,right:14,top:46,bottom:30},tooltip:{trigger:'item',formatter:p=>p.seriesName+' '+p.value+' ms'},
+    xAxis:{type:'value',min:0,max:1700,interval:500,axisLabel:{color:T.muted,formatter:'{value} ms'},splitLine:{lineStyle:{color:T.line}}},
+    yAxis:{type:'category',data:['지연'],show:false},animationDuration:900,
+    series:LAT.map((d,i)=>({name:d.n,type:'bar',stack:'t',data:[d.v],barWidth:44,itemStyle:{color:T[d.c]},
+      label:{show:true,position:'insideLeft',color:T.on,formatter:d.n+' '+d.v},
+      markLine:i<2?undefined:{symbol:'none',silent:true,animation:false,data:[{xAxis:GOAL}],
+        lineStyle:{type:'dashed',color:T.ink,width:2},label:{color:T.ink,formatter:'목표 1500 ms'}}}))});
+  return()=>c.dispose();
+}
+function echartsC(host,T,o){
+  const c=echarts.init(host);
+  const ax=(min,max,fmt)=>({type:'value',min,max,axisLabel:{color:T.muted,formatter:fmt},splitLine:{lineStyle:{color:T.line}}});
+  c.setOption({animation:false,grid:{left:40,right:12,top:12,bottom:28},xAxis:ax(-2,0,'{value} s'),yAxis:{...ax(-1,1),interval:1},
+    series:[{type:'line',data:[],showSymbol:false,silent:true,lineStyle:{color:T.a4,width:1.5}}]});
+  const stop=loop(30,o.ctl,t=>c.setOption({series:[{data:voiceWin(t).map(q=>[q.x,q.y])}]}));
+  return()=>{stop();c.dispose()};
+}
+</script>
+
+<!-- 5. Plotly.js -->
+<script>
+function plotlyA(host,T,o){
+  const base={paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:T.muted,size:12},showlegend:false,margin:{l:40,r:12,t:10,b:36},
+    xaxis:{range:[0,2],ticksuffix:' ms',gridcolor:T.line,zerolinecolor:T.line},yaxis:{range:[-1.1,1.1],tickvals:[-1,0,1],gridcolor:T.line,zerolinecolor:T.line}};
+  const sets=[[o.show8,8,T.a2,8],[o.show16,16,T.a3,6]].filter(s=>s[0]);
+  const traces=[{x:CURVE.map(q=>q.x),y:CURVE.map(q=>q.y),mode:'lines',line:{color:T.a1,width:2},hoverinfo:'skip'},
+    ...sets.map(([,k,c,r])=>({x:[],y:[],mode:'markers',marker:{color:c,size:r},hovertemplate:'%{x:.3f} ms · %{y:.2f}<extra></extra>'}))];
+  Plotly.newPlot(host,traces,base,{responsive:true,displaylogo:false});
+  return tween(2400,p=>sets.forEach(([,k],i)=>{
+    const s=samplesOf(k),n=Math.floor(p*s.length);
+    Plotly.restyle(host,{x:[s.slice(0,n).map(q=>q.x)],y:[s.slice(0,n).map(q=>q.y)]},[i+1]);
+  }));
+}
+function plotlyB(host,T,o){
+  const traces=LAT.map(d=>({type:'bar',orientation:'h',name:d.n,x:[0],y:['지연'],marker:{color:T[d.c]},
+    text:[d.n+' '+d.v],textposition:'inside',insidetextanchor:'start',textfont:{color:T.on},hovertemplate:d.n+' '+d.v+' ms<extra></extra>'}));
+  Plotly.newPlot(host,traces,{barmode:'stack',paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:T.muted,size:12},showlegend:false,
+    margin:{l:12,r:12,t:46,b:36},xaxis:{range:[0,1700],tickvals:[0,500,1000,1500],ticksuffix:' ms',gridcolor:T.line},yaxis:{visible:false},bargap:.5,
+    shapes:[{type:'line',x0:GOAL,x1:GOAL,y0:0,y1:1,yref:'paper',line:{color:T.ink,width:2,dash:'dash'}}],
+    annotations:[{x:GOAL,y:1,yref:'paper',text:'목표 1500 ms',showarrow:false,yshift:14,font:{color:T.ink}}]},
+    {responsive:true,displaylogo:false});
+  Plotly.animate(host,{data:LAT.map(d=>({x:[d.v]})),traces:[0,1,2]},
+    {transition:{duration:900,easing:'cubic-out'},frame:{duration:900,redraw:false}});
+  return()=>{};
+}
+function plotlyC(host,T,o){
+  Plotly.newPlot(host,[{x:[],y:[],mode:'lines',line:{color:T.a4,width:1.5},hoverinfo:'skip'}],
+    {paper_bgcolor:'rgba(0,0,0,0)',plot_bgcolor:'rgba(0,0,0,0)',font:{color:T.muted,size:12},margin:{l:40,r:12,t:10,b:36},
+     xaxis:{range:[-2,0],ticksuffix:' s',gridcolor:T.line,fixedrange:true},yaxis:{range:[-1,1],tickvals:[-1,0,1],gridcolor:T.line,fixedrange:true}},
+    {responsive:true,displaylogo:false,staticPlot:true});
+  return loop(30,o.ctl,t=>{const d=voiceWin(t);Plotly.restyle(host,{x:[d.map(q=>q.x)],y:[d.map(q=>q.y)]},[0])});
+}
+</script>
+
+<!-- 화면 조립 -->
+<script>
+const V='https://cdn.jsdelivr.net/npm/';
+const LIBS=[
+ {id:'canvas',name:'Canvas 2D',ver:'브라우저 내장',lic:'해당 없음',url:'',gz:0,fns:{A:canvasA,B:canvasB,C:canvasC},
+  anim:'requestAnimationFrame으로 직접 구현. 프레임마다 전체를 다시 그림',inter:'기본 없음: 툴팁은 좌표 계산으로 직접 구현, 확대 없음',
+  use:'학습·가벼운 맞춤 애니메이션',rec:'★★★★☆ 가볍지만 축·툴팁을 전부 직접 짜야 함'},
+ {id:'chartjs',name:'Chart.js',ver:'4.6.1',lic:'MIT',url:V+'chart.js@4.6.1/dist/chart.umd.min.js',fns:{A:chartjsA,B:chartjsB,C:chartjsC},
+  anim:'내장 트윈(옵션으로 지연·시간). 스트리밍은 update(\'none\')으로 직접 갱신',inter:'툴팁 기본 제공, 확대·이동은 플러그인 필요',
+  use:'일반 막대·선·원 대시보드',rec:'★★★★★ 설정이 짧고 균형이 좋음'},
+ {id:'d3',name:'D3',ver:'7.9.2',lic:'ISC',url:V+'d3@7.9.2/dist/d3.min.js',fns:{A:d3A,B:d3B,C:d3C},
+  anim:'transition()으로 속성별 애니메이션. 스트리밍은 path를 직접 갱신',inter:'기본 없음: 툴팁·확대는 이벤트와 d3.zoom으로 직접 구현',
+  use:'완전히 새로운 맞춤 시각화',rec:'★★★☆☆ 자유도 최대, 코드량도 최대'},
+ {id:'echarts',name:'Apache ECharts',ver:'6.1.0',lic:'Apache-2.0',url:V+'echarts@6.1.0/dist/echarts.min.js',fns:{A:echartsA,B:echartsB,C:echartsC},
+  anim:'내장 등장 애니메이션(지연 함수). 스트리밍은 setOption으로 갱신',inter:'툴팁 기본 제공, 확대(dataZoom)는 옵션 한 줄 추가',
+  use:'기능이 풍부한 관리·분석 대시보드',rec:'★★★★☆ 기본 품질이 높지만 번들이 큼'},
+ {id:'plotly',name:'Plotly.js',ver:'4.3.0',lic:'MIT',url:V+'plotly.js@4.3.0/dist/plotly.min.js',fns:{A:plotlyA,B:plotlyB,C:plotlyC},
+  anim:'Plotly.animate(막대) 지원, 점 하나씩 등장·스트리밍은 restyle 반복 호출',inter:'툴팁·확대·이동·이미지 저장 도구 모음 기본 제공(C 그래프는 정지형)',
+  use:'과학·데이터 분석, 탐색용 확대',rec:'★★☆☆☆ 상호작용은 최고지만 번들이 매우 무거움'}];
+const GRAPHS=[{k:'A',t:'A. 샘플링',s:'1 kHz 사인파 · 8·16 kHz 샘플 · 2 ms'},{k:'B',t:'B. 음성 에이전트 지연 예산',s:'STT 300 + LLM 700 + TTS 400 ms · 목표 1500 ms'},{k:'C',t:'C. 마이크 입력 파형(실시간)',s:'30 fps · 최근 2초'}];
+const GZ={canvas:0,chartjs:69.3,d3:89.9,echarts:359.3,plotly:1443.9}; // gzip -9로 직접 잰 KB(1024바이트)
+LIBS.forEach(l=>l.gz=GZ[l.id]);
+const $=s=>document.querySelector(s);
+const loaded={};
+function ready(l){
+  if(!l.url)return Promise.resolve();
+  if(!loaded[l.id])loaded[l.id]=new Promise((ok,ko)=>{const s=document.createElement('script');s.src=l.url;s.onload=ok;s.onerror=()=>ko(new Error(l.name+' 로드 실패'));document.head.append(s)});
+  return loaded[l.id];
+}
+function readTheme(){
+  const s=getComputedStyle(document.documentElement),g=n=>s.getPropertyValue(n).trim();
+  return {a1:g('--a1'),a2:g('--a2'),a3:g('--a3'),a4:g('--a4'),a5:g('--a5'),ink:g('--ink'),muted:g('--muted'),line:g('--line'),on:g('--primary-fg'),font:g('--font-sans')};
+}
+let cleanups=[],gen=0,active='canvas';
+function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e}
+function libLine(l){
+  return l.url?`${l.name} ${l.ver} · ${l.url} · 라이선스 ${l.lic}`:`${l.name} · 라이브러리 없음(브라우저 내장 Canvas 2D API) · 라이선스 해당 없음`;
+}
+function codeBlock(f,l){
+  const d=el('details','code');d.open=true;
+  const lines=f.toString().split('\n');
+  d.append(el('summary',null,`코드 (${lines.length}줄)`),el('p','libline',libLine(l)));
+  const bar=el('div','codebar'),b=el('button','btn','복사');b.type='button';
+  b.onclick=()=>navigator.clipboard.writeText(lines.join('\n')).then(()=>{b.textContent='복사됨';setTimeout(()=>b.textContent='복사',1500)},()=>{b.textContent='복사 실패'});
+  bar.append(el('span','note',f.name+'()'),b);d.append(bar);
+  const pre=el('pre','src');pre.tabIndex=0;
+  lines.forEach(t=>pre.append(el('span',null,t||' ')));
+  d.append(pre);return d;
+}
+function lineCount(l,k){return l.fns[k].toString().split('\n').length}
+function card(l,g,withCode){
+  const c=el('div','card'),h=el('h3',null,g.t+' ');h.append(el('small',null,g.s));c.append(h);
+  const o={show8:true,show16:true,ctl:{v:false,ms:0}};
+  const host=el('div','plot');
+  let stop=()=>{},myGen=gen,memoMs;
+  const mount=async()=>{
+    stop();stop=()=>{};host.replaceChildren(el('p','note','불러오는 중…'));
+    try{await ready(l)}catch(e){host.replaceChildren(el('p','err',e.message));return}
+    if(myGen!==gen)return;
+    host.replaceChildren();o.ctl.v=false;o.ctl.ms=0;
+    try{stop=l.fns[g.k](host,readTheme(),o)||(()=>{})}catch(e){host.replaceChildren(el('p','err','그리기 오류: '+e.message));console.error(e)}
+  };
+  cleanups.push(()=>{stop();stop=()=>{}});
+  const ctl=el('div','ctl');
+  if(g.k==='A'){
+    [['show8','8 kHz 샘플'],['show16','16 kHz 샘플']].forEach(([key,txt])=>{
+      const lb=el('label'),i=el('input');i.type='checkbox';i.checked=true;i.onchange=()=>{o[key]=i.checked;mount()};
+      lb.append(i,document.createTextNode(txt));ctl.append(lb)});
+  }
+  if(g.k!=='C'){const b=el('button','btn','다시 재생');b.type='button';b.onclick=mount;ctl.append(b)}
+  else{const b=el('button','btn','일시정지');b.type='button';b.setAttribute('aria-pressed','false');
+    b.onclick=()=>{o.ctl.v=!o.ctl.v;b.setAttribute('aria-pressed',o.ctl.v);b.textContent=o.ctl.v?'재생':'일시정지'};ctl.append(b)}
+  c.append(ctl,host);
+  if(withCode){
+    const m=el('dl','memo');
+    const row=(a,b)=>{m.append(el('dt',null,a));const dd=el('dd',null,b);m.append(dd);return dd};
+    row('코드 줄 수',lineCount(l,g.k)+'줄 (이 그래프 함수 하나, 공통 데이터·루프 도우미 제외)');
+    row('번들 크기',l.url?`${l.gz.toFixed(1)} KB (gzip, min.js)`:'0 KB (라이브러리 없음)');
+    row('애니메이션',l.anim);row('툴팁·확대',l.inter);
+    if(g.k==='C'){memoMs=row('프레임당 호출 시간','측정 중…');
+      const iv=setInterval(()=>{if(!c.isConnected){clearInterval(iv);return}memoMs.textContent=o.ctl.ms.toFixed(2)+' ms (평균, 30 fps 프레임 예산 33 ms'+(l.id==='plotly'?'; 그리기는 비동기라 호출 시간만 해당':'')+')'},1000)}
+    c.append(m,codeBlock(l.fns[g.k],l));
+  }
+  mount();return c;
+}
+function render(){
+  gen++;cleanups.forEach(f=>f());cleanups=[];
+  const tabs=$('#tabs'),view=$('#view');
+  tabs.replaceChildren();
+  [...LIBS.map(l=>[l.id,l.name]),['side','나란히 보기']].forEach(([id,name])=>{
+    const b=el('button','btn',name);b.type='button';b.setAttribute('role','tab');b.setAttribute('aria-pressed',id===active);
+    b.onclick=()=>{active=id;history.replaceState(null,'','#'+id);render()};tabs.append(b)});
+  view.replaceChildren();
+  if(active==='side'){
+    GRAPHS.forEach(g=>{
+      view.append(el('h2',null,g.t));
+      const gr=el('div','grid');
+      LIBS.forEach(l=>gr.append(card(l,{...g,t:l.name+' ',s:l.ver},false)));
+      view.append(gr);
+    });
+  }else{
+    const l=LIBS.find(x=>x.id===active);
+    view.append(el('p','libline',libLine(l)));
+    const gr=el('div','grid');GRAPHS.forEach(g=>gr.append(card(l,g,true)));view.append(gr);
+  }
+}
+function table(){
+  const t=$('#cmp'),head=['라이브러리','버전','라이선스','크기(gzip)','코드 줄 수(A+B+C)','애니메이션','상호작용','맞는 용도','추천도'];
+  t.replaceChildren();const tr=el('tr');head.forEach(x=>tr.append(el('th',null,x)));t.append(tr);
+  LIBS.forEach(l=>{
+    const r=el('tr'),sum=lineCount(l,'A')+lineCount(l,'B')+lineCount(l,'C');
+    [l.name,l.ver,l.lic,l.url?l.gz.toFixed(1)+' KB':'0 KB',sum+'줄',l.anim,l.inter,l.use,l.rec].forEach((x,i)=>r.append(el('td',i>=1&&i<=4?'n':null,x)));
+    t.append(r)});
+  $('#notes').textContent='크기는 CDN 파일(min.js)을 gzip -9로 압축해 잰 값입니다. 줄 수는 페이지에서 실제 실행되는 그래프 함수 3개의 소스 줄 합이며 공통 데이터·루프 도우미는 제외했습니다. 추천도는 이 비교를 만든 작업자의 판단입니다.';
+}
+let themeMode=0;
+$('#theme').onclick=()=>{
+  themeMode=(themeMode+1)%3;const r=document.documentElement;
+  if(themeMode===0)r.removeAttribute('data-theme');else r.dataset.theme=themeMode===1?'light':'dark';
+  $('#theme').textContent='테마: '+['자동','라이트','다크'][themeMode];render();
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{if(themeMode===0)render()});
+let lastW=innerWidth,rt;
+addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>{if(innerWidth!==lastW){lastW=innerWidth;render()}},250)});
+const h0=location.hash.slice(1);if(h0==='side'||LIBS.some(l=>l.id===h0))active=h0;
+table();render();
+</script>
+</body>
+</html>
