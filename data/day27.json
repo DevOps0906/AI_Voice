@@ -1,0 +1,884 @@
+{
+  "day": 27,
+  "title": "Pipecat 기초: Frame · Processor · Pipeline · Transport로 STT → LLM → TTS 잇기",
+  "meta": {
+    "week": 6,
+    "module": "M6",
+    "hours": 4,
+    "tag": ""
+  },
+  "goals": [
+    "Pipecat에서 모든 것이 Frame으로 흐른다는 것을 이해하고, System · Data · Control 세 종류를 구분한다.",
+    "FrameProcessor를 직접 만들어 `process_frame` → `push_frame` 규칙을 익히고, 규칙을 어기면 무슨 일이 생기는지 확인한다.",
+    "Pipeline · PipelineWorker · WorkerRunner로 파이프라인을 돌리고, downstream · upstream 방향과 Observer로 프레임의 여행을 추적한다.",
+    "우리 모델(Whisper · Qwen3)과 TTS(Edge 신경망 음성) · 클라우드 LLM을 STT · TTS · LLM 서비스로 감싸, 한 줄씩 바꿔 끼울 수 있게 만든다.",
+    "Context Aggregator로 대화 이력을 자동으로 쌓으며 VAD → STT → LLM → TTS 두 턴 대화를 돌리고, 턴마다 걸린 시간을 잰다.",
+    "Transport를 WebSocket으로 바꿔 끼워, D26의 클라이언트처럼 20 ms 조각을 보내고 비서의 목소리를 받는다."
+  ],
+  "periods": [
+    {
+      "n": 1,
+      "topic": "Pipecat이 푸는 문제, Frame 세 종류, FrameProcessor 규칙",
+      "parts": "Part 0 ~ 2, 워크시트 1교시"
+    },
+    {
+      "n": 2,
+      "topic": "Pipeline · Worker · Runner, 방향(upstream), Observer",
+      "parts": "Part 3, 워크시트 2교시"
+    },
+    {
+      "n": 3,
+      "topic": "서비스: STT · TTS · LLM 감싸기, 이벤트 루프를 막지 않기",
+      "parts": "Part 4, 워크시트 3교시"
+    },
+    {
+      "n": 4,
+      "topic": "조립(Context Aggregator) · Transport 바꿔 끼우기(WebSocket), 정리",
+      "parts": "Part 5 ~ 7, 워크시트 4교시"
+    }
+  ],
+  "parts": [
+    {
+      "n": 0,
+      "title": "준비"
+    },
+    {
+      "n": 1,
+      "title": "Pipecat이 푸는 문제와 Frame 세 종류"
+    },
+    {
+      "n": 2,
+      "title": "FrameProcessor: 받고 → 일하고 → 넘기기"
+    },
+    {
+      "n": 3,
+      "title": "Pipeline · Worker · Runner, 그리고 방향(downstream · upstream)"
+    },
+    {
+      "n": 4,
+      "title": "서비스: STT · TTS · LLM도 결국 FrameProcessor"
+    },
+    {
+      "n": 5,
+      "title": "조립: VAD → STT → 사용자 턴 → LLM → TTS → 대화 기록"
+    },
+    {
+      "n": 6,
+      "title": "Transport 바꿔 끼우기: 같은 비서를 WebSocket으로"
+    },
+    {
+      "n": 7,
+      "title": "정리 · 과제"
+    }
+  ],
+  "blanks": 9,
+  "anims": [
+    {
+      "hash": "flow",
+      "title": "오늘의 흐름",
+      "desc": ""
+    },
+    {
+      "hash": "frames",
+      "title": "Frame 세 종류",
+      "desc": ""
+    },
+    {
+      "hash": "proc",
+      "title": "Processor 안에서",
+      "desc": ""
+    },
+    {
+      "hash": "dir",
+      "title": "방향",
+      "desc": ""
+    },
+    {
+      "hash": "svc",
+      "title": "서비스 세 개",
+      "desc": ""
+    },
+    {
+      "hash": "loop",
+      "title": "이벤트 루프 막힘",
+      "desc": ""
+    },
+    {
+      "hash": "assemble",
+      "title": "조립된 한 턴",
+      "desc": ""
+    },
+    {
+      "hash": "transport",
+      "title": "Transport",
+      "desc": ""
+    },
+    {
+      "hash": "recap",
+      "title": "오늘 정리",
+      "desc": ""
+    }
+  ],
+  "road": [
+    {
+      "p": "Part 1",
+      "t": "Frame",
+      "c": "--net",
+      "go": "frames",
+      "items": [
+        "모든 것은 상자(Frame)",
+        "System = 즉시 · Data · Control = 순서대로",
+        "모든 Frame은 id를 가짐"
+      ],
+      "q": "🧩 빈칸 1: DataFrame"
+    },
+    {
+      "p": "Part 2",
+      "t": "FrameProcessor",
+      "c": "--asr",
+      "go": "proc",
+      "items": [
+        "부모 먼저 → 내 일 → 무조건 넘기기",
+        "KoNormalizer: 2시 → 두 시",
+        "push 빼먹기 실험: StartFrame이 막힘"
+      ],
+      "q": "🧩 빈칸 2 · 3: process_frame, push_frame"
+    },
+    {
+      "p": "Part 3",
+      "t": "Pipeline · 방향",
+      "c": "--llm",
+      "go": "dir",
+      "items": [
+        "Pipeline · PipelineWorker · WorkerRunner",
+        "UPSTREAM 알림 (GuardNoticeFrame)",
+        "Observer로 상자의 여행 기록"
+      ],
+      "q": "🧩 빈칸 4: UPSTREAM"
+    },
+    {
+      "p": "Part 4",
+      "t": "서비스",
+      "c": "--s2s",
+      "go": "svc",
+      "items": [
+        "WhisperSTT · KoTTS · LocalLLM / OpenAILLMService",
+        "run_stt · run_tts는 yield",
+        "asyncio.to_thread로 루프를 막지 않기"
+      ],
+      "q": "🧩 빈칸 5 · 6 · 7: TranscriptionFrame, to_thread, LLMContextFrame",
+      "more": [
+        {
+          "hash": "loop",
+          "label": "이벤트 루프 막힘"
+        }
+      ]
+    },
+    {
+      "p": "Part 5",
+      "t": "조립",
+      "c": "--tts",
+      "go": "assemble",
+      "items": [
+        "user_agg · assistant_agg가 같은 LLMContext",
+        "턴 끝 = 말 끝 + 0.6초 조용함",
+        "두 턴 대화 · 턴별 시간"
+      ],
+      "q": "🧩 빈칸 8: assistant_agg (맨 끝)"
+    },
+    {
+      "p": "Part 6",
+      "t": "Transport",
+      "c": "--bad",
+      "go": "transport",
+      "items": [
+        "transport.input() · output()",
+        "Serializer = 바이트 ⇄ Frame",
+        "WebSocket 클라이언트로 두 턴"
+      ],
+      "q": "🧩 빈칸 9: OutputAudioRawFrame",
+      "more": [
+        {
+          "hash": "recap",
+          "label": "오늘 정리"
+        }
+      ]
+    }
+  ],
+  "learned": [
+    {
+      "concept": "Frame",
+      "summary": "모든 것은 상자: System(즉시) · Data · Control(순서대로)",
+      "code": "isinstance(f, DataFrame)"
+    },
+    {
+      "concept": "FrameProcessor",
+      "summary": "부모 먼저 → 내 일 → 무조건 넘기기",
+      "code": "await super().process_frame(...) · await self.push_frame(...)"
+    },
+    {
+      "concept": "방향",
+      "summary": "내용은 앞 → 뒤, 뒤쪽 사정 알림은 뒤 → 앞",
+      "code": "FrameDirection.UPSTREAM"
+    },
+    {
+      "concept": "Worker · Runner",
+      "summary": "라인 반장 · 공장장 (옛 이름 Task · Runner)",
+      "code": "PipelineWorker · WorkerRunner"
+    },
+    {
+      "concept": "Observer",
+      "summary": "파이프라인을 바꾸지 않고 모든 push 기록",
+      "code": "on_push_frame(data)"
+    },
+    {
+      "concept": "STT 서비스",
+      "summary": "VAD 구간 소리 → 받아쓰기 → yield",
+      "code": "yield TranscriptionFrame(...)"
+    },
+    {
+      "concept": "TTS 서비스",
+      "summary": "문장 → 합성, 루프를 막지 않기",
+      "code": "await asyncio.to_thread(tts, ...)"
+    },
+    {
+      "concept": "LLM 서비스",
+      "summary": "대화 전체를 받아 조각으로 답",
+      "code": "LLMContextFrame → LLMTextFrame…"
+    },
+    {
+      "concept": "Aggregator",
+      "summary": "턴 끝 판단 + 대화 기록 자동",
+      "code": "LLMContextAggregatorPair (assistant는 맨 끝)"
+    },
+    {
+      "concept": "Transport · Serializer",
+      "summary": "바깥과 잇는 문 · 번역기, 바꿔 끼워도 안쪽은 그대로",
+      "code": "transport.input() · transport.output()"
+    }
+  ],
+  "homework": [
+    "서비스 갈아 끼우기: `KoTTS` 자리에 다른 TTS(예: D17 Kokoro를 감싼 `TTSService`, 또는 Pipecat 기본 `KokoroTTSService`)를 넣고, Part 5의 턴별 시간표에서 '첫소리'가 어떻게 바뀌는지 비교하세요.",
+    "나만의 작업자: LLM 답에 '예약' · '취소'라는 말이 나오면 `GuardNoticeFrame` 같은 직접 만든 Frame을 downstream으로 보내고, 맨 끝 Recorder에서 몇 번 나왔는지 세는 작업자를 만드세요.",
+    "TURN_WAIT 실험: 0.3 · 0.6 · 1.0초로 바꿔 Part 5를 세 번 돌리고, 턴별 시간표와 '말이 잘렸는지'(대화 기록의 user 메시지)를 표로 정리하세요."
+  ],
+  "worksheet": {
+    "source": "day27/worksheet.html",
+    "groups": [
+      {
+        "title": "1교시 · Frame · FrameProcessor",
+        "anim": "D27-2 Frame 세 종류 · D27-3 FrameProcessor 안에서",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "Pipecat에서 소리 조각 · 받아쓴 글자 · LLM 토큰 · '말 시작' 신호를 담아 흘려보내는 공통 단위는?",
+            "o": [
+              "Frame",
+              "Packet",
+              "Chunk",
+              "Message"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "Part 1"
+          },
+          {
+            "ty": "mc",
+            "p": "줄을 서지 않고 바로(새치기) 처리되는 Frame 종류는?",
+            "o": [
+              "ControlFrame",
+              "TextFrame",
+              "SystemFrame",
+              "DataFrame"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "Part 1 표"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 1: TranscriptionFrame · LLMTextFrame · TTSAudioRawFrame의 공통 부모(종류)는?",
+            "o": [
+              "DataFrame",
+              "SystemFrame",
+              "ControlFrame",
+              "StartFrame"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "빈칸 1"
+          },
+          {
+            "ty": "mc",
+            "p": "FrameProcessor의 process_frame에서 맨 먼저 해야 하는 일은?",
+            "o": [
+              "await self.push_frame(frame)",
+              "return frame",
+              "frame = None",
+              "await super().process_frame(frame, direction)"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 2"
+          },
+          {
+            "ty": "mc",
+            "p": "받은 Frame을 다음 작업자에게 넘기는 메서드는?",
+            "o": [
+              "send_frame",
+              "push_frame",
+              "process_frame",
+              "queue_frame"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 3"
+          },
+          {
+            "ty": "ox",
+            "p": "마이크에서 들어오는 InputAudioRawFrame은 SystemFrame이라, LLM이 답을 만드는 중에도 바로 처리됩니다.",
+            "a": true,
+            "w": "",
+            "an": "Part 1 ❓"
+          },
+          {
+            "ty": "ox",
+            "p": "내 상자가 아닌 Frame(StartFrame · EndFrame 등)은 넘기지 않고 버려도 됩니다.",
+            "a": false,
+            "w": "넘기지 않으면 StartFrame이 끝까지 못 가 파이프라인이 멈춥니다.",
+            "an": "Part 2 실험"
+          },
+          {
+            "ty": "match",
+            "p": "Frame과 종류를 이으세요.",
+            "left": [
+              "InterruptionFrame",
+              "LLMTextFrame",
+              "EndFrame"
+            ],
+            "right": [
+              "ControlFrame",
+              "SystemFrame",
+              "DataFrame"
+            ],
+            "a": [
+              1,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "빈칸 1 표"
+          },
+          {
+            "ty": "multi",
+            "p": "push_frame을 빼먹은 작업자가 있을 때 생길 수 있는 일을 모두 고르세요.",
+            "o": [
+              "뒤쪽 작업자가 상자를 받지 못한다",
+              "StartFrame이 끝까지 못 가 시작 시간 초과가 난다",
+              "비서가 아무 말 없이 기다리다 끊긴다",
+              "LLM이 더 빨라진다"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 2 실험"
+          },
+          {
+            "ty": "order",
+            "p": "FrameProcessor 안에서 일어나는 순서대로 놓으세요.",
+            "steps": [
+              "다음 작업자에게 push_frame",
+              "Frame이 도착 (process_frame 호출)",
+              "super().process_frame으로 부모에게 먼저",
+              "내 상자면 내용 바꾸기"
+            ],
+            "a": [
+              1,
+              2,
+              3,
+              0
+            ],
+            "w": "",
+            "an": "Part 2 👣"
+          }
+        ]
+      },
+      {
+        "title": "2교시 · Pipeline · Worker · 방향 · Observer",
+        "anim": "D27-4 방향: downstream · upstream",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "Pipeline([a, b, c])에서 Frame이 흐르는 기본 순서는?",
+            "o": [
+              "c → b → a",
+              "무작위",
+              "가장 빠른 작업자부터",
+              "a → b → c"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "Part 3 표"
+          },
+          {
+            "ty": "mc",
+            "p": "StartFrame을 보내고, queue_frames로 상자를 넣고, 끝 처리를 맡는 '라인 반장'은?",
+            "o": [
+              "Observer",
+              "PipelineWorker",
+              "Pipeline",
+              "FrameSerializer"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "Part 3 표"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 4: 뒤에서 앞으로 거슬러 보내는 방향은?",
+            "o": [
+              "FrameDirection.DOWNSTREAM",
+              "FrameDirection.BACK",
+              "FrameDirection.SYSTEM",
+              "FrameDirection.UPSTREAM"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "빈칸 4"
+          },
+          {
+            "ty": "mc",
+            "p": "파이프라인 모양을 바꾸지 않고 모든 push(누가 → 누구에게, 언제)를 기록하는 것은?",
+            "o": [
+              "Serializer",
+              "Transport",
+              "Observer",
+              "Aggregator"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "Part 3 Observer"
+          },
+          {
+            "ty": "mc",
+            "p": "인터넷 예제의 PipelineTask · PipelineRunner는 지금 무엇으로 바뀌었나?",
+            "o": [
+              "PipelineWorker · WorkerRunner",
+              "Pipeline · Runner",
+              "TaskWorker · TaskRunner",
+              "바뀌지 않았다"
+            ],
+            "a": 0,
+            "w": "1.3.0부터",
+            "an": "Part 3 ⚠️"
+          },
+          {
+            "ty": "ox",
+            "p": "Colab(주피터)에서 WorkerRunner를 만들 때 handle_sigint=False로 Ctrl+C 신호 처리를 끕니다.",
+            "a": true,
+            "w": "",
+            "an": "도구 상자"
+          },
+          {
+            "ty": "ox",
+            "p": "작업자가 return으로 어떤 TextFrame을 넘기지 않으면, 파이프라인은 반드시 멈춥니다.",
+            "a": false,
+            "w": "StartFrame · EndFrame을 넘기면 의도적 버림은 정상 동작(PolicyGuard).",
+            "an": "빈칸 4 해설"
+          },
+          {
+            "ty": "match",
+            "p": "층과 비유를 이으세요.",
+            "left": [
+              "Pipeline",
+              "PipelineWorker",
+              "WorkerRunner"
+            ],
+            "right": [
+              "공장장",
+              "컨베이어 라인 배치도",
+              "라인 반장"
+            ],
+            "a": [
+              1,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "Part 3 표"
+          },
+          {
+            "ty": "multi",
+            "p": "UPSTREAM으로 보내기에 알맞은 알림을 모두 고르세요.",
+            "o": [
+              "봇이 말하기 시작함 (BotStartedSpeakingFrame)",
+              "개인정보 문장을 막았음 (GuardNoticeFrame)",
+              "오류 알림 (ErrorFrame)",
+              "TTS 소리 조각 (TTSAudioRawFrame)"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "Part 3 그림"
+          },
+          {
+            "ty": "order",
+            "p": "run_frames 한 번에서 일어나는 일을 순서대로 놓으세요.",
+            "steps": [
+              "EndFrame이 끝에 닿아 정상 종료",
+              "Worker가 StartFrame을 맨 앞에서 보냄",
+              "우리가 넣은 TextFrame들이 흐름",
+              "runner.run() 시작"
+            ],
+            "a": [
+              3,
+              1,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "Part 3"
+          }
+        ]
+      },
+      {
+        "title": "3교시 · 서비스 · 이벤트 루프",
+        "anim": "D27-5 서비스 세 개 · D27-6 이벤트 루프 막힘",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 5: STT 서비스의 run_stt가 받아쓴 글자를 담아 yield하는 Frame은?",
+            "o": [
+              "LLMTextFrame",
+              "TTSSpeakFrame",
+              "TranscriptionFrame",
+              "TextFrame만 가능"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "빈칸 5"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 6: 무거운 모델 함수를 다른 스레드에서 돌리고 await로 기다리는 함수는?",
+            "o": [
+              "asyncio.to_thread",
+              "asyncio.sleep",
+              "asyncio.gather",
+              "time.sleep"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "빈칸 6"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 7: LLM 서비스가 '대화 전체를 보고 답해'로 받아들이는 Frame은?",
+            "o": [
+              "StartFrame",
+              "TTSStartedFrame",
+              "LLMContextFrame",
+              "TranscriptionFrame"
+            ],
+            "a": 2,
+            "w": "",
+            "an": "빈칸 7"
+          },
+          {
+            "ty": "mc",
+            "p": "SegmentedSTTService는 언제 run_stt를 부르나?",
+            "o": [
+              "파이프라인 시작 때 한 번",
+              "VAD가 말 끝을 알려 한 구간이 모였을 때",
+              "20 ms 조각마다",
+              "LLM 답이 끝났을 때"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "Part 4 표"
+          },
+          {
+            "ty": "mc",
+            "p": "TTS 서비스는 LLM 조각들을 어떤 단위로 모아 run_tts에 넘기나?",
+            "o": [
+              "글자 하나",
+              "턴 전체가 끝날 때까지",
+              "20 ms",
+              "문장"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "Part 4 ❓"
+          },
+          {
+            "ty": "ox",
+            "p": "run_stt · run_tts는 return이 아니라 yield로 Frame을 내보내는 비동기 제너레이터입니다.",
+            "a": true,
+            "w": "",
+            "an": "빈칸 5 해설"
+          },
+          {
+            "ty": "ox",
+            "p": "모델을 이벤트 루프에서 그냥 호출해도, 다른 작업자들은 그 사이 계속 돌아갑니다.",
+            "a": false,
+            "w": "루프 전체가 멈춥니다(박동 최대 간격 실험).",
+            "an": "Part 4 실험"
+          },
+          {
+            "ty": "match",
+            "p": "서비스와 내보내는 Frame을 이으세요.",
+            "left": [
+              "STT",
+              "LLM",
+              "TTS"
+            ],
+            "right": [
+              "LLMTextFrame (시작 · 끝 표시로 감쌈)",
+              "TTSAudioRawFrame",
+              "TranscriptionFrame"
+            ],
+            "a": [
+              2,
+              0,
+              1
+            ],
+            "w": "",
+            "an": "Part 4 표"
+          },
+          {
+            "ty": "multi",
+            "p": "세 회사 LLM을 OpenAILLMService 하나로 쓸 때 바꾸는 것을 모두 고르세요.",
+            "o": [
+              "api_key",
+              "base_url",
+              "model",
+              "Pipeline의 다른 작업자들"
+            ],
+            "a": [
+              0,
+              1,
+              2
+            ],
+            "w": "",
+            "an": "keys 셀"
+          },
+          {
+            "ty": "order",
+            "p": "LLM 서비스가 한 번 답할 때 내보내는 Frame 순서대로 놓으세요.",
+            "steps": [
+              "LLMFullResponseEndFrame",
+              "LLMTextFrame 여러 개",
+              "LLMFullResponseStartFrame"
+            ],
+            "a": [
+              2,
+              1,
+              0
+            ],
+            "w": "",
+            "an": "빈칸 7 해설"
+          }
+        ]
+      },
+      {
+        "title": "4교시 · 조립 · Transport",
+        "anim": "D27-7 조립 · D27-8 Transport 바꿔 끼우기",
+        "qs": [
+          {
+            "ty": "mc",
+            "p": "빈칸 8: 대화 기록에 봇의 답을 적는 assistant_agg의 자리는?",
+            "o": [
+              "맨 앞",
+              "출력(스피커 · Transport) 뒤 맨 끝",
+              "STT 바로 뒤",
+              "LLM 바로 앞"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 8"
+          },
+          {
+            "ty": "mc",
+            "p": "user_agg(사용자 쪽 Aggregator)가 턴 끝에 LLM에게 보내는 Frame은?",
+            "o": [
+              "TTSAudioRawFrame",
+              "EndFrame",
+              "InputAudioRawFrame",
+              "LLMContextFrame"
+            ],
+            "a": 3,
+            "w": "",
+            "an": "Part 5 👣"
+          },
+          {
+            "ty": "mc",
+            "p": "빈칸 9: Serializer가 클라이언트에게 바이트로 보내야 하는 Frame은?",
+            "o": [
+              "StartFrame",
+              "OutputAudioRawFrame",
+              "InputAudioRawFrame",
+              "TranscriptionFrame"
+            ],
+            "a": 1,
+            "w": "",
+            "an": "빈칸 9"
+          },
+          {
+            "ty": "mc",
+            "p": "WebSocket Transport로 바꿀 때 Part 5 파이프라인에서 바뀐 것은?",
+            "o": [
+              "양 끝: transport.input() · transport.output()",
+              "STT · TTS 전부",
+              "LLM만",
+              "Aggregator 두 개"
+            ],
+            "a": 0,
+            "w": "",
+            "an": "Part 6"
+          },
+          {
+            "ty": "mc",
+            "p": "오늘 턴 끝 판정에 쓴 방법은?",
+            "o": [
+              "사용자가 버튼을 누르면",
+              "LLM이 판단",
+              "말 끝 뒤 일정 시간(0.6초) 조용하면",
+              "Smart Turn 모델"
+            ],
+            "a": 2,
+            "w": "Smart Turn은 D28",
+            "an": "Part 5"
+          },
+          {
+            "ty": "ox",
+            "p": "두 Aggregator는 같은 LLMContext를 나눠 써서 대화 이력이 자동으로 쌓입니다.",
+            "a": true,
+            "w": "",
+            "an": "빈칸 8 해설"
+          },
+          {
+            "ty": "ox",
+            "p": "TURN_WAIT를 아주 짧게 하면 응답이 빨라질 뿐 단점은 없습니다.",
+            "a": false,
+            "w": "숨 고르기에서 말이 잘립니다.",
+            "an": "Part 5 ❓"
+          },
+          {
+            "ty": "match",
+            "p": "Transport와 바깥 세상을 이으세요.",
+            "left": [
+              "SingleClientWebsocketServerTransport",
+              "SmallWebRTCTransport",
+              "FastAPIWebsocketTransport + Twilio Serializer"
+            ],
+            "right": [
+              "전화망",
+              "WebSocket 클라이언트",
+              "브라우저 (WebRTC)"
+            ],
+            "a": [
+              1,
+              2,
+              0
+            ],
+            "w": "",
+            "an": "Part 6 표"
+          },
+          {
+            "ty": "multi",
+            "p": "한 턴의 응답 시간(말 끝 → 첫 소리)에 더해지는 것을 모두 고르세요.",
+            "o": [
+              "턴 끝 대기 (조용함)",
+              "STT",
+              "LLM 첫 문장",
+              "TTS 첫 문장",
+              "Serializer 클래스 이름 길이"
+            ],
+            "a": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "w": "",
+            "an": "Part 5 📐"
+          },
+          {
+            "ty": "order",
+            "p": "한 턴 동안 Frame이 나타나는 순서대로 놓으세요.",
+            "steps": [
+              "LLMTextFrame",
+              "VADUserStoppedSpeakingFrame",
+              "TTSAudioRawFrame",
+              "TranscriptionFrame"
+            ],
+            "a": [
+              1,
+              3,
+              0,
+              2
+            ],
+            "w": "",
+            "an": "Part 5 👣"
+          }
+        ]
+      }
+    ]
+  },
+  "files": [
+    {
+      "name": "D27_Pipecat기초_slides.pdf",
+      "kind": "pdf",
+      "size": 1032660,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_slides.pdf",
+      "colab": null,
+      "pages": 20
+    },
+    {
+      "name": "D27_Pipecat기초_slides.pptx",
+      "kind": "pptx",
+      "size": 1369427,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_slides.pptx",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "D27_Pipecat기초_강사용.ipynb",
+      "kind": "ipynb",
+      "size": 1261334,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "pages": null
+    },
+    {
+      "name": "D27_Pipecat기초_실습.ipynb",
+      "kind": "ipynb",
+      "size": 1236511,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "pages": null
+    },
+    {
+      "name": "animation.html",
+      "kind": "html",
+      "size": 46683,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/animation.html",
+      "colab": null,
+      "pages": null
+    },
+    {
+      "name": "worksheet.html",
+      "kind": "html",
+      "size": 30752,
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/worksheet.html",
+      "colab": null,
+      "pages": null
+    }
+  ]
+}

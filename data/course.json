@@ -1,0 +1,310 @@
+[
+  {
+    "day": 1,
+    "week": 1,
+    "module": "M1",
+    "title": "음성 AI 첫걸음",
+    "ready": true
+  },
+  {
+    "day": 2,
+    "week": 1,
+    "module": "M1",
+    "title": "디지털 오디오 기초",
+    "ready": true
+  },
+  {
+    "day": 3,
+    "week": 1,
+    "module": "M1",
+    "title": "주파수 분석",
+    "ready": true
+  },
+  {
+    "day": 4,
+    "week": 1,
+    "module": "M1",
+    "title": "오디오 전처리",
+    "ready": true
+  },
+  {
+    "day": 5,
+    "week": 1,
+    "module": "M1",
+    "title": "딥러닝 오디오 분류 + 미니 프로젝트",
+    "ready": true
+  },
+  {
+    "day": 6,
+    "week": 2,
+    "module": "M2",
+    "title": "ASR 원리",
+    "ready": true
+  },
+  {
+    "day": 7,
+    "week": 2,
+    "module": "M2",
+    "title": "Whisper 심층 분석",
+    "ready": true
+  },
+  {
+    "day": 8,
+    "week": 2,
+    "module": "M2",
+    "title": "추론 최적화 & Streaming ASR",
+    "ready": true
+  },
+  {
+    "day": 9,
+    "week": 2,
+    "module": "M2",
+    "title": "Timestamp & 화자 분리",
+    "ready": true
+  },
+  {
+    "day": 10,
+    "week": 2,
+    "module": "M2",
+    "title": "ASR 평가 + 미니 프로젝트",
+    "ready": true
+  },
+  {
+    "day": 11,
+    "week": 3,
+    "module": "M3",
+    "title": "한국어 음성 데이터셋",
+    "ready": true
+  },
+  {
+    "day": 12,
+    "week": 3,
+    "module": "M3",
+    "title": "Whisper Full Fine-tuning",
+    "ready": true
+  },
+  {
+    "day": 13,
+    "week": 3,
+    "module": "M3",
+    "title": "PEFT · LoRA Fine-tuning",
+    "ready": true
+  },
+  {
+    "day": 14,
+    "week": 3,
+    "module": "M3",
+    "title": "성능 비교 & 상용 API",
+    "ready": true
+  },
+  {
+    "day": 15,
+    "week": 3,
+    "module": "M3",
+    "title": "3주차 미니 프로젝트",
+    "ready": true
+  },
+  {
+    "day": 16,
+    "week": 4,
+    "module": "M4",
+    "title": "TTS 원리",
+    "ready": true
+  },
+  {
+    "day": 17,
+    "week": 4,
+    "module": "M4",
+    "title": "경량 TTS",
+    "ready": true
+  },
+  {
+    "day": 18,
+    "week": 4,
+    "module": "M4",
+    "title": "표현형 TTS",
+    "ready": true
+  },
+  {
+    "day": 19,
+    "week": 4,
+    "module": "M4",
+    "title": "Voice Cloning & AI 윤리",
+    "ready": true
+  },
+  {
+    "day": 20,
+    "week": 4,
+    "module": "M4",
+    "title": "TTS 평가 + 4주차 미니 프로젝트",
+    "ready": true
+  },
+  {
+    "day": 21,
+    "week": 5,
+    "module": "M5",
+    "title": "Voice Agent 아키텍처",
+    "ready": true
+  },
+  {
+    "day": 22,
+    "week": 5,
+    "module": "M5",
+    "title": "LLM API 연동",
+    "ready": true
+  },
+  {
+    "day": 23,
+    "week": 5,
+    "module": "M5",
+    "title": "Tool Calling & RAG",
+    "ready": true
+  },
+  {
+    "day": 24,
+    "week": 5,
+    "module": "M5",
+    "title": "MCP 연동",
+    "ready": true
+  },
+  {
+    "day": 25,
+    "week": 5,
+    "module": "M5",
+    "title": "5주차 미니 프로젝트",
+    "ready": true
+  },
+  {
+    "day": 26,
+    "week": 6,
+    "module": "M6",
+    "title": "실시간 오디오 기초",
+    "ready": true
+  },
+  {
+    "day": 27,
+    "week": 6,
+    "module": "M6",
+    "title": "Pipecat 기초",
+    "ready": true
+  },
+  {
+    "day": 28,
+    "week": 6,
+    "module": "M6",
+    "title": "Pipecat 심화",
+    "ready": true
+  },
+  {
+    "day": 29,
+    "week": 6,
+    "module": "M6",
+    "title": "LiveKit Agents 기초",
+    "ready": true
+  },
+  {
+    "day": 30,
+    "week": 6,
+    "module": "M6",
+    "title": "LiveKit 심화 & Speech-to-Speech",
+    "ready": true
+  },
+  {
+    "day": 31,
+    "week": 7,
+    "module": "M7",
+    "title": "FastAPI 음성 API 서버",
+    "ready": true
+  },
+  {
+    "day": 32,
+    "week": 7,
+    "module": "M7",
+    "title": "웹 클라이언트",
+    "ready": true
+  },
+  {
+    "day": 33,
+    "week": 7,
+    "module": "M7",
+    "title": "실시간 음질",
+    "ready": true
+  },
+  {
+    "day": 34,
+    "week": 7,
+    "module": "M7",
+    "title": "음성 대화 설계 (Voice UX)",
+    "ready": true
+  },
+  {
+    "day": 35,
+    "week": 7,
+    "module": "M7",
+    "title": "화자 임베딩",
+    "ready": true
+  },
+  {
+    "day": 36,
+    "week": 8,
+    "module": "M8",
+    "title": "준언어 · 소리 이벤트 분석",
+    "ready": true
+  },
+  {
+    "day": 37,
+    "week": 8,
+    "module": "M8",
+    "title": "Audio LLM & Full-duplex",
+    "ready": true
+  },
+  {
+    "day": 38,
+    "week": 8,
+    "module": "M8",
+    "title": "음성 번역 & 다국어 에이전트",
+    "ready": true
+  },
+  {
+    "day": 39,
+    "week": 8,
+    "module": "M8",
+    "title": "음성 데이터 엔지니어링",
+    "ready": true
+  },
+  {
+    "day": 40,
+    "week": 8,
+    "module": "M8",
+    "title": "한국어 TTS 파인튜닝",
+    "ready": true
+  },
+  {
+    "day": 41,
+    "week": 9,
+    "module": "M9",
+    "title": "Voice Agent 평가 자동화",
+    "ready": true
+  },
+  {
+    "day": 42,
+    "week": 9,
+    "module": "M9",
+    "title": "컨테이너화 & GPU 서빙 · 부하 시험",
+    "ready": true
+  },
+  {
+    "day": 43,
+    "week": 9,
+    "module": "M9",
+    "title": "운영 · 관측성 · 보안 · 개인정보",
+    "ready": true
+  },
+  {
+    "day": 44,
+    "week": 9,
+    "module": "M9",
+    "title": "On-device / Edge & 깨움말",
+    "ready": true
+  }
+]
