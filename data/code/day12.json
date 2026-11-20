@@ -1,0 +1,358 @@
+{
+ "flow": {
+  "part": "Part 0~7 · 오늘의 흐름 전체",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    2,
+    13
+   ],
+   [
+    15,
+    17
+   ]
+  ],
+  "python": "# D12 · Part 0~8 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0 jiwer==4.0.0\n# 실행: python d12_flow.py   (CPU에서 몇 초 · GPU·인터넷·Whisper 다운로드 불필요)\n#   Whisper 대신 '글자 맞히기 장난감 모델'로 Fine-tuning 흐름을 그대로 재현: 사전 학습 → 학습 전 CER → Collator → Teacher forcing 학습 → 학습 후 CER\n#   흉내 낸 부분: 소리 대신 글자마다 정해 둔 특징 벡터 + 잡음, Whisper 대신 GRU 한 층짜리 모델, 말투 차이는 특징을 한 방향으로 밀어서 표현\nimport jiwer\nimport numpy as np\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\ntorch.manual_seed(0)\nrng = np.random.default_rng(0)\nPAD, SOT, EOT = 0, 1, 2\nD, H = 12, 48\n\nBASE = [\"오늘날씨가좋네요\", \"회의를시작합니다\", \"자료를정리해주세요\", \"일정을확인하겠습니다\", \"내일다시연락드릴게요\"]\nDOMAIN = [\"심방세동을확인하세요\", \"와파린을복용하세요\", \"혈압을다시재겠습니다\", \"검사결과를설명드릴게요\"]\nCHARS = sorted({c for s in BASE + DOMAIN for c in s})\nID = {c: i + 3 for i, c in enumerate(CHARS)}\nPROTO = rng.normal(0, 1, (len(CHARS) + 3, D)).astype(np.float32)          # 글자마다 정해 둔 '소리 특징'\nACCENT = rng.normal(0, 1, D).astype(np.float32) * 2.5                       # 새 말투: 모든 특징이 한쪽으로 밀림\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef encode(s: str) -> list:\n    return [ID[c] for c in s] + [EOT]\n\n\ndef make_features(ids: list, accent: float) -> np.ndarray:\n    return PROTO[ids] + accent * ACCENT + rng.normal(0, 0.3, (len(ids), D)).astype(np.float32)\n\n\ndef collate(sents: list, accent: float) -> dict:\n    \"\"\"길이가 다른 문장을 한 묶음으로: 글자 쪽은 -100으로 채우고, 디코더 입력은 한 칸 밀어 만든다(Teacher forcing).\"\"\"\n    labs = [encode(s) for s in sents]\n    n = max(map(len, labs))\n    feats = np.zeros((len(sents), n, D), np.float32)\n    labels = np.full((len(sents), n), -100, np.int64)\n    for i, l in enumerate(labs):\n        feats[i, :len(l)] = make_features(l, accent)\n        labels[i, :len(l)] = l\n    dec_in = np.concatenate([np.full((len(sents), 1), SOT), np.where(labels[:, :-1] == -100, PAD, labels[:, :-1])], axis=1)\n    return dict(feats=torch.tensor(feats), dec_in=torch.tensor(dec_in), labels=torch.tensor(labels))\n\n\nclass Toy(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.enc, self.emb = nn.Linear(D, H), nn.Embedding(len(CHARS) + 3, H)\n        self.gru, self.out = nn.GRU(H, H, batch_first=True), nn.Linear(H, len(CHARS) + 3)\n\n    def forward(self, feats, dec_in):\n        h, _ = self.gru(torch.tanh(self.enc(feats)) + self.emb(dec_in))\n        return self.out(h)\n\n    @torch.no_grad()\n    def generate(self, feats):\n        ids = torch.full((feats.shape[0], 1), SOT)\n        for t in range(feats.shape[1]):                       # 학습과 달리 내가 낸 답을 다음 입력으로 쓴다\n            nxt = self.forward(feats[:, :t + 1], ids)[:, -1].argmax(-1, keepdim=True)\n            ids = torch.cat([ids, nxt], dim=1)\n        return ids[:, 1:]\n\n\ndef train(model, sents, accent, steps, lr):\n    opt = torch.optim.AdamW(model.parameters(), lr=lr)\n    for _ in range(steps):\n        b = collate(sents, accent)\n        loss = nn.functional.cross_entropy(model(b[\"feats\"], b[\"dec_in\"]).transpose(1, 2), b[\"labels\"], ignore_index=-100)\n        opt.zero_grad()\n        loss.backward()\n        opt.step()\n    return loss.item()\n\n\ndef cer(model, sents, accent) -> float:\n    b = collate(sents, accent)\n    model.eval()\n    pred = model.generate(b[\"feats\"])\n    texts = [\"\".join(CHARS[i - 3] for i in row if i >= 3) for row in pred.tolist()]\n    return 100 * jiwer.cer(list(sents), [t or \"∅\" for t in texts])\n\n\nmodel = Toy()\ntrain(model, BASE + DOMAIN, 0.0, 250, 1e-2)                          # '이미 똑똑한 모델': 보통 말투에서 사전 학습\nbefore = cer(model, DOMAIN, 1.0)                                     # 새 말투에서의 학습 전 CER\nloss = train(model, DOMAIN, 1.0, 120, 3e-3)                          # Fine-tuning: 새 말투 데이터로 조금만 더 학습\nafter = cer(model, DOMAIN, 1.0)\nprint(f\"학습 전 CER {before:.1f}% → 학습 후 CER {after:.1f}% (마지막 loss {loss:.3f})\")\ncheck(after < before and after < 10, \"Fine-tuning 뒤에는 새 말투에서 CER이 크게 줄어야 해요.\")\n",
+  "typescript": "// D12 · Part 0~8 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_flow.ts   (몇 초 · GPU·인터넷·Whisper 다운로드 불필요)\n//   Whisper 대신 '글자 맞히기 장난감 모델'로 Fine-tuning 흐름을 그대로 재현: 사전 학습 → 학습 전 CER → Teacher forcing 학습 → 학습 후 CER\n//   흉내 낸 부분: 소리 대신 글자마다 정해 둔 특징 벡터 + 잡음, Whisper 대신 작은 MLP(입력 = 소리 특징 + 앞 글자), 새 말투는 특징을 한쪽으로 밀어서 표현\nconst D = 12, H = 48;\nconst BASE = [\"오늘날씨가좋네요\", \"회의를시작합니다\", \"자료를정리하세요\", \"일정을확인합니다\", \"내일다시연락해요\"];\nconst DOMAIN = [\"심방세동을봅니다\", \"와파린을복용해요\", \"혈압을다시잽니다\", \"검사결과설명해요\"];\nconst CHARS = [...new Set([...BASE, ...DOMAIN].join(\"\"))].sort();\nconst V = CHARS.length + 2; // 0 = 시작, 1 = 끝, 2.. = 글자\nconst SOT = 0, EOT = 1;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = mulberry32(0);\nconst gauss = (): number => Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\nconst PROTO = Array.from({ length: V }, () => Float64Array.from({ length: D }, gauss)); // 글자마다 정해 둔 '소리 특징'\nconst ACCENT = Float64Array.from({ length: D }, () => 1.2 * gauss()); // 새 말투: 모든 특징이 한쪽으로 밀림\n\ntype Layer = { W: Float64Array; b: Float64Array; nin: number; nout: number; gW: Float64Array; gb: Float64Array; m: Float64Array; v: Float64Array; mb: Float64Array; vb: Float64Array };\n\nclass Net {\n  layers: Layer[] = [];\n  t = 0;\n  constructor(sizes: number[]) {\n    for (let i = 0; i < sizes.length - 1; i++) {\n      const [nin, nout] = [sizes[i], sizes[i + 1]];\n      const z = (n: number): Float64Array => new Float64Array(n);\n      this.layers.push({ W: Float64Array.from({ length: nin * nout }, () => gauss() / Math.sqrt(nin)), b: z(nout), nin, nout, gW: z(nin * nout), gb: z(nout), m: z(nin * nout), v: z(nin * nout), mb: z(nout), vb: z(nout) });\n    }\n  }\n  forward(x: Float64Array): Float64Array[] {\n    const acts = [x];\n    for (let l = 0; l < this.layers.length; l++) {\n      const { W, b, nin, nout } = this.layers[l];\n      const inp = acts[l];\n      const out = new Float64Array(nout);\n      for (let o = 0; o < nout; o++) {\n        let s = b[o];\n        for (let i = 0; i < nin; i++) s += W[o * nin + i] * inp[i];\n        out[o] = l < this.layers.length - 1 ? Math.tanh(s) : s;\n      }\n      acts.push(out);\n    }\n    return acts;\n  }\n  probs(x: Float64Array): Float64Array {\n    const z = this.forward(x).at(-1) as Float64Array;\n    const mx = Math.max(...z);\n    const e = z.map((v) => Math.exp(v - mx));\n    const s = e.reduce((a, c) => a + c, 0);\n    return e.map((v) => v / s);\n  }\n  // 묶음 전체의 평균 loss를 계산하고, 기울기를 layers[].gW · gb 에 쌓는다\n  backward(xs: Float64Array[], ys: number[]): number {\n    let loss = 0;\n    for (const L of this.layers) { L.gW.fill(0); L.gb.fill(0); }\n    xs.forEach((x, n) => {\n      const acts = this.forward(x);\n      const p = this.probs(x);\n      loss -= Math.log(Math.max(p[ys[n]], 1e-12)) / xs.length;\n      let delta = p.map((v, k) => (v - (k === ys[n] ? 1 : 0)) / xs.length);\n      for (let l = this.layers.length - 1; l >= 0; l--) {\n        const L = this.layers[l];\n        const prev = new Float64Array(L.nin);\n        for (let o = 0; o < L.nout; o++) {\n          L.gb[o] += delta[o];\n          for (let i = 0; i < L.nin; i++) { L.gW[o * L.nin + i] += delta[o] * acts[l][i]; prev[i] += L.W[o * L.nin + i] * delta[o]; }\n        }\n        delta = l > 0 ? prev.map((v, i) => v * (1 - acts[l][i] ** 2)) : prev;\n      }\n    });\n    return loss;\n  }\n  adam(lr: number): void {\n    this.t++;\n    const [b1, b2] = [0.9, 0.999];\n    const upd = (w: Float64Array, g: Float64Array, m: Float64Array, v: Float64Array): void => {\n      for (let i = 0; i < w.length; i++) {\n        m[i] = b1 * m[i] + (1 - b1) * g[i];\n        v[i] = b2 * v[i] + (1 - b2) * g[i] * g[i];\n        w[i] -= (lr * (m[i] / (1 - b1 ** this.t))) / (Math.sqrt(v[i] / (1 - b2 ** this.t)) + 1e-8);\n      }\n    };\n    for (const L of this.layers) { upd(L.W, L.gW, L.m, L.v); upd(L.b, L.gb, L.mb, L.vb); }\n  }\n}\n\nfunction encode(s: string): number[] {\n  return [...s].map((c) => CHARS.indexOf(c) + 2).concat([EOT]);\n}\n\nfunction makeInput(frameChar: number, prev: number, accent: number): Float64Array {\n  // 입력 = (소리 특징 + 잡음) 뒤에 '앞 글자' 원핫을 붙인 것\n  const x = new Float64Array(D + V);\n  for (let d = 0; d < D; d++) x[d] = PROTO[frameChar][d] + accent * ACCENT[d] + 0.3 * gauss();\n  x[D + prev] = 1;\n  return x;\n}\n\nfunction trainSet(sents: string[], accent: number): { xs: Float64Array[]; ys: number[] } {\n  // Teacher forcing: 앞 글자 자리에 늘 '정답'을 한 칸 밀어 넣는다\n  const xs: Float64Array[] = [], ys: number[] = [];\n  for (const s of sents) {\n    const lab = encode(s);\n    lab.forEach((y, i) => { xs.push(makeInput(y, i === 0 ? SOT : lab[i - 1], accent)); ys.push(y); });\n  }\n  return { xs, ys };\n}\n\nfunction train(net: Net, sents: string[], accent: number, steps: number, lr: number): number {\n  let loss = 0;\n  for (let s = 0; s < steps; s++) {\n    const { xs, ys } = trainSet(sents, accent);\n    loss = net.backward(xs, ys);\n    net.adam(lr);\n  }\n  return loss;\n}\n\nfunction editDistance(a: string, b: string): number {\n  const d = Array.from({ length: b.length + 1 }, (_, j) => j);\n  for (let i = 1; i <= a.length; i++) {\n    let prev = d[0];\n    d[0] = i;\n    for (let j = 1; j <= b.length; j++) {\n      const tmp = d[j];\n      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));\n      prev = tmp;\n    }\n  }\n  return d[b.length];\n}\n\nfunction cer(net: Net, sents: string[], accent: number): number {\n  let err = 0, total = 0;\n  for (const s of sents) {\n    const lab = encode(s);\n    let prev = SOT, out = \"\";\n    for (const y of lab) { // 자유 생성: 내가 낸 답을 다음 입력으로 쓴다\n      const p = net.probs(makeInput(y, prev, accent));\n      prev = p.indexOf(Math.max(...p));\n      if (prev === EOT) break;\n      if (prev >= 2) out += CHARS[prev - 2];\n    }\n    err += editDistance(s, out);\n    total += s.length;\n  }\n  return (100 * err) / total;\n}\n\nconst net = new Net([D + V, H, V]);\ntrain(net, [...BASE, ...DOMAIN], 0.0, 200, 1e-2); // '이미 똑똑한 모델': 보통 말투에서 사전 학습\nconst before = cer(net, DOMAIN, 1.0); // 새 말투에서의 학습 전 CER\nconst loss = train(net, DOMAIN, 1.0, 150, 5e-3); // Fine-tuning: 새 말투 데이터로 조금만 더 학습\nconst after = cer(net, DOMAIN, 1.0);\nconsole.log(`학습 전 CER ${before.toFixed(1)}% → 학습 후 CER ${after.toFixed(1)}% (마지막 loss ${loss.toFixed(3)})`);\ncheck(after < before && after < 10, \"Fine-tuning 뒤에는 새 말투에서 CER이 크게 줄어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "jiwer",
+     "version": "4.0.0",
+     "purpose": "CER 채점",
+     "install": "pip install jiwer==4.0.0",
+     "docs": "https://jitsi.github.io/jiwer/",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "finetune": {
+  "part": "Part 0~4 · 설정과 모델 불러오기 (Fine-tuning 방식)",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    3,
+    3
+   ],
+   [
+    9,
+    9
+   ]
+  ],
+  "python": "# D12 · Part 1 · Fine-tuning 방식 (Full · 인코더 얼리기 · 출력층만) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d12_finetune.py   (CPU에서 몇 초 · GPU·인터넷·Whisper 다운로드 불필요)\n#   같은 장난감 모델을 세 가지 방식으로 Fine-tuning하고, 학습 대상 파라미터 수와 loss를 비교한다\n#   흉내 낸 부분: 소리 대신 글자마다 정해 둔 특징 벡터 + 잡음, Whisper 대신 GRU 한 층짜리 모델, 새 말투는 특징을 한쪽으로 밀어서 표현\nimport copy\n\nimport numpy as np\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\ntorch.manual_seed(0)\nrng = np.random.default_rng(0)\nPAD, SOT, EOT, D, H = 0, 1, 2, 12, 48\nBASE = [\"오늘날씨가좋네요\", \"회의를시작합니다\", \"자료를정리하세요\", \"일정을확인합니다\"]      # 길이를 모두 8글자로 맞춤\nDOMAIN = [\"심방세동을봅니다\", \"와파린을복용해요\", \"혈압을다시잽니다\", \"검사결과설명해요\"]\nCHARS = sorted({c for s in BASE + DOMAIN for c in s})\nID = {c: i + 3 for i, c in enumerate(CHARS)}\nV = len(CHARS) + 3\nPROTO = rng.normal(0, 1, (V, D)).astype(np.float32)\nACCENT = rng.normal(0, 1, D).astype(np.float32) * 2.5       # 새 말투\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef batch(sents: list, accent: float) -> tuple:\n    labels = torch.tensor([[ID[c] for c in s] + [EOT] for s in sents])           # 문장 길이를 맞춰 둬서 패딩은 생략\n    feats = torch.tensor(PROTO[labels.numpy()] + accent * ACCENT + rng.normal(0, 0.3, (*labels.shape, D)).astype(np.float32))\n    dec_in = torch.cat([torch.full((len(sents), 1), SOT), labels[:, :-1]], dim=1)   # Teacher forcing: 한 칸 밀기\n    return feats, dec_in, labels\n\n\nclass Toy(nn.Module):\n    def __init__(self):\n        super().__init__()\n        self.enc, self.emb = nn.Linear(D, H), nn.Embedding(V, H)\n        self.gru, self.out = nn.GRU(H, H, batch_first=True), nn.Linear(H, V)\n\n    def forward(self, feats, dec_in):\n        h, _ = self.gru(torch.tanh(self.enc(feats)) + self.emb(dec_in))\n        return self.out(h)\n\n\ndef loss_of(model: nn.Module, sents: list, accent: float) -> torch.Tensor:\n    feats, dec_in, labels = batch(sents, accent)\n    return nn.functional.cross_entropy(model(feats, dec_in).transpose(1, 2), labels)\n\n\ndef train(model: nn.Module, sents: list, accent: float, steps: int, lr: float) -> None:\n    opt = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad], lr=lr)\n    for _ in range(steps):\n        loss = loss_of(model, sents, accent)\n        opt.zero_grad()\n        loss.backward()\n        opt.step()\n\n\nbase = Toy()\ntrain(base, BASE + DOMAIN, 0.0, 200, 1e-2)                   # 사전 학습 = '이미 똑똑한 모델'\nn_all = sum(p.numel() for p in base.parameters())\nresults = {}\nfor name, frozen in [(\"Full (전부 학습)\", []), (\"인코더 얼리기\", [\"enc\"]), (\"출력층만\", [\"enc\", \"emb\", \"gru\"])]:\n    m = copy.deepcopy(base)\n    for part in frozen:\n        for p in getattr(m, part).parameters():\n            p.requires_grad = False                           # 얼리기: 기울기를 만들지도 갱신하지도 않음\n    n_train = sum(p.numel() for p in m.parameters() if p.requires_grad)\n    with torch.no_grad():\n        before = loss_of(m, DOMAIN, 1.0).item()\n    train(m, DOMAIN, 1.0, 100, 3e-3)\n    with torch.no_grad():\n        after = loss_of(m, DOMAIN, 1.0).item()\n    results[name] = (n_train, before, after)\n    print(f\"{name:10s} 학습 대상 {n_train:6,}개 ({100 * n_train / n_all:5.1f}%) · loss {before:.3f} → {after:.3f}\")\nsizes = [v[0] for v in results.values()]\ncheck(sizes[0] == n_all and sizes[0] > sizes[1] > sizes[2] and all(v[2] < v[1] for v in results.values()),\n      \"Full > 인코더 얼리기 > 출력층만 순으로 학습 대상이 적고, 셋 다 loss가 줄어야 해요.\")\n",
+  "typescript": "// D12 · Part 1 · Fine-tuning 방식 (Full · 첫 층 얼리기 · 출력층만) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_finetune.ts   (몇 초 · GPU·인터넷·Whisper 다운로드 불필요)\n//   같은 장난감 모델을 세 가지 방식으로 Fine-tuning하고, 학습 대상 파라미터 수와 loss를 비교한다\n//   흉내 낸 부분: 소리 대신 글자(클래스)마다 정해 둔 특징 벡터 + 잡음, Whisper 대신 3층 MLP, 새 말투는 특징을 한쪽으로 밀어서 표현\nconst D = 12, H = 32, K = 8;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = mulberry32(0);\nconst gauss = (): number => Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\ntype Layer = { W: Float64Array; b: Float64Array; nin: number; nout: number; frozen: boolean; gW: Float64Array; gb: Float64Array; m: Float64Array; v: Float64Array; mb: Float64Array; vb: Float64Array };\n\nclass Net {\n  layers: Layer[] = [];\n  t = 0;\n  constructor(sizes: number[]) {\n    const z = (n: number): Float64Array => new Float64Array(n);\n    for (let i = 0; i < sizes.length - 1; i++) {\n      const [nin, nout] = [sizes[i], sizes[i + 1]];\n      this.layers.push({ W: Float64Array.from({ length: nin * nout }, () => gauss() / Math.sqrt(nin)), b: z(nout), nin, nout, frozen: false, gW: z(nin * nout), gb: z(nout), m: z(nin * nout), v: z(nin * nout), mb: z(nout), vb: z(nout) });\n    }\n  }\n  forward(x: Float64Array): Float64Array[] {\n    const acts = [x];\n    this.layers.forEach((L, l) => {\n      const out = new Float64Array(L.nout);\n      for (let o = 0; o < L.nout; o++) {\n        let s = L.b[o];\n        for (let i = 0; i < L.nin; i++) s += L.W[o * L.nin + i] * acts[l][i];\n        out[o] = l < this.layers.length - 1 ? Math.tanh(s) : s;\n      }\n      acts.push(out);\n    });\n    return acts;\n  }\n  probs(x: Float64Array): Float64Array {\n    const z = this.forward(x).at(-1) as Float64Array;\n    const mx = Math.max(...z);\n    const e = z.map((v) => Math.exp(v - mx));\n    const s = e.reduce((a, c) => a + c, 0);\n    return e.map((v) => v / s);\n  }\n  loss(xs: Float64Array[], ys: number[]): number {\n    return xs.reduce((s, x, n) => s - Math.log(Math.max(this.probs(x)[ys[n]], 1e-12)), 0) / xs.length;\n  }\n  // 묶음 전체의 평균 loss를 계산하고, 기울기를 layers[].gW · gb 에 쌓는다\n  backward(xs: Float64Array[], ys: number[]): number {\n    for (const L of this.layers) { L.gW.fill(0); L.gb.fill(0); }\n    xs.forEach((x, n) => {\n      const acts = this.forward(x);\n      let delta = this.probs(x).map((v, k) => (v - (k === ys[n] ? 1 : 0)) / xs.length);\n      for (let l = this.layers.length - 1; l >= 0; l--) {\n        const L = this.layers[l];\n        const prev = new Float64Array(L.nin);\n        for (let o = 0; o < L.nout; o++) {\n          L.gb[o] += delta[o];\n          for (let i = 0; i < L.nin; i++) { L.gW[o * L.nin + i] += delta[o] * acts[l][i]; prev[i] += L.W[o * L.nin + i] * delta[o]; }\n        }\n        delta = l > 0 ? prev.map((v, i) => v * (1 - acts[l][i] ** 2)) : prev;\n      }\n    });\n    return this.loss(xs, ys);\n  }\n  adam(lr: number): void {\n    this.t++;\n    const upd = (w: Float64Array, g: Float64Array, m: Float64Array, v: Float64Array): void => {\n      for (let i = 0; i < w.length; i++) {\n        m[i] = 0.9 * m[i] + 0.1 * g[i];\n        v[i] = 0.999 * v[i] + 0.001 * g[i] * g[i];\n        w[i] -= (lr * (m[i] / (1 - 0.9 ** this.t))) / (Math.sqrt(v[i] / (1 - 0.999 ** this.t)) + 1e-8);\n      }\n    };\n    for (const L of this.layers) if (!L.frozen) { upd(L.W, L.gW, L.m, L.v); upd(L.b, L.gb, L.mb, L.vb); } // 얼린 층은 갱신하지 않음\n  }\n  clone(): Net {\n    const c = new Net([this.layers[0].nin, ...this.layers.map((L) => L.nout)]);\n    c.layers.forEach((L, i) => { L.W.set(this.layers[i].W); L.b.set(this.layers[i].b); });\n    return c;\n  }\n  trainable(): number {\n    return this.layers.filter((L) => !L.frozen).reduce((s, L) => s + L.W.length + L.b.length, 0);\n  }\n}\n\nconst PROTO = Array.from({ length: K }, () => Float64Array.from({ length: D }, gauss));\nconst ACCENT = Float64Array.from({ length: D }, () => 1.5 * gauss()); // 새 말투\n\nfunction data(n: number, accent: number): { xs: Float64Array[]; ys: number[] } {\n  const ys = Array.from({ length: n }, () => Math.floor(rnd() * K));\n  return { xs: ys.map((y) => Float64Array.from({ length: D }, (_, d) => PROTO[y][d] + accent * ACCENT[d] + 0.5 * gauss())), ys };\n}\n\nfunction train(net: Net, set: { xs: Float64Array[]; ys: number[] }, steps: number, lr: number): void {\n  for (let s = 0; s < steps; s++) { net.backward(set.xs, set.ys); net.adam(lr); }\n}\n\nconst base = new Net([D, H, H, K]);\ntrain(base, data(200, 0), 150, 1e-2); // 사전 학습 = '이미 똑똑한 모델'\nconst dTrain = data(100, 1), dTest = data(200, 1);\nconst nAll = base.trainable();\nconst results: [string, number, number, number][] = [];\nfor (const [name, nFrozen] of [[\"Full (전부 학습)\", 0], [\"첫 층 얼리기\", 1], [\"출력층만\", 2]] as [string, number][]) {\n  const m = base.clone();\n  m.layers.forEach((L, i) => { L.frozen = i < nFrozen; }); // 얼리기: 갱신하지 않음\n  const before = m.loss(dTest.xs, dTest.ys);\n  train(m, dTrain, 100, 5e-3);\n  const after = m.loss(dTest.xs, dTest.ys);\n  results.push([name, m.trainable(), before, after]);\n  console.log(`${name.padEnd(10)} 학습 대상 ${String(m.trainable()).padStart(6)}개 (${((100 * m.trainable()) / nAll).toFixed(1).padStart(5)}%) · loss ${before.toFixed(3)} → ${after.toFixed(3)}`);\n}\ncheck(results[0][1] === nAll && results[0][1] > results[1][1] && results[1][1] > results[2][1] && results.every((r) => r[3] < r[2]),\n  \"Full > 첫 층 얼리기 > 출력층만 순으로 학습 대상이 적고, 셋 다 loss가 줄어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "teacher": {
+  "part": "Part 1 · Teacher forcing (shift right)",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    4,
+    4
+   ]
+  ],
+  "python": "# D12 · Part 1 · Teacher forcing — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d12_teacher.py   (문장 하나로 만든 표 · 인터넷·GPU 불필요)\n#   디코더 입력 = 정답을 한 칸 뒤로 민 것(shift right). 학습 땐 정답을 넣어 주고(Teacher forcing), 쓸 땐 내 답을 넣는다\n#   흉내 낸 부분: 진짜 모델 대신 '앞 글자 → 다음 글자' 표를 외운 모델이 딱 한 글자(3번째)만 틀린다고 가정\nimport numpy as np\n\nSOT, PAD = 0, 99\ntext = \"오늘날씨가좋네요\"\nvocab = {c: i + 1 for i, c in enumerate(dict.fromkeys(text))}\ninv = {v: k for k, v in vocab.items()} | {SOT: \"<시작>\"}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef shift_right(labels: np.ndarray, start: int) -> np.ndarray:\n    out = np.empty_like(labels)\n    out[1:] = labels[:-1]                    # 한 칸 뒤로\n    out[0] = start                           # 맨 앞은 시작 토큰\n    return out\n\n\nlabels = np.array([vocab[c] for c in text])\ndec_in = shift_right(labels, SOT)\nprint(f\"{'위치':>4} | {'decoder 입력':8s} | 맞힐 정답\")\nfor i, (a, b) in enumerate(zip(dec_in, labels)):\n    print(f\"{i:>4} | {inv[a]:8s} | {inv[b]}\")\n\ntable = {int(a): int(b) for a, b in zip(dec_in, labels)}          # 모델이 외운 '앞 글자 → 다음 글자'\nWRONG_AT = 3\n\n\ndef model_predict(prev: int, pos: int) -> int:\n    if pos == WRONG_AT:\n        return PAD                                                # 일부러 한 글자 틀림\n    return table.get(prev, PAD)                                   # 처음 보는 입력이면 모름\n\n\n# Teacher forcing: 입력은 늘 정답(dec_in) → 틀린 글자가 다음 입력에 영향 없음\ntf_pred = [model_predict(int(a), i) for i, a in enumerate(dec_in)]\n# 자유 생성: 내가 낸 답을 다음 입력으로 → 한 번 틀리면 뒤가 줄줄이 틀림\nfree_pred, prev = [], SOT\nfor i in range(len(labels)):\n    prev = model_predict(prev, i)\n    free_pred.append(prev)\ntf_err = int(np.sum(np.array(tf_pred) != labels))\nfree_err = int(np.sum(np.array(free_pred) != labels))\nprint(f\"Teacher forcing 오류 {tf_err}개 · 자유 생성 오류 {free_err}개 (총 {len(labels)}글자)\")\ncheck(dec_in[0] == SOT and np.array_equal(dec_in[1:], labels[:-1]) and tf_err == 1 and free_err > tf_err,\n      \"디코더 입력은 정답을 한 칸 민 것이고, 자유 생성은 한 번 틀리면 오류가 이어져야 해요.\")\n",
+  "typescript": "// D12 · Part 1 · Teacher forcing — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_teacher.ts   (문장 하나로 만든 표 · 인터넷·GPU 불필요)\n//   디코더 입력 = 정답을 한 칸 뒤로 민 것(shift right). 학습 땐 정답을 넣어 주고(Teacher forcing), 쓸 땐 내 답을 넣는다\n//   흉내 낸 부분: 진짜 모델 대신 '앞 글자 → 다음 글자' 표를 외운 모델이 딱 한 글자(3번째)만 틀린다고 가정\nconst SOT = 0, PAD = 99;\nconst text = \"오늘날씨가좋네요\";\nconst vocab = new Map<string, number>([...new Set(text)].map((c, i) => [c, i + 1]));\nconst inv = new Map<number, string>([...vocab].map(([c, i]) => [i, c]));\ninv.set(SOT, \"<시작>\");\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction shiftRight(labels: number[], start: number): number[] {\n  return [start, ...labels.slice(0, -1)]; // 한 칸 뒤로, 맨 앞은 시작 토큰\n}\n\nconst labels = [...text].map((c) => vocab.get(c) as number);\nconst decIn = shiftRight(labels, SOT);\nconsole.log(\"위치 | decoder 입력 | 맞힐 정답\");\ndecIn.forEach((a, i) => console.log(`${String(i).padStart(4)} | ${(inv.get(a) as string).padEnd(8)} | ${inv.get(labels[i])}`));\n\nconst table = new Map<number, number>(decIn.map((a, i) => [a, labels[i]])); // 모델이 외운 '앞 글자 → 다음 글자'\nconst WRONG_AT = 3;\n\nfunction modelPredict(prev: number, pos: number): number {\n  if (pos === WRONG_AT) return PAD; // 일부러 한 글자 틀림\n  return table.get(prev) ?? PAD; // 처음 보는 입력이면 모름\n}\n\n// Teacher forcing: 입력은 늘 정답(decIn) → 틀린 글자가 다음 입력에 영향 없음\nconst tfPred = decIn.map((a, i) => modelPredict(a, i));\n// 자유 생성: 내가 낸 답을 다음 입력으로 → 한 번 틀리면 뒤가 줄줄이 틀림\nconst freePred: number[] = [];\nlet prev = SOT;\nfor (let i = 0; i < labels.length; i++) {\n  prev = modelPredict(prev, i);\n  freePred.push(prev);\n}\nconst tfErr = tfPred.filter((p, i) => p !== labels[i]).length;\nconst freeErr = freePred.filter((p, i) => p !== labels[i]).length;\nconsole.log(`Teacher forcing 오류 ${tfErr}개 · 자유 생성 오류 ${freeErr}개 (총 ${labels.length}글자)`);\ncheck(decIn[0] === SOT && decIn.slice(1).every((v, i) => v === labels[i]) && tfErr === 1 && freeErr > tfErr,\n  \"디코더 입력은 정답을 한 칸 민 것이고, 자유 생성은 한 번 틀리면 오류가 이어져야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "collator": {
+  "part": "Part 3 · Data Collator",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    7,
+    7
+   ]
+  ],
+  "python": "# D12 · Part 3 · Data Collator — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d12_collator.py   (합성 특징 · 인터넷·GPU 불필요)\n#   길이가 다른 샘플을 한 묶음으로: 소리 특징은 쌓기, 글자는 -100으로 채우고, 맨 앞 <|startoftranscript|>는 빼기\n#   흉내 낸 부분: 80 × 3000 특징 대신 작은 8 × 30 난수 특징, 토큰 번호는 Whisper의 특수 토큰 번호를 그대로 사용\nimport numpy as np\n\nSOT, KO, TRANSCRIBE, NOTS, EOT = 50258, 50264, 50359, 50363, 50257\nPAD_ID = EOT                                             # Whisper는 패딩에 <|endoftext|>를 씀\nrng = np.random.default_rng(0)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef collate(features: list) -> dict:\n    # ① 소리 쪽: 이미 같은 크기 → 그대로 쌓기\n    input_features = np.stack([f[\"input_features\"] for f in features])\n    # ② 글자 쪽: 가장 긴 길이로 채우고, 채운 자리는 -100 (손실 계산에서 무시)\n    n = max(len(f[\"labels\"]) for f in features)\n    labels = np.full((len(features), n), PAD_ID, dtype=np.int64)\n    mask = np.zeros((len(features), n), dtype=bool)\n    for i, f in enumerate(features):\n        labels[i, :len(f[\"labels\"])] = f[\"labels\"]\n        mask[i, :len(f[\"labels\"])] = True\n    labels = np.where(mask, labels, -100)\n    # ③ 맨 앞 <|startoftranscript|> 는 모델이 다시 붙이므로 빼기\n    if (labels[:, 0] == SOT).all():\n        labels = labels[:, 1:]\n    return dict(input_features=input_features, labels=labels)\n\n\ndef sample(n_chars: int) -> dict:\n    ids = [int(x) for x in rng.integers(100, 50000, n_chars)]\n    return dict(input_features=rng.normal(0, 1, (8, 30)).astype(np.float32), labels=[SOT, KO, TRANSCRIBE, NOTS] + ids + [EOT])\n\n\nb = collate([sample(n) for n in (3, 7, 5, 4)])\nprint({k: v.shape for k, v in b.items()})\nprint(\"labels[0] 끝부분:\", b[\"labels\"][0][-6:].tolist())\nprint(\"-100 개수 (샘플별):\", (b[\"labels\"] == -100).sum(axis=1).tolist())\ncheck(b[\"input_features\"].shape == (4, 8, 30) and (b[\"labels\"] == -100).sum(axis=1).tolist() == [4, 0, 2, 3]\n      and (b[\"labels\"][:, 0] != SOT).all() and b[\"labels\"].shape == (4, 11),\n      \"빈칸은 -100 으로 채우고, 모두 <|startoftranscript|>로 시작하면 맨 앞을 빼야 해요.\")\n",
+  "typescript": "// D12 · Part 3 · Data Collator — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_collator.ts   (합성 특징 · 인터넷·GPU 불필요)\n//   길이가 다른 샘플을 한 묶음으로: 소리 특징은 쌓기, 글자는 -100으로 채우고, 맨 앞 <|startoftranscript|>는 빼기\n//   흉내 낸 부분: 80 × 3000 특징 대신 작은 8 × 30 난수 특징, 토큰 번호는 Whisper의 특수 토큰 번호를 그대로 사용\nconst SOT = 50258, KO = 50264, TRANSCRIBE = 50359, NOTS = 50363, EOT = 50257;\nconst PAD_ID = EOT; // Whisper는 패딩에 <|endoftext|>를 씀\n\ntype Feature = { input_features: Float32Array[]; labels: number[] };\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 12345;\nconst rand = (): number => ((seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296);\n\nfunction collate(features: Feature[]): { input_features: Float32Array[][]; labels: number[][] } {\n  // ① 소리 쪽: 이미 같은 크기 → 그대로 쌓기\n  const input_features = features.map((f) => f.input_features);\n  // ② 글자 쪽: 가장 긴 길이로 채우고, 채운 자리는 -100 (손실 계산에서 무시)\n  const n = Math.max(...features.map((f) => f.labels.length));\n  let labels = features.map((f) => Array.from({ length: n }, (_, i) => (i < f.labels.length ? f.labels[i] : -100)));\n  // ③ 맨 앞 <|startoftranscript|> 는 모델이 다시 붙이므로 빼기\n  if (labels.every((row) => row[0] === SOT)) labels = labels.map((row) => row.slice(1));\n  return { input_features, labels };\n}\n\nfunction sample(nChars: number): Feature {\n  const ids = Array.from({ length: nChars }, () => 100 + Math.floor(rand() * 49900));\n  return { input_features: Array.from({ length: 8 }, () => Float32Array.from({ length: 30 }, rand)), labels: [SOT, KO, TRANSCRIBE, NOTS, ...ids, EOT] };\n}\n\nconst b = collate([3, 7, 5, 4].map(sample));\nconst count = (row: number[]): number => row.filter((v) => v === -100).length;\nconsole.log(`input_features (${b.input_features.length}, ${b.input_features[0].length}, ${b.input_features[0][0].length}) · labels (${b.labels.length}, ${b.labels[0].length})`);\nconsole.log(\"labels[0] 끝부분:\", b.labels[0].slice(-6));\nconsole.log(\"-100 개수 (샘플별):\", b.labels.map(count));\ncheck(b.input_features.length === 4 && b.labels.map(count).join() === \"4,0,2,3\" && b.labels.every((r) => r[0] !== SOT) && b.labels[0].length === 11,\n  \"빈칸은 -100 으로 채우고, 모두 <|startoftranscript|>로 시작하면 맨 앞을 빼야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "lr": {
+  "part": "Part 5 · 학습 설정 (학습률 · warmup)",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    11,
+    11
+   ]
+  ],
+  "python": "# D12 · Part 5 · 학습률 실험실 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d12_lr.py   (CPU에서 몇 초 · GPU·인터넷 불필요)\n#   같은 장난감 분류 모델을 학습률만 바꿔 학습: 너무 작으면 안 움직이고, 너무 크면 튀는 것을 표로 본다 (+ warmup · 선형 감소)\n#   흉내 낸 부분: Whisper 대신 작은 MLP로 5개 글자 구분하기. Whisper 권장값(1e-5)은 모델이 커서 작은 값이고, 장난감은 더 큰 값이 맞다\nimport numpy as np\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\nrng = np.random.default_rng(0)\nK, DIM = 5, 8\nPROTO = rng.normal(0, 1, (K, DIM)).astype(np.float32)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef data(n: int) -> tuple:\n    y = rng.integers(0, K, n)\n    return torch.tensor(PROTO[y] + rng.normal(0, 0.8, (n, DIM)).astype(np.float32)), torch.tensor(y)\n\n\nxt, yt = data(200)\nxv, yv = data(200)\n\n\ndef run(lr: float, steps: int = 60, warmup: int = 6) -> float:\n    torch.manual_seed(0)\n    model = nn.Sequential(nn.Linear(DIM, 32), nn.ReLU(), nn.Linear(32, K))\n    opt = torch.optim.AdamW(model.parameters(), lr=lr)\n    # warmup: 처음 몇 step은 학습률을 0에서 천천히 올리고, 이후 선형으로 0까지 내림\n    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: min((s + 1) / warmup, max(0.0, (steps - s) / (steps - warmup))))\n    for _ in range(steps):\n        loss = nn.functional.cross_entropy(model(xt), yt)\n        opt.zero_grad()\n        loss.backward()\n        opt.step()\n        sched.step()\n    with torch.no_grad():\n        return nn.functional.cross_entropy(model(xv), yv).item()\n\n\nlrs = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0]\nlosses = {lr: run(lr) for lr in lrs}\nfor lr, l in losses.items():\n    print(f\"lr={lr:7.0e}  검증 loss {l:7.3f}  {'#' * int(min(l, 8) * 5)}\")\nbest = min(losses, key=losses.get)\nprint(\"가장 좋은 학습률:\", best)\ncheck(1e-4 <= best <= 1e-1 and losses[1e-6] > 1.3 * losses[best] and losses[1.0] > 1.3 * losses[best],\n      \"가장 좋은 학습률은 가운데에 있고, 너무 작거나(1e-6) 너무 큰(1.0) 값은 loss가 더 커야 해요.\")\n",
+  "typescript": "// D12 · Part 5 · 학습률 실험실 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_lr.ts   (몇 초 · GPU·인터넷 불필요)\n//   같은 장난감 분류 모델을 학습률만 바꿔 학습: 너무 작으면 안 움직이고, 너무 크면 튀는 것을 표로 본다 (+ warmup · 선형 감소)\n//   흉내 낸 부분: Whisper 대신 작은 MLP로 5개 묶음 구분하기. Whisper 권장값(1e-5)은 모델이 커서 작은 값이고, 장난감은 더 큰 값이 맞다\nconst K = 5, DIM = 8;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nlet rnd = mulberry32(0);\nconst gauss = (): number => Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\ntype Layer = { W: Float64Array; b: Float64Array; nin: number; nout: number; gW: Float64Array; gb: Float64Array; m: Float64Array; v: Float64Array; mb: Float64Array; vb: Float64Array };\n\nclass Net {\n  layers: Layer[] = [];\n  t = 0;\n  constructor(sizes: number[]) {\n    const z = (n: number): Float64Array => new Float64Array(n);\n    for (let i = 0; i < sizes.length - 1; i++) {\n      const [nin, nout] = [sizes[i], sizes[i + 1]];\n      this.layers.push({ W: Float64Array.from({ length: nin * nout }, () => gauss() / Math.sqrt(nin)), b: z(nout), nin, nout, gW: z(nin * nout), gb: z(nout), m: z(nin * nout), v: z(nin * nout), mb: z(nout), vb: z(nout) });\n    }\n  }\n  forward(x: Float64Array): Float64Array[] {\n    const acts = [x];\n    this.layers.forEach((L, l) => {\n      const out = new Float64Array(L.nout);\n      for (let o = 0; o < L.nout; o++) {\n        let s = L.b[o];\n        for (let i = 0; i < L.nin; i++) s += L.W[o * L.nin + i] * acts[l][i];\n        out[o] = l < this.layers.length - 1 ? Math.tanh(s) : s;\n      }\n      acts.push(out);\n    });\n    return acts;\n  }\n  probs(x: Float64Array): Float64Array {\n    const z = this.forward(x).at(-1) as Float64Array;\n    const mx = Math.max(...z);\n    const e = z.map((v) => Math.exp(v - mx));\n    const s = e.reduce((a, c) => a + c, 0);\n    return e.map((v) => v / s);\n  }\n  loss(xs: Float64Array[], ys: number[]): number {\n    return xs.reduce((s, x, n) => s - Math.log(Math.max(this.probs(x)[ys[n]], 1e-12)), 0) / xs.length;\n  }\n  // 묶음 전체의 평균 loss를 계산하고, 기울기를 layers[].gW · gb 에 쌓는다\n  backward(xs: Float64Array[], ys: number[]): number {\n    for (const L of this.layers) { L.gW.fill(0); L.gb.fill(0); }\n    xs.forEach((x, n) => {\n      const acts = this.forward(x);\n      let delta = this.probs(x).map((v, k) => (v - (k === ys[n] ? 1 : 0)) / xs.length);\n      for (let l = this.layers.length - 1; l >= 0; l--) {\n        const L = this.layers[l];\n        const prev = new Float64Array(L.nin);\n        for (let o = 0; o < L.nout; o++) {\n          L.gb[o] += delta[o];\n          for (let i = 0; i < L.nin; i++) { L.gW[o * L.nin + i] += delta[o] * acts[l][i]; prev[i] += L.W[o * L.nin + i] * delta[o]; }\n        }\n        delta = l > 0 ? prev.map((v, i) => v * (1 - acts[l][i] ** 2)) : prev;\n      }\n    });\n    return this.loss(xs, ys);\n  }\n  adam(lr: number): void {\n    this.t++;\n    const upd = (w: Float64Array, g: Float64Array, m: Float64Array, v: Float64Array): void => {\n      for (let i = 0; i < w.length; i++) {\n        m[i] = 0.9 * m[i] + 0.1 * g[i];\n        v[i] = 0.999 * v[i] + 0.001 * g[i] * g[i];\n        w[i] -= (lr * (m[i] / (1 - 0.9 ** this.t))) / (Math.sqrt(v[i] / (1 - 0.999 ** this.t)) + 1e-8);\n      }\n    };\n    for (const L of this.layers) { upd(L.W, L.gW, L.m, L.v); upd(L.b, L.gb, L.mb, L.vb); }\n  }\n}\n\nconst PROTO = Array.from({ length: K }, () => Float64Array.from({ length: DIM }, gauss));\n\nfunction data(n: number): { xs: Float64Array[]; ys: number[] } {\n  const ys = Array.from({ length: n }, () => Math.floor(rnd() * K));\n  return { xs: ys.map((y) => Float64Array.from({ length: DIM }, (_, d) => PROTO[y][d] + 0.8 * gauss())), ys };\n}\nconst train = data(200), valid = data(200);\n\nfunction run(lr: number, steps: number = 60, warmup: number = 6): number {\n  rnd = mulberry32(1); // 같은 출발점에서 시작\n  const net = new Net([DIM, 32, K]);\n  for (let s = 0; s < steps; s++) {\n    net.backward(train.xs, train.ys);\n    // warmup: 처음 몇 step은 학습률을 0에서 천천히 올리고, 이후 선형으로 0까지 내림\n    net.adam(lr * Math.min((s + 1) / warmup, Math.max(0, (steps - s) / (steps - warmup))));\n  }\n  return net.loss(valid.xs, valid.ys);\n}\n\nconst lrs = [1e-6, 1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0];\nconst losses = new Map(lrs.map((lr) => [lr, run(lr)]));\nfor (const [lr, l] of losses) {\n  console.log(`lr=${lr.toExponential(0).padStart(6)}  검증 loss ${l.toFixed(3).padStart(7)}  ${\"#\".repeat(Math.floor(Math.min(l, 8) * 5))}`);\n}\nconst best = [...losses].reduce((a, b) => (b[1] < a[1] ? b : a))[0];\nconsole.log(\"가장 좋은 학습률:\", best);\ncheck(best >= 1e-4 && best <= 1e-1 && (losses.get(1e-6) as number) > 1.3 * (losses.get(best) as number) && (losses.get(1.0) as number) > 1.3 * (losses.get(best) as number),\n  \"가장 좋은 학습률은 가운데에 있고, 너무 작거나(1e-6) 너무 큰(1.0) 값은 loss가 더 커야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "memory": {
+  "part": "Part 0 · 설정 + Part 5 · 학습 설정 (메모리)",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    3,
+    3
+   ],
+   [
+    11,
+    11
+   ]
+  ],
+  "python": "# D12 · Part 4~5 · GPU 메모리 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d12_memory.py   (CPU에서 몇 초 · GPU 불필요)\n#   Full Fine-tuning이 파라미터 1개당 약 16바이트(가중치 4 + 기울기 4 + Adam 8)를 쓰는 것을 장난감 모델로 직접 재고, Whisper 크기별 표를 만든다\n#   흉내 낸 부분: 장난감 MLP에서 잰 값으로 Whisper를 계산(activation 메모리는 제외한 대략값)\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\ntorch.manual_seed(0)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nmodel = nn.Sequential(nn.Linear(64, 128), nn.ReLU(), nn.Linear(128, 10))\nopt = torch.optim.AdamW(model.parameters(), lr=1e-3)\nloss = model(torch.randn(8, 64)).sum()\nloss.backward()\nopt.step()                                                  # 한 번 학습해야 Adam 상태(m, v)가 만들어짐\n\nn = sum(p.numel() for p in model.parameters())\nweight_b = sum(p.numel() * p.element_size() for p in model.parameters())\ngrad_b = sum(p.grad.numel() * p.grad.element_size() for p in model.parameters())\nadam_b = sum(t.numel() * t.element_size() for s in opt.state.values() for t in s.values() if t.dim() > 0)\nprint(f\"파라미터 {n:,}개 · 가중치 {weight_b:,} B · 기울기 {grad_b:,} B · Adam 상태 {adam_b:,} B\")\nprint(f\"파라미터 1개당 {(weight_b + grad_b + adam_b) / n:.1f} 바이트\")\n\nprint(f\"\\n{'모델':16s}{'파라미터':>10s}{'Full 학습(GB)':>16s}{'LoRA 1%(GB)':>14s}\")\nGB = 1024 ** 3\nfor name, params in [(\"whisper-tiny\", 39e6), (\"whisper-small\", 244e6), (\"whisper-medium\", 769e6)]:\n    full = params * 16 / GB                                  # 가중치 + 기울기 + Adam\n    lora = (params * 4 + params * 0.01 * 12) / GB            # 가중치만 전체, 기울기·Adam은 학습 대상 1%만\n    print(f\"{name:16s}{params / 1e6:8.0f} M{full:14.2f}{lora:14.2f}\")\ncheck(weight_b == grad_b == 4 * n and adam_b == 8 * n and (weight_b + grad_b + adam_b) == 16 * n,\n      \"가중치 · 기울기는 4바이트, Adam 상태는 두 배(8바이트)여서 합이 16바이트여야 해요.\")\n",
+  "typescript": "// D12 · Part 4~5 · GPU 메모리 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_memory.ts   (GPU 불필요)\n//   Full Fine-tuning이 파라미터 1개당 약 16바이트(가중치 4 + 기울기 4 + Adam 8)를 쓰는 것을 장난감 모델의 배열 크기로 직접 재고, Whisper 크기별 표를 만든다\n//   흉내 낸 부분: 장난감 MLP의 Float32Array 크기로 Whisper를 계산(activation 메모리는 제외한 대략값)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst shapes: [number, number][] = [[64, 128], [128, 10]]; // Linear(64→128), Linear(128→10)\nconst weights = shapes.flatMap(([i, o]) => [new Float32Array(i * o), new Float32Array(o)]);\nconst grads = weights.map((w) => new Float32Array(w.length)); // 기울기: 가중치와 같은 크기\nconst adamM = weights.map((w) => new Float32Array(w.length)); // Adam 1차 상태(m)\nconst adamV = weights.map((w) => new Float32Array(w.length)); // Adam 2차 상태(v)\n\nconst bytes = (arrs: Float32Array[]): number => arrs.reduce((s, a) => s + a.byteLength, 0);\nconst n = weights.reduce((s, w) => s + w.length, 0);\nconst [weightB, gradB, adamB] = [bytes(weights), bytes(grads), bytes(adamM) + bytes(adamV)];\nconsole.log(`파라미터 ${n.toLocaleString(\"en-US\")}개 · 가중치 ${weightB.toLocaleString(\"en-US\")} B · 기울기 ${gradB.toLocaleString(\"en-US\")} B · Adam 상태 ${adamB.toLocaleString(\"en-US\")} B`);\nconsole.log(`파라미터 1개당 ${((weightB + gradB + adamB) / n).toFixed(1)} 바이트`);\n\nconsole.log(\"\\n\" + \"모델\".padEnd(16) + \"파라미터\".padStart(10) + \"Full 학습(GB)\".padStart(16) + \"LoRA 1%(GB)\".padStart(14));\nconst GB = 1024 ** 3;\nfor (const [name, params] of [[\"whisper-tiny\", 39e6], [\"whisper-small\", 244e6], [\"whisper-medium\", 769e6]] as [string, number][]) {\n  const full = (params * 16) / GB; // 가중치 + 기울기 + Adam\n  const lora = (params * 4 + params * 0.01 * 12) / GB; // 가중치만 전체, 기울기·Adam은 학습 대상 1%만\n  console.log(name.padEnd(16) + `${(params / 1e6).toFixed(0).padStart(8)} M` + full.toFixed(2).padStart(14) + lora.toFixed(2).padStart(14));\n}\ncheck(weightB === 4 * n && gradB === 4 * n && adamB === 8 * n && weightB + gradB + adamB === 16 * n,\n  \"가중치 · 기울기는 4바이트, Adam 상태는 두 배(8바이트)여서 합이 16바이트여야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "loop": {
+  "part": "Part 5 · Trainer 만들기와 학습 실행",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    12,
+    13
+   ]
+  ],
+  "python": "# D12 · Part 5 · 학습 한 step (기울기 누적 · 클리핑 포함) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d12_loop.py   (CPU에서 몇 초 · GPU·인터넷 불필요)\n#   forward → loss → backward → 기울기 자르기 → 옵티마이저 한 걸음 순서를 직접 돌리고, '작은 묶음 4번 누적 = 큰 묶음 1번'을 확인한다\n#   흉내 낸 부분: Whisper 대신 작은 MLP 분류기와 합성 데이터\nimport numpy as np\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\ntorch.manual_seed(0)\nrng = np.random.default_rng(0)\nx = torch.tensor(rng.normal(0, 1, (32, 8)).astype(np.float32))\ny = torch.tensor(rng.integers(0, 5, 32))\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef new_model() -> nn.Module:\n    torch.manual_seed(0)\n    return nn.Sequential(nn.Linear(8, 16), nn.Tanh(), nn.Linear(16, 5))\n\n\ndef grads(model: nn.Module) -> torch.Tensor:\n    return torch.cat([p.grad.flatten() for p in model.parameters()])\n\n\n# 1) 한 step: 큰 묶음(32개) 한 번\nmodel = new_model()\nopt = torch.optim.AdamW(model.parameters(), lr=1e-2)\nw0 = model[0].weight.detach().clone()\nloss = nn.functional.cross_entropy(model(x), y)\nopt.zero_grad()\nloss.backward()                                            # 기울기 계산\nbig_grad = grads(model).clone()\nnorm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)   # 너무 큰 기울기는 길이 1로 자름\nopt.step()                                                 # 가중치 갱신\nloss_after = nn.functional.cross_entropy(model(x), y).item()\nprint(f\"loss {loss.item():.4f} → {loss_after:.4f} · 기울기 크기 {norm:.3f} (자른 뒤 ≤ 1) · 가중치 변화 {(model[0].weight - w0).abs().max():.4f}\")\n\n# 2) 기울기 누적: 작은 묶음(8개) 4번을 loss/4 로 쌓으면 큰 묶음 1번과 같다\nmodel2 = new_model()\nmodel2.zero_grad()\nfor i in range(4):\n    part = slice(i * 8, (i + 1) * 8)\n    (nn.functional.cross_entropy(model2(x[part]), y[part]) / 4).backward()    # 나누기 4: 평균을 맞추기 위해\nacc_grad = grads(model2)\nprint(\"누적 기울기 = 큰 묶음 기울기?\", torch.allclose(acc_grad, big_grad, atol=1e-6))\ncheck(loss_after < loss.item() and float(norm) > 0 and torch.allclose(acc_grad, big_grad, atol=1e-6) and not torch.equal(model[0].weight, w0),\n      \"한 step 뒤 loss가 줄고, 누적 기울기가 큰 묶음 기울기와 같아야 해요.\")\n",
+  "typescript": "// D12 · Part 5 · 학습 한 step (기울기 누적 · 클리핑 포함) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_loop.ts   (몇 초 · GPU·인터넷 불필요)\n//   forward → loss → backward → 기울기 자르기 → 옵티마이저 한 걸음 순서를 직접 돌리고, '작은 묶음 4번 누적 = 큰 묶음 1번'을 확인한다\n//   흉내 낸 부분: Whisper 대신 작은 MLP 분류기와 합성 데이터\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nlet rnd = mulberry32(0);\nconst gauss = (): number => Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\ntype Layer = { W: Float64Array; b: Float64Array; nin: number; nout: number; gW: Float64Array; gb: Float64Array; m: Float64Array; v: Float64Array; mb: Float64Array; vb: Float64Array };\n\nclass Net {\n  layers: Layer[] = [];\n  t = 0;\n  constructor(sizes: number[]) {\n    const z = (n: number): Float64Array => new Float64Array(n);\n    for (let i = 0; i < sizes.length - 1; i++) {\n      const [nin, nout] = [sizes[i], sizes[i + 1]];\n      this.layers.push({ W: Float64Array.from({ length: nin * nout }, () => gauss() / Math.sqrt(nin)), b: z(nout), nin, nout, gW: z(nin * nout), gb: z(nout), m: z(nin * nout), v: z(nin * nout), mb: z(nout), vb: z(nout) });\n    }\n  }\n  forward(x: Float64Array): Float64Array[] {\n    const acts = [x];\n    this.layers.forEach((L, l) => {\n      const out = new Float64Array(L.nout);\n      for (let o = 0; o < L.nout; o++) {\n        let s = L.b[o];\n        for (let i = 0; i < L.nin; i++) s += L.W[o * L.nin + i] * acts[l][i];\n        out[o] = l < this.layers.length - 1 ? Math.tanh(s) : s;\n      }\n      acts.push(out);\n    });\n    return acts;\n  }\n  probs(x: Float64Array): Float64Array {\n    const z = this.forward(x).at(-1) as Float64Array;\n    const mx = Math.max(...z);\n    const e = z.map((v) => Math.exp(v - mx));\n    const s = e.reduce((a, c) => a + c, 0);\n    return e.map((v) => v / s);\n  }\n  loss(xs: Float64Array[], ys: number[]): number {\n    return xs.reduce((s, x, n) => s - Math.log(Math.max(this.probs(x)[ys[n]], 1e-12)), 0) / xs.length;\n  }\n  // 묶음 전체의 평균 loss를 계산하고, 기울기를 layers[].gW · gb 에 쌓는다\n  backward(xs: Float64Array[], ys: number[]): number {\n    for (const L of this.layers) { L.gW.fill(0); L.gb.fill(0); }\n    xs.forEach((x, n) => {\n      const acts = this.forward(x);\n      let delta = this.probs(x).map((v, k) => (v - (k === ys[n] ? 1 : 0)) / xs.length);\n      for (let l = this.layers.length - 1; l >= 0; l--) {\n        const L = this.layers[l];\n        const prev = new Float64Array(L.nin);\n        for (let o = 0; o < L.nout; o++) {\n          L.gb[o] += delta[o];\n          for (let i = 0; i < L.nin; i++) { L.gW[o * L.nin + i] += delta[o] * acts[l][i]; prev[i] += L.W[o * L.nin + i] * delta[o]; }\n        }\n        delta = l > 0 ? prev.map((v, i) => v * (1 - acts[l][i] ** 2)) : prev;\n      }\n    });\n    return this.loss(xs, ys);\n  }\n  adam(lr: number): void {\n    this.t++;\n    const upd = (w: Float64Array, g: Float64Array, m: Float64Array, v: Float64Array): void => {\n      for (let i = 0; i < w.length; i++) {\n        m[i] = 0.9 * m[i] + 0.1 * g[i];\n        v[i] = 0.999 * v[i] + 0.001 * g[i] * g[i];\n        w[i] -= (lr * (m[i] / (1 - 0.9 ** this.t))) / (Math.sqrt(v[i] / (1 - 0.999 ** this.t)) + 1e-8);\n      }\n    };\n    for (const L of this.layers) { upd(L.W, L.gW, L.m, L.v); upd(L.b, L.gb, L.mb, L.vb); }\n  }\n}\n\nconst xs = Array.from({ length: 32 }, () => Float64Array.from({ length: 8 }, gauss));\nconst ys = Array.from({ length: 32 }, () => Math.floor(rnd() * 5));\nconst net = new Net([8, 16, 5]);\n\nconst flatGrad = (): number[] => net.layers.flatMap((L) => [...L.gW, ...L.gb]);\n\n// 1) 큰 묶음(32개)의 기울기\nconst loss = net.backward(xs, ys); // 기울기 계산\nconst bigGrad = flatGrad();\n\n// 2) 기울기 누적: 작은 묶음(8개) 4번의 기울기를 평균(÷ 4)해서 쌓으면 큰 묶음 1번과 같다\nconst acc = new Array(bigGrad.length).fill(0);\nfor (let i = 0; i < 4; i++) {\n  net.backward(xs.slice(i * 8, (i + 1) * 8), ys.slice(i * 8, (i + 1) * 8));\n  flatGrad().forEach((g, k) => { acc[k] += g / 4; }); // 나누기 4: 평균을 맞추기 위해\n}\nconst same = acc.every((g, k) => Math.abs(g - bigGrad[k]) < 1e-9);\nconsole.log(\"누적 기울기 = 큰 묶음 기울기?\", same);\n\n// 3) 한 step: 기울기 자르기 → 옵티마이저 한 걸음\nnet.backward(xs, ys);\nconst norm = Math.sqrt(flatGrad().reduce((s, g) => s + g * g, 0));\nconst scale = Math.min(1, 1.0 / (norm + 1e-6)); // 기울기 전체 길이가 1을 넘으면 길이 1로 줄임\nfor (const L of net.layers) { L.gW.forEach((g, i) => { L.gW[i] = g * scale; }); L.gb.forEach((g, i) => { L.gb[i] = g * scale; }); }\nconst w0 = net.layers[0].W[0];\nnet.adam(1e-2); // 가중치 갱신\nconst lossAfter = net.loss(xs, ys);\nconsole.log(`loss ${loss.toFixed(4)} → ${lossAfter.toFixed(4)} · 기울기 크기 ${norm.toFixed(3)} (자른 뒤 ≤ 1) · 첫 가중치 변화 ${Math.abs(net.layers[0].W[0] - w0).toFixed(4)}`);\ncheck(lossAfter < loss && norm > 0 && same && net.layers[0].W[0] !== w0, \"한 step 뒤 loss가 줄고, 누적 기울기가 큰 묶음 기울기와 같아야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "metrics": {
+  "part": "Part 4 · compute_metrics (CER)",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    8,
+    8
+   ]
+  ],
+  "python": "# D12 · Part 4 · CER 계산 (compute_metrics) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 jiwer==4.0.0\n# 실행: python d12_metrics.py   (글자 번호 배열로 만든 모의 예측 · 인터넷·GPU 불필요)\n#   -100을 패딩 번호로 되돌려 글자로 바꾸고, 문장 부호·띄어쓰기를 지운 뒤 CER을 계산한다 (jiwer와 직접 계산 비교)\n#   흉내 낸 부분: Whisper 토크나이저 대신 글자 목록(vocab)으로 번호 ↔ 글자 변환\nimport re\n\nimport jiwer\nimport numpy as np\n\nPAD_ID = 0\nVOCAB = [\"<pad>\"] + list(\"오늘날씨가좋네요회의를시작합니다 .,!\")\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef decode(ids) -> str:\n    return \"\".join(VOCAB[i] for i in ids if i != PAD_ID)\n\n\ndef encode(s: str) -> list:\n    return [VOCAB.index(c) for c in s]\n\n\ndef normalize(s: str) -> str:                                  # D10 정규화의 간단판: 문장 부호 · 띄어쓰기 차이 무시\n    s = re.sub(r\"[^\\w\\s]\", \"\", s.lower())\n    return re.sub(r\"\\s+\", \"\", s)\n\n\ndef edit_distance(a: str, b: str) -> int:\n    d = list(range(len(b) + 1))\n    for i, ca in enumerate(a, 1):\n        prev, d[0] = d[0], i\n        for j, cb in enumerate(b, 1):\n            prev, d[j] = d[j], min(d[j] + 1, d[j - 1] + 1, prev + (ca != cb))\n    return d[-1]\n\n\ndef compute_metrics(pred_ids: np.ndarray, label_ids: np.ndarray) -> dict:\n    label_ids = label_ids.copy()\n    label_ids[label_ids == -100] = PAD_ID                      # 빈칸 -100 은 글자로 못 바꾸니 패딩 번호로\n    pred_str = [normalize(decode(r)) or \"∅\" for r in pred_ids]  # 빈 예측 대비\n    label_str = [normalize(decode(r)) for r in label_ids]\n    return {\"cer\": 100 * jiwer.cer(label_str, pred_str)}\n\n\ndef pad(rows: list, n: int, fill: int) -> np.ndarray:\n    return np.array([r + [fill] * (n - len(r)) for r in rows])\n\n\nrefs = [\"오늘 날씨가 좋네요.\", \"회의를 시작합니다!\"]\nlabels = pad([encode(s) for s in refs], 12, -100)\nsame = pad([encode(s) for s in refs], 12, PAD_ID)\none_off = pad([encode(\"오늘 날씨가 좋네오.\"), encode(refs[1])], 12, PAD_ID)      # 한 글자만 다름\nprint(\"정답 = 예측:\", compute_metrics(same, labels))\nprint(\"한 글자 틀림:\", compute_metrics(one_off, labels))\nchars = \"\".join(normalize(s) for s in refs)\nref_edit = edit_distance(normalize(refs[0]), normalize(\"오늘 날씨가 좋네오.\"))\ncheck(compute_metrics(same, labels)[\"cer\"] == 0 and ref_edit == 1\n      and abs(compute_metrics(one_off, labels)[\"cer\"] - 100 * 1 / len(chars)) < 1e-9,\n      \"정답 그대로면 CER 0, 한 글자 틀리면 1 ÷ 전체 글자 수 × 100 이어야 해요.\")\n",
+  "typescript": "// D12 · Part 4 · CER 계산 (compute_metrics) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_metrics.ts   (글자 번호 배열로 만든 모의 예측 · 인터넷·GPU 불필요)\n//   -100을 패딩 번호로 되돌려 글자로 바꾸고, 문장 부호·띄어쓰기를 지운 뒤 CER을 계산한다 (편집 거리 직접 계산)\n//   흉내 낸 부분: Whisper 토크나이저 대신 글자 목록(VOCAB)으로 번호 ↔ 글자 변환\nconst PAD_ID = 0;\nconst VOCAB = [\"<pad>\", ...[...\"오늘날씨가좋네요회의를시작합니다 .,!\"]];\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst decode = (ids: number[]): string => ids.filter((i) => i !== PAD_ID).map((i) => VOCAB[i]).join(\"\");\nconst encode = (s: string): number[] => [...s].map((c) => VOCAB.indexOf(c));\n\nfunction normalize(s: string): string {\n  // D10 정규화의 간단판: 문장 부호 · 띄어쓰기 차이 무시\n  return s.toLowerCase().replace(/[^\\p{L}\\p{N}_\\s]/gu, \"\").replace(/\\s+/g, \"\");\n}\n\nfunction editDistance(a: string, b: string): number {\n  const d = Array.from({ length: b.length + 1 }, (_, j) => j);\n  for (let i = 1; i <= a.length; i++) {\n    let prev = d[0];\n    d[0] = i;\n    for (let j = 1; j <= b.length; j++) {\n      const tmp = d[j];\n      d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));\n      prev = tmp;\n    }\n  }\n  return d[b.length];\n}\n\nfunction computeMetrics(predIds: number[][], labelIds: number[][]): { cer: number } {\n  const labels = labelIds.map((r) => r.map((v) => (v === -100 ? PAD_ID : v))); // 빈칸 -100 은 글자로 못 바꾸니 패딩 번호로\n  const pred = predIds.map((r) => normalize(decode(r)) || \"∅\"); // 빈 예측 대비\n  const ref = labels.map((r) => normalize(decode(r)));\n  const errors = ref.reduce((s, r, i) => s + editDistance(r, pred[i]), 0);\n  return { cer: (100 * errors) / ref.reduce((s, r) => s + r.length, 0) };\n}\n\nconst pad = (rows: number[][], n: number, fill: number): number[][] => rows.map((r) => [...r, ...Array(n - r.length).fill(fill)]);\n\nconst refs = [\"오늘 날씨가 좋네요.\", \"회의를 시작합니다!\"];\nconst labels = pad(refs.map(encode), 12, -100);\nconst same = pad(refs.map(encode), 12, PAD_ID);\nconst oneOff = pad([encode(\"오늘 날씨가 좋네오.\"), encode(refs[1])], 12, PAD_ID); // 한 글자만 다름\nconsole.log(\"정답 = 예측:\", computeMetrics(same, labels));\nconsole.log(\"한 글자 틀림:\", computeMetrics(oneOff, labels));\nconst chars = refs.map(normalize).join(\"\").length;\ncheck(computeMetrics(same, labels).cer === 0 && Math.abs(computeMetrics(oneOff, labels).cer - 100 / chars) < 1e-9,\n  \"정답 그대로면 CER 0, 한 글자 틀리면 1 ÷ 전체 글자 수 × 100 이어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "jiwer",
+     "version": "4.0.0",
+     "purpose": "CER 채점",
+     "install": "pip install jiwer==4.0.0",
+     "docs": "https://jitsi.github.io/jiwer/",
+     "license": "Apache-2.0"
+    },
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "curves": {
+  "part": "Part 6 · 기록에서 곡선 그리기",
+  "nb": "D12_Whisper_FullFinetuning_실습.ipynb",
+  "ord": [
+   [
+    14,
+    15
+   ]
+  ],
+  "python": "# D12 · Part 6 · 학습 곡선 읽기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d12_curves.py   (CPU에서 몇 초 · GPU·인터넷 불필요)\n#   장난감 분류 모델을 세 가지 조건으로 학습해 train · valid loss 곡선을 모으고, 곡선 모양으로 '안 배움 · 잘 배움 · 외움(과적합)'을 판정한다\n#   흉내 낸 부분: Whisper 대신 작은 MLP, 소리 대신 잡음이 많은 합성 특징(학습 문제 20개 vs 검증 300개)\nimport numpy as np\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\nrng = np.random.default_rng(0)\nK, DIM = 5, 20\nPROTO = rng.normal(0, 1, (K, DIM)).astype(np.float32)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef data(n: int) -> tuple:\n    y = rng.integers(0, K, n)\n    return torch.tensor(PROTO[y] + rng.normal(0, 2.5, (n, DIM)).astype(np.float32)), torch.tensor(y)\n\n\nxt, yt = data(20)\nxv, yv = data(300)\n\n\ndef run(lr: float, width: int, steps: int) -> tuple:\n    torch.manual_seed(0)\n    model = nn.Sequential(nn.Linear(DIM, width), nn.ReLU(), nn.Linear(width, K))\n    opt = torch.optim.Adam(model.parameters(), lr=lr)\n    tr, va = [], []\n    for _ in range(steps):\n        loss = nn.functional.cross_entropy(model(xt), yt)\n        opt.zero_grad()\n        loss.backward()\n        opt.step()\n        with torch.no_grad():\n            tr.append(loss.item())\n            va.append(nn.functional.cross_entropy(model(xv), yv).item())\n    return tr, va\n\n\ndef diagnose(tr: list, va: list) -> str:\n    \"\"\"곡선 읽는 규칙: train이 거의 안 줄면 안 배움, valid가 바닥을 찍고 다시 오르면 외움, 둘 다 줄면 잘 배움.\"\"\"\n    if tr[-1] > 0.9 * tr[0]:\n        return \"안 배움\"\n    if va[-1] > min(va) * 1.15 and tr[-1] < 0.5 * va[-1]:\n        return \"외움\"\n    return \"잘 배움\"\n\n\nruns = {\"학습률 너무 작음\": run(1e-5, 64, 200), \"적당히 학습\": run(3e-3, 4, 60), \"너무 오래 학습\": run(1e-2, 256, 400)}\nverdict = {}\nfor name, (tr, va) in runs.items():\n    verdict[name] = diagnose(tr, va)\n    print(f\"{name:12s} train {tr[0]:.2f}→{tr[-1]:.2f} · valid 최저 {min(va):.2f}(step {int(np.argmin(va))}) → 끝 {va[-1]:.2f} · 판정: {verdict[name]}\")\ncheck(verdict == {\"학습률 너무 작음\": \"안 배움\", \"적당히 학습\": \"잘 배움\", \"너무 오래 학습\": \"외움\"},\n      \"곡선 모양대로 안 배움 · 잘 배움 · 외움이 나와야 해요.\")\n",
+  "typescript": "// D12 · Part 6 · 학습 곡선 읽기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d12_curves.ts   (몇 초 · GPU·인터넷 불필요)\n//   장난감 분류 모델을 세 가지 조건으로 학습해 train · valid loss 곡선을 모으고, 곡선 모양으로 '안 배움 · 잘 배움 · 외움(과적합)'을 판정한다\n//   흉내 낸 부분: Whisper 대신 작은 MLP, 소리 대신 잡음이 많은 합성 특징(학습 문제 20개 vs 검증 300개)\nconst K = 5, DIM = 20;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nlet rnd = mulberry32(0);\nconst gauss = (): number => Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\ntype Layer = { W: Float64Array; b: Float64Array; nin: number; nout: number; gW: Float64Array; gb: Float64Array; m: Float64Array; v: Float64Array; mb: Float64Array; vb: Float64Array };\n\nclass Net {\n  layers: Layer[] = [];\n  t = 0;\n  constructor(sizes: number[]) {\n    const z = (n: number): Float64Array => new Float64Array(n);\n    for (let i = 0; i < sizes.length - 1; i++) {\n      const [nin, nout] = [sizes[i], sizes[i + 1]];\n      this.layers.push({ W: Float64Array.from({ length: nin * nout }, () => gauss() / Math.sqrt(nin)), b: z(nout), nin, nout, gW: z(nin * nout), gb: z(nout), m: z(nin * nout), v: z(nin * nout), mb: z(nout), vb: z(nout) });\n    }\n  }\n  forward(x: Float64Array): Float64Array[] {\n    const acts = [x];\n    this.layers.forEach((L, l) => {\n      const out = new Float64Array(L.nout);\n      for (let o = 0; o < L.nout; o++) {\n        let s = L.b[o];\n        for (let i = 0; i < L.nin; i++) s += L.W[o * L.nin + i] * acts[l][i];\n        out[o] = l < this.layers.length - 1 ? Math.tanh(s) : s;\n      }\n      acts.push(out);\n    });\n    return acts;\n  }\n  probs(x: Float64Array): Float64Array {\n    const z = this.forward(x).at(-1) as Float64Array;\n    const mx = Math.max(...z);\n    const e = z.map((v) => Math.exp(v - mx));\n    const s = e.reduce((a, c) => a + c, 0);\n    return e.map((v) => v / s);\n  }\n  loss(xs: Float64Array[], ys: number[]): number {\n    return xs.reduce((s, x, n) => s - Math.log(Math.max(this.probs(x)[ys[n]], 1e-12)), 0) / xs.length;\n  }\n  // 묶음 전체의 평균 loss를 계산하고, 기울기를 layers[].gW · gb 에 쌓는다\n  backward(xs: Float64Array[], ys: number[]): number {\n    for (const L of this.layers) { L.gW.fill(0); L.gb.fill(0); }\n    xs.forEach((x, n) => {\n      const acts = this.forward(x);\n      let delta = this.probs(x).map((v, k) => (v - (k === ys[n] ? 1 : 0)) / xs.length);\n      for (let l = this.layers.length - 1; l >= 0; l--) {\n        const L = this.layers[l];\n        const prev = new Float64Array(L.nin);\n        for (let o = 0; o < L.nout; o++) {\n          L.gb[o] += delta[o];\n          for (let i = 0; i < L.nin; i++) { L.gW[o * L.nin + i] += delta[o] * acts[l][i]; prev[i] += L.W[o * L.nin + i] * delta[o]; }\n        }\n        delta = l > 0 ? prev.map((v, i) => v * (1 - acts[l][i] ** 2)) : prev;\n      }\n    });\n    return this.loss(xs, ys);\n  }\n  adam(lr: number): void {\n    this.t++;\n    const upd = (w: Float64Array, g: Float64Array, m: Float64Array, v: Float64Array): void => {\n      for (let i = 0; i < w.length; i++) {\n        m[i] = 0.9 * m[i] + 0.1 * g[i];\n        v[i] = 0.999 * v[i] + 0.001 * g[i] * g[i];\n        w[i] -= (lr * (m[i] / (1 - 0.9 ** this.t))) / (Math.sqrt(v[i] / (1 - 0.999 ** this.t)) + 1e-8);\n      }\n    };\n    for (const L of this.layers) { upd(L.W, L.gW, L.m, L.v); upd(L.b, L.gb, L.mb, L.vb); }\n  }\n}\n\nconst PROTO = Array.from({ length: K }, () => Float64Array.from({ length: DIM }, gauss));\n\nfunction data(n: number): { xs: Float64Array[]; ys: number[] } {\n  const ys = Array.from({ length: n }, () => Math.floor(rnd() * K));\n  return { xs: ys.map((y) => Float64Array.from({ length: DIM }, (_, d) => PROTO[y][d] + 2.5 * gauss())), ys };\n}\nconst train = data(20), valid = data(300);\n\nfunction run(lr: number, width: number, steps: number): [number[], number[]] {\n  rnd = mulberry32(1); // 같은 출발점에서 시작\n  const net = new Net([DIM, width, K]);\n  const tr: number[] = [], va: number[] = [];\n  for (let s = 0; s < steps; s++) {\n    tr.push(net.backward(train.xs, train.ys));\n    net.adam(lr);\n    va.push(net.loss(valid.xs, valid.ys));\n  }\n  return [tr, va];\n}\n\nfunction diagnose(tr: number[], va: number[]): string {\n  // 곡선 읽는 규칙: train이 거의 안 줄면 안 배움, valid가 바닥을 찍고 다시 오르면 외움, 둘 다 줄면 잘 배움\n  if (tr.at(-1)! > 0.9 * tr[0]) return \"안 배움\";\n  if (va.at(-1)! > Math.min(...va) * 1.15 && tr.at(-1)! < 0.5 * va.at(-1)!) return \"외움\";\n  return \"잘 배움\";\n}\n\nconst runs: [string, [number[], number[]]][] = [[\"학습률 너무 작음\", run(1e-5, 64, 200)], [\"적당히 학습\", run(3e-3, 4, 60)], [\"너무 오래 학습\", run(1e-2, 256, 400)]];\nconst verdict: string[] = [];\nfor (const [name, [tr, va]] of runs) {\n  const d = diagnose(tr, va);\n  verdict.push(d);\n  const lo = Math.min(...va);\n  console.log(`${name.padEnd(12)} train ${tr[0].toFixed(2)}→${tr.at(-1)!.toFixed(2)} · valid 최저 ${lo.toFixed(2)}(step ${va.indexOf(lo)}) → 끝 ${va.at(-1)!.toFixed(2)} · 판정: ${d}`);\n}\ncheck(verdict.join() === \"안 배움,잘 배움,외움\", \"곡선 모양대로 안 배움 · 잘 배움 · 외움이 나와야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ }
+}

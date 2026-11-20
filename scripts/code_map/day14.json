@@ -1,0 +1,138 @@
+{
+ "notebook": "day14/D14_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~8 · 오늘의 흐름 전체",
+   [
+    3,
+    5,
+    8,
+    10,
+    12,
+    17,
+    20,
+    22,
+    25,
+    29,
+    32,
+    36,
+    38
+   ]
+  ],
+  "fair": [
+   "Part 1~2 · 공정한 비교: 시험 세트와 같은 정규화",
+   [
+    8,
+    25
+   ]
+  ],
+  "latency": [
+   "Part 3 · RTF 재기",
+   [
+    12
+   ]
+  ],
+  "api": [
+   "Part 4 · API 요청 만들고 보내기",
+   [
+    17,
+    20
+   ]
+  ],
+  "billing": [
+   "Part 4 · 과금 단위와 비용",
+   [
+    22
+   ]
+  ],
+  "leaderboard": [
+   "Part 5 · 리더보드",
+   [
+    25
+   ]
+  ],
+  "bootstrap": [
+   "Part 6 · 부트스트랩",
+   [
+    29
+   ]
+  ],
+  "errors": [
+   "Part 7 · 오류 분석",
+   [
+    32
+   ]
+  ],
+  "hub": [
+   "Part 8 · 모델 카드와 Hub 올리기",
+   [
+    36,
+    38
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "배열 계산 · 난수 · 합성 신호",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ],
+  "jiwer": [
+   "jiwer",
+   "CER 채점",
+   "https://jitsi.github.io/jiwer/",
+   "Apache-2.0"
+  ]
+ },
+ "ts_libs": [
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "임시 폴더에 파일 쓰고 읽기",
+   "https://nodejs.org/api/fs.html"
+  ],
+  [
+   "from \"node:os\"",
+   "node:os",
+   "임시 폴더 위치(tmpdir)",
+   "https://nodejs.org/api/os.html"
+  ],
+  [
+   "from \"node:path\"",
+   "node:path",
+   "파일 경로 이어 붙이기",
+   "https://nodejs.org/api/path.html"
+  ],
+  [
+   "from \"node:http\"",
+   "node:http",
+   "내 컴퓨터에 모의 API 서버 띄우기",
+   "https://nodejs.org/api/http.html"
+  ],
+  [
+   "\\bfetch\\(",
+   "fetch",
+   "모의 서버(키가 있으면 실제 API)에 요청 보내기",
+   "https://nodejs.org/api/globals.html#fetch"
+  ],
+  [
+   "\\bnew FormData\\(",
+   "FormData · Blob",
+   "multipart 요청에 WAV 파일 담기",
+   "https://nodejs.org/api/globals.html#formdata"
+  ],
+  [
+   "\\bperformance\\.now\\(",
+   "performance",
+   "처리 시간 재기",
+   "https://nodejs.org/api/perf_hooks.html"
+  ],
+  [
+   "\\bAtomics\\.wait\\(",
+   "Atomics · SharedArrayBuffer",
+   "정해진 시간 동안 멈추기(요청 고정 비용 흉내)",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Atomics"
+  ]
+ ]
+}

@@ -1,0 +1,111 @@
+{
+ "notebook": "day12/D12_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~7 · 오늘의 흐름 전체",
+   [
+    3,
+    5,
+    7,
+    10,
+    12,
+    16,
+    20,
+    23,
+    27,
+    31,
+    34,
+    37,
+    42,
+    45,
+    47
+   ]
+  ],
+  "finetune": [
+   "Part 0~4 · 설정과 모델 불러오기 (Fine-tuning 방식)",
+   [
+    5,
+    23
+   ]
+  ],
+  "teacher": [
+   "Part 1 · Teacher forcing (shift right)",
+   [
+    7
+   ]
+  ],
+  "collator": [
+   "Part 3 · Data Collator",
+   [
+    16
+   ]
+  ],
+  "lr": [
+   "Part 5 · 학습 설정 (학습률 · warmup)",
+   [
+    31
+   ]
+  ],
+  "memory": [
+   "Part 0 · 설정 + Part 5 · 학습 설정 (메모리)",
+   [
+    5,
+    31
+   ]
+  ],
+  "loop": [
+   "Part 5 · Trainer 만들기와 학습 실행",
+   [
+    34,
+    37
+   ]
+  ],
+  "metrics": [
+   "Part 4 · compute_metrics (CER)",
+   [
+    20
+   ]
+  ],
+  "curves": [
+   "Part 6 · 기록에서 곡선 그리기",
+   [
+    40,
+    42
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "배열 계산 · 난수 · 합성 신호",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ],
+  "torch": [
+   "torch",
+   "장난감 모델 학습(CPU) · 자동 미분",
+   "https://pytorch.org/docs/stable/",
+   "BSD-3-Clause"
+  ],
+  "jiwer": [
+   "jiwer",
+   "CER 채점",
+   "https://jitsi.github.io/jiwer/",
+   "Apache-2.0"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float(?:32|64)Array\\(|\\bFloat(?:32|64)Array\\.from\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플 · 가중치를 담는 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "임시 폴더에 파일 쓰고 읽기",
+   "https://nodejs.org/api/fs.html"
+  ]
+ ]
+}

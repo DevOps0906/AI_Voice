@@ -1,0 +1,127 @@
+{
+ "notebook": "day11/D11_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~7 · 오늘의 흐름 전체",
+   [
+    3,
+    5,
+    9,
+    15,
+    19,
+    22,
+    25,
+    29,
+    32,
+    34,
+    39,
+    42,
+    43
+   ]
+  ],
+  "landscape": [
+   "Part 1~2 · 데이터셋 지도와 Zeroth 통계",
+   [
+    15
+   ]
+  ],
+  "hfstream": [
+   "Part 2 · 스트리밍으로 처음 3개만 보기",
+   [
+    9,
+    12
+   ]
+  ],
+  "kspon": [
+   "Part 3 · KsponSpeech 전사 정제",
+   [
+    19
+   ]
+  ],
+  "pcm": [
+   "Part 3 · 머리말 없는 PCM 읽기",
+   [
+    22,
+    25
+   ]
+  ],
+  "manifest": [
+   "Part 4 · AIHub 형식 목록표",
+   [
+    29
+   ]
+  ],
+  "filter": [
+   "Part 5 · 길이와 말 빠르기로 거르기",
+   [
+    32,
+    34
+   ]
+  ],
+  "split": [
+   "Part 6 · 화자 단위 분할",
+   [
+    39
+   ]
+  ],
+  "features": [
+   "Part 6 · Whisper 학습 입력으로 바꾸기",
+   [
+    42,
+    43
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "배열 계산 · 난수 · 합성 신호",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ],
+  "soundfile": [
+   "soundfile",
+   "WAV 바이트 쓰기 · 읽기(BytesIO)",
+   "https://python-soundfile.readthedocs.io/",
+   "BSD-3-Clause"
+  ],
+  "sklearn": [
+   "scikit-learn",
+   "화자 단위 분할(GroupShuffleSplit)",
+   "https://scikit-learn.org/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float(?:32|64)Array\\(|\\bFloat(?:32|64)Array\\.from\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플 · 가중치를 담는 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "임시 폴더에 파일 쓰고 읽기",
+   "https://nodejs.org/api/fs.html"
+  ],
+  [
+   "from \"node:os\"",
+   "node:os",
+   "임시 폴더 위치(tmpdir)",
+   "https://nodejs.org/api/os.html"
+  ],
+  [
+   "from \"node:path\"",
+   "node:path",
+   "파일 경로 이어 붙이기",
+   "https://nodejs.org/api/path.html"
+  ],
+  [
+   "\\bBuffer\\.(?:alloc|from|concat)\\(",
+   "Buffer",
+   "WAV · PCM 바이트를 직접 쓰고 읽기",
+   "https://nodejs.org/api/buffer.html"
+  ]
+ ]
+}

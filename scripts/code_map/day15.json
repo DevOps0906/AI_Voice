@@ -1,0 +1,124 @@
+{
+ "notebook": "day15/D15_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~9 · 오늘의 흐름 전체",
+   [
+    3,
+    5,
+    8,
+    11,
+    13,
+    22,
+    27,
+    33,
+    36,
+    44,
+    48,
+    51,
+    54,
+    61,
+    66
+   ]
+  ],
+  "goals": [
+   "Part 1 · 프로젝트 카드와 목표",
+   [
+    8
+   ]
+  ],
+  "data": [
+   "Part 2 · 용어 × 문장 틀과 누수 검사",
+   [
+    11,
+    13,
+    15,
+    16
+   ]
+  ],
+  "record": [
+   "Part 3 · 내 목소리 시험 세트 (16 kHz 모노 · 품질 점검)",
+   [
+    18,
+    22,
+    24
+   ]
+  ],
+  "curves": [
+   "Part 5 · LoRA 학습과 학습 곡선",
+   [
+    33,
+    36,
+    38
+   ]
+  ],
+  "ci": [
+   "Part 6 · 목표 판정 · 부트스트랩",
+   [
+    48,
+    51
+   ]
+  ],
+  "fix": [
+   "Part 6 · 용어 사전 후처리",
+   [
+    44,
+    46
+   ]
+  ],
+  "report": [
+   "Part 7 · 성능 리포트 만들기",
+   [
+    58,
+    59,
+    61
+   ]
+  ],
+  "rubric": [
+   "Part 9 · 발표 메모와 평가",
+   [
+    66
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "배열 계산 · 난수 · 합성 신호",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ],
+  "jiwer": [
+   "jiwer",
+   "CER 채점",
+   "https://jitsi.github.io/jiwer/",
+   "Apache-2.0"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float(?:32|64)Array\\(|\\bFloat(?:32|64)Array\\.from\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플 · 가중치를 담는 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "임시 폴더에 파일 쓰고 읽기",
+   "https://nodejs.org/api/fs.html"
+  ],
+  [
+   "from \"node:os\"",
+   "node:os",
+   "임시 폴더 위치(tmpdir)",
+   "https://nodejs.org/api/os.html"
+  ],
+  [
+   "from \"node:path\"",
+   "node:path",
+   "파일 경로 이어 붙이기",
+   "https://nodejs.org/api/path.html"
+  ]
+ ]
+}

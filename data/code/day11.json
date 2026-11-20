@@ -1,0 +1,345 @@
+{
+ "flow": {
+  "part": "Part 0~7 · 오늘의 흐름 전체",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    2,
+    4
+   ],
+   [
+    6,
+    15
+   ]
+  ],
+  "python": "# D11 · Part 0~7 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d11_flow.py   (소리·전사는 코드 안에서 합성해요 · 인터넷·GPU 불필요)\n#   전사 정제 → PCM 읽기 → 목록표 → 품질 필터 → 화자 단위 분할 → Whisper 입력(80 × 3000) 순서를 작게 한 번에 돌린다\n#   흉내 낸 부분: 사람 목소리 대신 사인파, 멜 대신 80개 대역 에너지, 진짜 토크나이저 대신 UTF-8 바이트\nimport re\n\nimport numpy as np\n\nSR = 16000\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef clean_kspon(text: str, mode: str = \"spelling\") -> str:\n    s = re.sub(r\"\\(([^)]*)\\)/\\(([^)]*)\\)\", lambda m: m.group(2 if mode == \"phonetic\" else 1), text)  # (철자)/(발음)\n    s = re.sub(r\"[a-z]/\", \"\", s)                                                                      # 잡음 태그\n    s = s.replace(\"+\", \"\").replace(\"*\", \"\").replace(\"/\", \"\")\n    return re.sub(r\"\\s+\", \" \", s).strip()\n\n\ndef tone(sec: float, f: float) -> np.ndarray:\n    return (0.3 * np.sin(2 * np.pi * f * np.arange(int(sec * SR)) / SR)).astype(np.float32)\n\n\n# 1) 합성 데이터: (전사, 화자, 소리 길이 초)\nRAW = [(\"o/ 그럼 (3시)/(세 시)에 회의를 시작할까요?\", \"s1\", 3.0), (\"b/ 어/ 저는 (10월)/(시월)에 발표를 해요.\", \"s1\", 3.5),\n       (\"음/ 그+ 그 자료는 n/ 아직 못 봤어요.\", \"s2\", 3.2), (\"네.\", \"s2\", 12.0), (\"아/ 그건 * 잘 모르겠는데요.\", \"s3\", 3.0),\n       (\"오늘 회의는 여기까지 하겠습니다.\", \"s3\", 0.4), (\"다음 주까지 자료를 정리해 주세요.\", \"s4\", 4.0), (\"일정은 그대로 갑니다.\", \"s4\", 2.5)]\n\n# 2) 정제 + PCM(16-bit, 머리말 없음) 왕복 + 목록표\nrows = []\nfor i, (raw, spk, sec) in enumerate(RAW):\n    pcm = (tone(sec, 200 + 40 * i) * 32767).astype(\"<i2\").tobytes()          # 파일에 쓰는 바이트\n    y = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768       # 읽을 때는 dtype을 알려 줘야 함\n    text = clean_kspon(raw, \"phonetic\")\n    n_chars = len(text.replace(\" \", \"\"))\n    rows.append(dict(text=text, speaker=spk, duration=len(y) / SR, cps=n_chars / (len(y) / SR), y=y))\nprint(f\"목록표 {len(rows)}행, 첫 문장: {rows[0]['text']}\")\n\n\n# 3) 품질 필터\ndef reason(r: dict) -> str:\n    if not r[\"text\"]:\n        return \"빈 전사\"\n    if r[\"duration\"] < 1.0:\n        return \"너무 짧음\"\n    if r[\"duration\"] > 30:\n        return \"너무 김\"\n    if r[\"cps\"] > 12:\n        return \"너무 빠름\"\n    if r[\"cps\"] < 2:\n        return \"너무 느림\"\n    return \"\"\n\n\nok_rows = [r for r in rows if not reason(r)]\nprint(\"버린 샘플:\", [(r[\"text\"], reason(r)) for r in rows if reason(r)])\n\n# 4) 화자 단위 분할 (같은 화자가 train · test에 걸치면 안 됨)\nspeakers = sorted({r[\"speaker\"] for r in ok_rows})\ntest_spk = set(speakers[-1:])\ntrain = [r for r in ok_rows if r[\"speaker\"] not in test_spk]\ntest = [r for r in ok_rows if r[\"speaker\"] in test_spk]\noverlap = {r[\"speaker\"] for r in train} & {r[\"speaker\"] for r in test}\nprint(f\"train {len(train)}개 · test {len(test)}개 · 겹치는 화자: {overlap or '없음'}\")\n\n\n# 5) Whisper 입력: 소리 → 80 × 3000 특징, 글자 → 토큰 번호\ndef features(y: np.ndarray) -> np.ndarray:\n    win = np.hanning(400)\n    n = 1 + (len(y) - 400) // 160\n    spec = np.abs(np.fft.rfft(np.stack([y[i * 160:i * 160 + 400] * win for i in range(n)]), axis=1)) ** 2\n    bands = np.array_split(np.arange(spec.shape[1]), 80)                      # 멜 대신 80개 대역 에너지로 흉내\n    feat = np.log10(np.maximum(np.stack([spec[:, b].sum(axis=1) for b in bands]), 1e-10))\n    out = np.full((80, 3000), feat.min(), dtype=np.float32)                   # 30초 창에 맞춰 뒤를 채움\n    out[:, :min(n, 3000)] = feat[:, :3000]\n    return out\n\n\nSOT, KO, TRANSCRIBE, NOTS, EOT = 50258, 50264, 50359, 50363, 50257           # Whisper 특수 토큰 번호\nsample = train[0]\nf = features(sample[\"y\"])\nlabels = [SOT, KO, TRANSCRIBE, NOTS] + list(sample[\"text\"].encode(\"utf-8\")) + [EOT]\nprint(\"input_features 모양:\", f.shape, \"· labels 길이:\", len(labels))\ncheck(not overlap and f.shape == (80, 3000) and len(ok_rows) == 6 and len(labels) <= 448,\n      \"화자 겹침 없음 · 특징 80 × 3000 · 걸러진 뒤 6개 · labels ≤ 448 이어야 해요.\")\n",
+  "typescript": "// D11 · Part 0~7 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_flow.ts\n//   전사 정제 → PCM 읽기 → 목록표 → 품질 필터 → 화자 단위 분할 → Whisper 입력(80 × 3000) 순서를 작게 한 번에 돌린다\n//   흉내 낸 부분: 사람 목소리 대신 사인파, 멜 대신 80개 대역 에너지, 진짜 토크나이저 대신 UTF-8 바이트\nconst SR = 16000;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction cleanKspon(text: string, mode: string = \"spelling\"): string {\n  let s = text.replace(/\\(([^)]*)\\)\\/\\(([^)]*)\\)/g, (_m, a: string, b: string) => (mode === \"phonetic\" ? b : a));\n  s = s.replace(/[a-z]\\//g, \"\");\n  s = s.replaceAll(\"+\", \"\").replaceAll(\"*\", \"\").replaceAll(\"/\", \"\");\n  return s.replace(/\\s+/g, \" \").trim();\n}\n\nfunction tone(sec: number, f: number): Float32Array {\n  const y = new Float32Array(Math.floor(sec * SR));\n  for (let i = 0; i < y.length; i++) y[i] = 0.3 * Math.sin((2 * Math.PI * f * i) / SR);\n  return y;\n}\n\ntype Row = { text: string; speaker: string; duration: number; cps: number; y: Float32Array };\n\n// 1) 합성 데이터: [전사, 화자, 소리 길이 초]\nconst RAW: [string, string, number][] = [\n  [\"o/ 그럼 (3시)/(세 시)에 회의를 시작할까요?\", \"s1\", 3.0], [\"b/ 어/ 저는 (10월)/(시월)에 발표를 해요.\", \"s1\", 3.5],\n  [\"음/ 그+ 그 자료는 n/ 아직 못 봤어요.\", \"s2\", 3.2], [\"네.\", \"s2\", 12.0], [\"아/ 그건 * 잘 모르겠는데요.\", \"s3\", 3.0],\n  [\"오늘 회의는 여기까지 하겠습니다.\", \"s3\", 0.4], [\"다음 주까지 자료를 정리해 주세요.\", \"s4\", 4.0], [\"일정은 그대로 갑니다.\", \"s4\", 2.5],\n];\n\n// 2) 정제 + PCM(16-bit, 머리말 없음) 왕복 + 목록표\nconst rows: Row[] = RAW.map(([raw, spk, sec], i) => {\n  const src = tone(sec, 200 + 40 * i);\n  const pcm = Buffer.alloc(src.length * 2); // 파일에 쓰는 바이트\n  src.forEach((v, k) => pcm.writeInt16LE(Math.round(v * 32767), k * 2));\n  const y = new Float32Array(pcm.length / 2); // 읽을 때는 16비트 정수라고 알려 줘야 함\n  for (let k = 0; k < y.length; k++) y[k] = pcm.readInt16LE(k * 2) / 32768;\n  const text = cleanKspon(raw, \"phonetic\");\n  const nChars = text.replaceAll(\" \", \"\").length;\n  return { text, speaker: spk, duration: y.length / SR, cps: nChars / (y.length / SR), y };\n});\nconsole.log(`목록표 ${rows.length}행, 첫 문장: ${rows[0].text}`);\n\n// 3) 품질 필터\nfunction reason(r: Row): string {\n  if (!r.text) return \"빈 전사\";\n  if (r.duration < 1.0) return \"너무 짧음\";\n  if (r.duration > 30) return \"너무 김\";\n  if (r.cps > 12) return \"너무 빠름\";\n  if (r.cps < 2) return \"너무 느림\";\n  return \"\";\n}\nconst okRows = rows.filter((r) => !reason(r));\nconsole.log(\"버린 샘플:\", rows.filter((r) => reason(r)).map((r) => `${r.text}(${reason(r)})`).join(\", \"));\n\n// 4) 화자 단위 분할 (같은 화자가 train · test에 걸치면 안 됨)\nconst speakers = [...new Set(okRows.map((r) => r.speaker))].sort();\nconst testSpk = new Set(speakers.slice(-1));\nconst train = okRows.filter((r) => !testSpk.has(r.speaker));\nconst test = okRows.filter((r) => testSpk.has(r.speaker));\nconst overlap = [...new Set(train.map((r) => r.speaker))].filter((s) => test.some((r) => r.speaker === s));\nconsole.log(`train ${train.length}개 · test ${test.length}개 · 겹치는 화자: ${overlap.length ? overlap.join(\",\") : \"없음\"}`);\n\n// 5) Whisper 입력: 소리 → 80 × 3000 특징, 글자 → 토큰 번호\nfunction features(y: Float32Array): Float32Array[] {\n  const nFft = 400, hop = 160;\n  const n = 1 + Math.floor((y.length - nFft) / hop);\n  const cosT = Array.from({ length: 201 }, (_, k) => Float64Array.from({ length: nFft }, (_, t) => Math.cos((2 * Math.PI * k * t) / nFft)));\n  const sinT = Array.from({ length: 201 }, (_, k) => Float64Array.from({ length: nFft }, (_, t) => Math.sin((2 * Math.PI * k * t) / nFft)));\n  const out = Array.from({ length: 80 }, () => new Float32Array(3000));\n  let floor = Infinity;\n  const feat: number[][] = [];\n  for (let i = 0; i < Math.min(n, 3000); i++) {\n    const seg = Float64Array.from({ length: nFft }, (_, t) => y[i * hop + t] * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / nFft)));\n    const bands = new Array(80).fill(0);\n    for (let k = 0; k < 201; k++) {\n      let re = 0, im = 0;\n      for (let t = 0; t < nFft; t++) { re += seg[t] * cosT[k][t]; im -= seg[t] * sinT[k][t]; }\n      bands[Math.min(79, Math.floor((k * 80) / 201))] += re * re + im * im; // 멜 대신 80개 대역 에너지로 흉내\n    }\n    const col = bands.map((b: number) => Math.log10(Math.max(b, 1e-10)));\n    floor = Math.min(floor, ...col);\n    feat.push(col);\n  }\n  for (const row of out) row.fill(floor); // 30초 창에 맞춰 뒤를 채움\n  feat.forEach((col, i) => col.forEach((v, m) => { out[m][i] = v; }));\n  return out;\n}\n\nconst SOT = 50258, KO = 50264, TRANSCRIBE = 50359, NOTS = 50363, EOT = 50257; // Whisper 특수 토큰 번호\nconst sample = train[0];\nconst f = features(sample.y);\nconst labels = [SOT, KO, TRANSCRIBE, NOTS, ...Buffer.from(sample.text, \"utf-8\"), EOT];\nconsole.log(`input_features 모양: (${f.length}, ${f[0].length}) · labels 길이: ${labels.length}`);\ncheck(overlap.length === 0 && f.length === 80 && f[0].length === 3000 && okRows.length === 6 && labels.length <= 448,\n  \"화자 겹침 없음 · 특징 80 × 3000 · 걸러진 뒤 6개 · labels ≤ 448 이어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV · PCM 바이트를 직접 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "landscape": {
+  "part": "Part 1~2 · 데이터셋 지도와 Zeroth 통계",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    6,
+    6
+   ]
+  ],
+  "python": "# D11 · Part 1 · 한국어 음성 데이터셋 지도 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d11_landscape.py   (표는 코드 안에 있어요 · 인터넷 불필요)\n#   데이터셋 비교표를 만들고, 서비스에 맞는 데이터를 조건으로 골라 본다\nDATASETS = [  # 이름, 말투, 시간, 화자 수, 라이선스, 받는 법, 재배포 가능\n    dict(name=\"Zeroth-Korean\", style=\"낭독\", hours=51.6, speakers=105, license=\"CC BY 4.0\", get=\"바로\", redistribute=True),\n    dict(name=\"KsponSpeech\", style=\"대화\", hours=1000, speakers=2000, license=\"AIHub 약관\", get=\"신청·승인\", redistribute=False),\n    dict(name=\"AIHub 분야별 음성\", style=\"분야별\", hours=500, speakers=1000, license=\"AIHub 약관\", get=\"신청·승인\", redistribute=False),\n    dict(name=\"Common Voice ko\", style=\"낭독\", hours=10, speakers=500, license=\"CC0\", get=\"바로\", redistribute=True),\n    dict(name=\"FLEURS ko\", style=\"낭독\", hours=10, speakers=20, license=\"CC BY 4.0\", get=\"바로\", redistribute=True),\n]  # 규모는 강의용 어림값이에요(Zeroth만 실제 수치). 신청 전에 각 데이터셋 페이지에서 확인하세요.\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef pick(styles: tuple, need_now: bool) -> list:\n    \"\"\"서비스 말투와 맞고(필요하면 신청 없이 바로 받을 수 있는) 데이터셋 이름.\"\"\"\n    return [d[\"name\"] for d in DATASETS if d[\"style\"] in styles and (d[\"get\"] == \"바로\" or not need_now)]\n\n\nprint(f\"{'이름':20s}{'말투':8s}{'시간':>8s}{'화자':>7s}  라이선스 · 받는 법\")\nfor d in DATASETS:\n    print(f\"{d['name']:20s}{d['style']:8s}{d['hours']:8.1f}{d['speakers']:7d}  {d['license']} · {d['get']}\")\n\nper_spk = {d[\"name\"]: d[\"hours\"] * 60 / d[\"speakers\"] for d in DATASETS}\nprint(f\"\\nZeroth 화자 1명당 평균 {per_spk['Zeroth-Korean']:.1f}분\")\ncall_center = pick((\"대화\", \"분야별\"), need_now=False)      # 콜센터: 말투가 비슷한 데이터가 먼저\nquick_lab = pick((\"낭독\",), need_now=True)                   # 실습 · 빠른 실험: 바로 받는 데이터\nprint(\"콜센터 후보:\", call_center, \"· 빠른 실험 후보:\", quick_lab)\ncheck(\"Zeroth-Korean\" not in call_center and quick_lab[0] == \"Zeroth-Korean\" and all(not d[\"redistribute\"] for d in DATASETS if d[\"get\"] != \"바로\"),\n      \"콜센터는 대화·분야별 데이터, 실습은 바로 받는 Zeroth 가 먼저예요.\")\n",
+  "typescript": "// D11 · Part 1 · 한국어 음성 데이터셋 지도 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_landscape.ts\n//   데이터셋 비교표를 만들고, 서비스에 맞는 데이터를 조건으로 골라 본다\ntype Dataset = { name: string; style: string; hours: number; speakers: number; license: string; get: string; redistribute: boolean };\n\nconst DATASETS: Dataset[] = [\n  { name: \"Zeroth-Korean\", style: \"낭독\", hours: 51.6, speakers: 105, license: \"CC BY 4.0\", get: \"바로\", redistribute: true },\n  { name: \"KsponSpeech\", style: \"대화\", hours: 1000, speakers: 2000, license: \"AIHub 약관\", get: \"신청·승인\", redistribute: false },\n  { name: \"AIHub 분야별 음성\", style: \"분야별\", hours: 500, speakers: 1000, license: \"AIHub 약관\", get: \"신청·승인\", redistribute: false },\n  { name: \"Common Voice ko\", style: \"낭독\", hours: 10, speakers: 500, license: \"CC0\", get: \"바로\", redistribute: true },\n  { name: \"FLEURS ko\", style: \"낭독\", hours: 10, speakers: 20, license: \"CC BY 4.0\", get: \"바로\", redistribute: true },\n]; // 규모는 강의용 어림값이에요(Zeroth만 실제 수치). 신청 전에 각 데이터셋 페이지에서 확인하세요.\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction pick(styles: string[], needNow: boolean): string[] {\n  // 서비스 말투와 맞고(필요하면 신청 없이 바로 받을 수 있는) 데이터셋 이름\n  return DATASETS.filter((d) => styles.includes(d.style) && (d.get === \"바로\" || !needNow)).map((d) => d.name);\n}\n\nconsole.log(\"이름\".padEnd(20) + \"말투\".padEnd(8) + \"시간\".padStart(8) + \"화자\".padStart(7) + \"  라이선스 · 받는 법\");\nfor (const d of DATASETS) {\n  console.log(d.name.padEnd(20) + d.style.padEnd(8) + d.hours.toFixed(1).padStart(8) + String(d.speakers).padStart(7) + `  ${d.license} · ${d.get}`);\n}\n\nconst zeroth = DATASETS[0];\nconsole.log(`\\nZeroth 화자 1명당 평균 ${((zeroth.hours * 60) / zeroth.speakers).toFixed(1)}분`);\nconst callCenter = pick([\"대화\", \"분야별\"], false); // 콜센터: 말투가 비슷한 데이터가 먼저\nconst quickLab = pick([\"낭독\"], true); // 실습 · 빠른 실험: 바로 받는 데이터\nconsole.log(\"콜센터 후보:\", callCenter, \"· 빠른 실험 후보:\", quickLab);\ncheck(!callCenter.includes(\"Zeroth-Korean\") && quickLab[0] === \"Zeroth-Korean\" && DATASETS.filter((d) => d.get !== \"바로\").every((d) => !d.redistribute),\n  \"콜센터는 대화·분야별 데이터, 실습은 바로 받는 Zeroth 가 먼저예요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "hfstream": {
+  "part": "Part 2 · 스트리밍으로 처음 3개만 보기",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    4,
+    5
+   ]
+  ],
+  "python": "# D11 · Part 2 · 다운로드 vs 스트리밍 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 soundfile==0.14.0\n# 실행: python d11_hfstream.py   (Hugging Face 대신 코드 안의 모의 데이터셋 · 인터넷 불필요)\n#   전부 받은 뒤 시작(다운로드) vs 필요한 만큼만 읽기(스트리밍): 읽은 바이트를 세어 비교하고, 바이트 → 소리로 읽어 본다\nimport io\nimport itertools\n\nimport numpy as np\nimport soundfile as sf\n\nSR = 16000\nN_EXAMPLES, SHARD = 2000, 100                 # 샘플 2000개, 100개씩 한 조각(shard)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef make_example(i: int) -> dict:\n    \"\"\"모의 샘플: Hugging Face가 주는 {'audio': {'bytes': WAV 바이트}, 'text': ...} 와 같은 모양.\"\"\"\n    y = (0.3 * np.sin(2 * np.pi * (200 + i % 50) * np.arange(SR // 4) / SR)).astype(np.float32)\n    buf = io.BytesIO()\n    sf.write(buf, y, SR, format=\"WAV\", subtype=\"PCM_16\")\n    return {\"audio\": {\"bytes\": buf.getvalue()}, \"text\": f\"문장 {i}\", \"speaker_id\": i % 10}\n\n\nclass MockDataset:\n    bytes_read = 0\n\n    def __iter__(self):\n        for start in range(0, N_EXAMPLES, SHARD):                 # 조각 하나를 읽을 때마다 바이트가 늘어남\n            shard = [make_example(i) for i in range(start, start + SHARD)]\n            MockDataset.bytes_read += sum(len(e[\"audio\"][\"bytes\"]) for e in shard)\n            yield from shard\n\n\n# 다운로드: 전부 읽은 뒤에야 첫 샘플\nMockDataset.bytes_read = 0\nall_rows = list(MockDataset())\ndownload_bytes = MockDataset.bytes_read\n\n# 스트리밍: 처음 3개만\nMockDataset.bytes_read = 0\nfirst3 = list(itertools.islice(iter(MockDataset()), 3))\nstream_bytes = MockDataset.bytes_read\nprint(f\"다운로드 {download_bytes / 1e6:.1f} MB · 스트리밍(3개) {stream_bytes / 1e6:.2f} MB\")\n\nex = first3[0]\ny, sr = sf.read(io.BytesIO(ex[\"audio\"][\"bytes\"]), dtype=\"float32\")   # 빈칸 실습 2: 바이트를 소리로\nprint(f\"sr = {sr}, 길이 {len(y) / sr:.2f}초, 화자 {ex['speaker_id']}\")\ncheck(len(all_rows) == N_EXAMPLES and len(first3) == 3 and stream_bytes * 10 < download_bytes and sr == SR,\n      \"스트리밍은 조각 하나만 읽어서 다운로드보다 훨씬 적게 읽어야 해요.\")\n",
+  "typescript": "// D11 · Part 2 · 다운로드 vs 스트리밍 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_hfstream.ts   (Hugging Face 대신 코드 안의 모의 데이터셋 · 인터넷 불필요)\n//   전부 받은 뒤 시작(다운로드) vs 필요한 만큼만 읽기(스트리밍): 읽은 바이트를 세어 비교하고, 바이트 → 소리로 읽어 본다\nconst SR = 16000;\nconst N_EXAMPLES = 2000, SHARD = 100; // 샘플 2000개, 100개씩 한 조각(shard)\n\ntype Example = { audio: { bytes: Buffer }; text: string; speaker_id: number };\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction wavBytes(samples: Int16Array, sr: number): Buffer {\n  const data = Buffer.alloc(samples.length * 2);\n  samples.forEach((v, i) => data.writeInt16LE(v, i * 2));\n  const h = Buffer.alloc(44);\n  h.write(\"RIFF\", 0); h.writeUInt32LE(36 + data.length, 4); h.write(\"WAVEfmt \", 8); h.writeUInt32LE(16, 16);\n  h.writeUInt16LE(1, 20); h.writeUInt16LE(1, 22); h.writeUInt32LE(sr, 24); h.writeUInt32LE(sr * 2, 28);\n  h.writeUInt16LE(2, 32); h.writeUInt16LE(16, 34); h.write(\"data\", 36); h.writeUInt32LE(data.length, 40);\n  return Buffer.concat([h, data]);\n}\n\nfunction makeExample(i: number): Example {\n  // 모의 샘플: Hugging Face가 주는 { audio: { bytes: WAV 바이트 }, text } 와 같은 모양\n  const y = new Int16Array(SR / 4);\n  for (let t = 0; t < y.length; t++) y[t] = Math.round(0.3 * 32767 * Math.sin((2 * Math.PI * (200 + (i % 50)) * t) / SR));\n  return { audio: { bytes: wavBytes(y, SR) }, text: `문장 ${i}`, speaker_id: i % 10 };\n}\n\nlet bytesRead = 0;\nfunction* mockDataset(): Generator<Example> {\n  for (let start = 0; start < N_EXAMPLES; start += SHARD) {\n    const shard = Array.from({ length: SHARD }, (_, k) => makeExample(start + k));\n    bytesRead += shard.reduce((s, e) => s + e.audio.bytes.length, 0); // 조각 하나를 읽을 때마다 바이트가 늘어남\n    yield* shard;\n  }\n}\n\n// 다운로드: 전부 읽은 뒤에야 첫 샘플\nbytesRead = 0;\nconst allRows = [...mockDataset()];\nconst downloadBytes = bytesRead;\n\n// 스트리밍: 처음 3개만\nbytesRead = 0;\nconst first3: Example[] = [];\nfor (const ex of mockDataset()) {\n  first3.push(ex);\n  if (first3.length === 3) break;\n}\nconst streamBytes = bytesRead;\nconsole.log(`다운로드 ${(downloadBytes / 1e6).toFixed(1)} MB · 스트리밍(3개) ${(streamBytes / 1e6).toFixed(2)} MB`);\n\nconst b = first3[0].audio.bytes; // 빈칸 실습 2: 바이트를 소리로 (WAV 머리말에서 주파수 · 길이를 읽음)\nconst sr = b.readUInt32LE(24);\nconst nSamples = b.readUInt32LE(40) / 2;\nconsole.log(`sr = ${sr}, 길이 ${(nSamples / sr).toFixed(2)}초, 화자 ${first3[0].speaker_id}`);\ncheck(allRows.length === N_EXAMPLES && first3.length === 3 && streamBytes * 10 < downloadBytes && sr === SR,\n  \"스트리밍은 조각 하나만 읽어서 다운로드보다 훨씬 적게 읽어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV 바이트 쓰기 · 읽기(BytesIO)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV · PCM 바이트를 직접 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "kspon": {
+  "part": "Part 3 · KsponSpeech 전사 정제",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    7,
+    7
+   ]
+  ],
+  "python": "# D11 · Part 3 · KsponSpeech 전사 정제기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d11_kspon.py   (전사 문장은 코드 안에 있어요 · 인터넷 불필요)\n#   (철자)/(발음) 이중 전사, 잡음 태그, 반복 +, 불명확 * 를 정리해서 철자판 · 발음판 두 가지로 만든다\nimport re\n\nKSPON_TRN = [\n    (\"KsponSpeech_0001\", \"o/ 그럼 (3시)/(세 시)에 회의를 시작할까요?\"),\n    (\"KsponSpeech_0001\", \"b/ 어/ 저는 (10월)/(시월)에 발표를 해요.\"),\n    (\"KsponSpeech_0001\", \"음/ 그+ 그 자료는 n/ 아직 못 봤어요.\"),\n    (\"KsponSpeech_0002\", \"(2시 30분)/(두 시 삼십 분)까지 보내 주세요. u/\"),\n    (\"KsponSpeech_0002\", \"아/ 그건 * 잘 모르겠는데요.\"),\n    (\"KsponSpeech_0002\", \"(AI)/(에이 아이) 수업은 재밌어요.\"),\n]\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef clean_kspon(text: str, mode: str = \"spelling\") -> str:\n    # ① 이중 전사: (철자)/(발음) → 한쪽만\n    s = re.sub(r\"\\(([^)]*)\\)/\\(([^)]*)\\)\", lambda m: m.group(2 if mode == \"phonetic\" else 1), text)\n    # ② 잡음 태그 지우기: b/ l/ o/ n/ u/ (소문자 + /)\n    s = re.sub(r\"[a-z]/\", \"\", s)\n    # ③ 반복 +, 불명확 *, 간투어 표시 / 지우기\n    s = s.replace(\"+\", \"\").replace(\"*\", \"\").replace(\"/\", \"\")\n    # ④ 공백 정리\n    return re.sub(r\"\\s+\", \" \", s).strip()\n\n\nfor _, t in KSPON_TRN[:3]:\n    print(f\"원본: {t}\\n  철자: {clean_kspon(t)}\\n  발음: {clean_kspon(t, 'phonetic')}\")\n\nex_ = \"o/ 그럼 (3시)/(세 시)에 b/ 회의+ 회의를 할까/ 요* 음/\"\ncheck(clean_kspon(ex_) == \"그럼 3시에 회의 회의를 할까 요 음\" and clean_kspon(ex_, \"phonetic\") == \"그럼 세 시에 회의 회의를 할까 요 음\",\n      \"이중 전사는 철자면 첫 번째 괄호, 발음이면 두 번째 괄호를 남겨야 해요.\")\n",
+  "typescript": "// D11 · Part 3 · KsponSpeech 전사 정제기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_kspon.ts\n//   (철자)/(발음) 이중 전사, 잡음 태그, 반복 +, 불명확 * 를 정리해서 철자판 · 발음판 두 가지로 만든다\nconst KSPON_TRN: string[] = [\n  \"o/ 그럼 (3시)/(세 시)에 회의를 시작할까요?\",\n  \"b/ 어/ 저는 (10월)/(시월)에 발표를 해요.\",\n  \"음/ 그+ 그 자료는 n/ 아직 못 봤어요.\",\n  \"(2시 30분)/(두 시 삼십 분)까지 보내 주세요. u/\",\n  \"아/ 그건 * 잘 모르겠는데요.\",\n  \"(AI)/(에이 아이) 수업은 재밌어요.\",\n];\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction cleanKspon(text: string, mode: string = \"spelling\"): string {\n  // ① 이중 전사: (철자)/(발음) → 한쪽만\n  let s = text.replace(/\\(([^)]*)\\)\\/\\(([^)]*)\\)/g, (_m, a: string, b: string) => (mode === \"phonetic\" ? b : a));\n  // ② 잡음 태그 지우기: b/ l/ o/ n/ u/ (소문자 + /)\n  s = s.replace(/[a-z]\\//g, \"\");\n  // ③ 반복 +, 불명확 *, 간투어 표시 / 지우기\n  s = s.replaceAll(\"+\", \"\").replaceAll(\"*\", \"\").replaceAll(\"/\", \"\");\n  // ④ 공백 정리\n  return s.replace(/\\s+/g, \" \").trim();\n}\n\nfor (const t of KSPON_TRN.slice(0, 3)) {\n  console.log(`원본: ${t}\\n  철자: ${cleanKspon(t)}\\n  발음: ${cleanKspon(t, \"phonetic\")}`);\n}\n\nconst ex = \"o/ 그럼 (3시)/(세 시)에 b/ 회의+ 회의를 할까/ 요* 음/\";\ncheck(cleanKspon(ex) === \"그럼 3시에 회의 회의를 할까 요 음\" && cleanKspon(ex, \"phonetic\") === \"그럼 세 시에 회의 회의를 할까 요 음\",\n  \"이중 전사는 철자면 첫 번째 괄호, 발음이면 두 번째 괄호를 남겨야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "pcm": {
+  "part": "Part 3 · 머리말 없는 PCM 읽기",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    8,
+    9
+   ]
+  ],
+  "python": "# D11 · Part 3 · PCM 바이트 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d11_pcm.py   (합성 신호를 임시 폴더에 .pcm으로 써서 다시 읽어요 · 인터넷·마이크 불필요)\n#   머리말 없는 16-bit PCM: dtype을 틀리게 읽으면 길이·값이 엉뚱해지는 것을 눈으로 확인한다\nimport os\nimport tempfile\n\nimport numpy as np\n\nSR = 16000\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef read_pcm(path: str) -> np.ndarray:\n    raw = open(path, \"rb\").read()\n    return np.frombuffer(raw, dtype=np.int16).astype(np.float32) / 32768\n\n\nwith tempfile.TemporaryDirectory() as d:\n    path = os.path.join(d, \"KsponSpeech_000001.pcm\")\n    sig = 0.5 * np.sin(2 * np.pi * 440 * np.arange(int(1.5 * SR)) / SR)\n    (sig * 32767).astype(\"<i2\").tofile(path)                      # 머리말 없이 샘플만 쓴 파일\n    size = os.path.getsize(path)\n    y = read_pcm(path)\n    wrong = np.frombuffer(open(path, \"rb\").read(), dtype=np.float32)   # 일부러 틀린 dtype\n    print(f\"파일 크기 {size:,} 바이트 → 샘플 {len(y):,}개 → {len(y) / SR:.2f}초 (16 kHz 가정)\")\n    print(\"앞 8개 값:\", np.round(y[:8], 4))\n    print(f\"float32로 잘못 읽으면 샘플 {len(wrong):,}개 (길이가 절반)\")\n    check(len(y) * 2 == size and np.abs(y).max() <= 1.0 and len(wrong) * 2 == len(y) and np.abs(y - sig).max() < 1e-3,\n          \"16비트 정수 = np.int16, 읽은 뒤 32768로 나누면 -1~1 이에요.\")\n",
+  "typescript": "// D11 · Part 3 · PCM 바이트 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_pcm.ts   (합성 신호를 임시 폴더에 .pcm으로 써서 다시 읽어요 · 인터넷·마이크 불필요)\n//   머리말 없는 16-bit PCM: 바이트 수 ÷ 2 = 샘플 수, 틀린 크기(4바이트)로 읽으면 길이가 절반이 되는 것을 확인한다\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\n\nconst SR = 16000;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction readPcm(p: string): Float32Array {\n  const raw = fs.readFileSync(p);\n  const y = new Float32Array(raw.length / 2); // 16비트 정수 = 2바이트씩\n  for (let i = 0; i < y.length; i++) y[i] = raw.readInt16LE(i * 2) / 32768;\n  return y;\n}\n\nconst dir = fs.mkdtempSync(path.join(os.tmpdir(), \"d11pcm-\"));\ntry {\n  const file = path.join(dir, \"KsponSpeech_000001.pcm\");\n  const n = Math.floor(1.5 * SR);\n  const sig = new Float64Array(n);\n  const raw = Buffer.alloc(n * 2);\n  for (let i = 0; i < n; i++) {\n    sig[i] = 0.5 * Math.sin((2 * Math.PI * 440 * i) / SR);\n    raw.writeInt16LE(Math.round(sig[i] * 32767), i * 2); // 머리말 없이 샘플만 쓴 파일\n  }\n  fs.writeFileSync(file, raw);\n  const size = fs.statSync(file).size;\n  const y = readPcm(file);\n  const wrongCount = Math.floor(size / 4); // 일부러 틀린 크기(float32 = 4바이트)로 읽으면\n  console.log(`파일 크기 ${size.toLocaleString(\"en-US\")} 바이트 → 샘플 ${y.length.toLocaleString(\"en-US\")}개 → ${(y.length / SR).toFixed(2)}초 (16 kHz 가정)`);\n  console.log(\"앞 8개 값:\", Array.from(y.slice(0, 8)).map((v) => v.toFixed(4)).join(\" \"));\n  console.log(`4바이트씩 잘못 읽으면 샘플 ${wrongCount.toLocaleString(\"en-US\")}개 (길이가 절반)`);\n  let maxErr = 0, maxAbs = 0;\n  for (let i = 0; i < n; i++) {\n    maxErr = Math.max(maxErr, Math.abs(y[i] - sig[i]));\n    maxAbs = Math.max(maxAbs, Math.abs(y[i]));\n  }\n  check(y.length * 2 === size && maxAbs <= 1.0 && wrongCount * 2 === y.length && maxErr < 1e-3,\n    \"16비트 정수 = 2바이트씩 읽고 32768로 나누면 -1~1 이에요.\");\n} finally {\n  fs.rmSync(dir, { recursive: true, force: true });\n}\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "임시 폴더에 파일 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV · PCM 바이트를 직접 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "node:os",
+     "version": "내장",
+     "purpose": "임시 폴더 위치(tmpdir)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/os.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "node:path",
+     "version": "내장",
+     "purpose": "파일 경로 이어 붙이기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/path.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "manifest": {
+  "part": "Part 4 · AIHub 형식 목록표",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    10,
+    10
+   ]
+  ],
+  "python": "# D11 · Part 4 · AIHub 목록표 만들기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 soundfile==0.14.0\n# 실행: python d11_manifest.py   (소리 + JSON 라벨을 임시 폴더에 합성해서 읽어요 · 인터넷 불필요)\n#   하위 폴더까지 JSON을 모두 찾고, 소리는 머리말만 읽어(sf.info) 길이·주파수·채널을 표로 모은다\nimport glob\nimport json\nimport os\nimport tempfile\n\nimport numpy as np\nimport soundfile as sf\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef build_tree(root: str) -> None:\n    \"\"\"AIHub 형식 흉내: 원천데이터(소리) + 라벨링데이터(JSON). 소리는 사인파.\"\"\"\n    for k, spk in enumerate([\"S001\", \"S002\", \"S003\"]):\n        for j in range(1, 5):\n            name = f\"{spk}_{j:04d}\"\n            sr, ch = (44100, 2) if (spk, j) == (\"S003\", 2) else (16000, 1)     # 문제 파일: 44.1 kHz 스테레오\n            y = 0.3 * np.sin(2 * np.pi * (200 + 30 * k) * np.arange(int(sr * (1 + 0.5 * j))) / sr)\n            y = np.stack([y] * ch, axis=1) if ch == 2 else y\n            for sub in (\"원천데이터\", \"라벨링데이터\"):\n                os.makedirs(os.path.join(root, sub, spk), exist_ok=True)\n            sf.write(os.path.join(root, \"원천데이터\", spk, name + \".wav\"), y, sr, subtype=\"PCM_16\")\n            label = {\"발화정보\": {\"stt\": f\"{spk} 의 {j}번째 문장입니다\"}, \"녹음자정보\": {\"recorderId\": spk, \"gender\": \"남\", \"age\": \"30대\"}}\n            json.dump(label, open(os.path.join(root, \"라벨링데이터\", spk, name + \".json\"), \"w\", encoding=\"utf-8\"), ensure_ascii=False)\n\n\ndef parse_label(jpath: str) -> dict:                    # 실제 데이터에서는 이 함수만 라벨 설명서에 맞게 고친다\n    lab = json.load(open(jpath, encoding=\"utf-8\"))\n    wav = jpath.replace(\"라벨링데이터\", \"원천데이터\").replace(\".json\", \".wav\")\n    return dict(path=wav, text=lab[\"발화정보\"][\"stt\"], speaker=lab[\"녹음자정보\"][\"recorderId\"])\n\n\nwith tempfile.TemporaryDirectory() as root:\n    build_tree(root)\n    json_files = sorted(glob.glob(os.path.join(root, \"라벨링데이터\", \"**\", \"*.json\"), recursive=True))\n    print(f\"JSON {len(json_files)}개\")\n    rows = []\n    for jp in json_files:\n        r = parse_label(jp)\n        info = sf.info(r[\"path\"])                        # 소리를 다 읽지 않고 머리말만\n        rows.append({**r, \"duration\": info.duration, \"sr\": info.samplerate, \"channels\": info.channels})\n    for r in rows[:5]:\n        print(f\"{os.path.basename(r['path'])} {r['text']} {r['duration']:.2f}초 {r['sr']}Hz {r['channels']}ch {r['speaker']}\")\n    odd = [os.path.basename(r[\"path\"]) for r in rows if r[\"sr\"] != 16000 or r[\"channels\"] != 1]\n    print(\"16 kHz 모노가 아닌 파일:\", odd)\n    check(len(json_files) == 12 and all(os.path.exists(r[\"path\"]) for r in rows) and odd == [\"S003_0002.wav\"],\n          \"하위 폴더까지 찾으려면 recursive=True, 12개를 모두 찾고 S003_0002만 형식이 달라야 해요.\")\n",
+  "typescript": "// D11 · Part 4 · AIHub 목록표 만들기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_manifest.ts   (소리 + JSON 라벨을 임시 폴더에 합성해서 읽어요 · 인터넷 불필요)\n//   하위 폴더까지 JSON을 모두 찾고, 소리는 WAV 머리말(44바이트)만 읽어 길이·주파수·채널을 표로 모은다\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction wavBytes(nFrames: number, sr: number, ch: number, f: number): Buffer {\n  const data = Buffer.alloc(nFrames * ch * 2);\n  for (let i = 0; i < nFrames; i++) {\n    const v = Math.round(0.3 * 32767 * Math.sin((2 * Math.PI * f * i) / sr));\n    for (let c = 0; c < ch; c++) data.writeInt16LE(v, (i * ch + c) * 2);\n  }\n  const h = Buffer.alloc(44);\n  h.write(\"RIFF\", 0); h.writeUInt32LE(36 + data.length, 4); h.write(\"WAVEfmt \", 8); h.writeUInt32LE(16, 16);\n  h.writeUInt16LE(1, 20); h.writeUInt16LE(ch, 22); h.writeUInt32LE(sr, 24); h.writeUInt32LE(sr * ch * 2, 28);\n  h.writeUInt16LE(ch * 2, 32); h.writeUInt16LE(16, 34); h.write(\"data\", 36); h.writeUInt32LE(data.length, 40);\n  return Buffer.concat([h, data]);\n}\n\nfunction buildTree(root: string): void {\n  // AIHub 형식 흉내: 원천데이터(소리) + 라벨링데이터(JSON). 소리는 사인파\n  [\"S001\", \"S002\", \"S003\"].forEach((spk, k) => {\n    for (let j = 1; j <= 4; j++) {\n      const name = `${spk}_${String(j).padStart(4, \"0\")}`;\n      const odd = spk === \"S003\" && j === 2; // 문제 파일: 44.1 kHz 스테레오\n      const sr = odd ? 44100 : 16000;\n      for (const sub of [\"원천데이터\", \"라벨링데이터\"]) fs.mkdirSync(path.join(root, sub, spk), { recursive: true });\n      fs.writeFileSync(path.join(root, \"원천데이터\", spk, name + \".wav\"), wavBytes(Math.floor(sr * (1 + 0.5 * j)), sr, odd ? 2 : 1, 200 + 30 * k));\n      const label = { 발화정보: { stt: `${spk} 의 ${j}번째 문장입니다` }, 녹음자정보: { recorderId: spk, gender: \"남\", age: \"30대\" } };\n      fs.writeFileSync(path.join(root, \"라벨링데이터\", spk, name + \".json\"), JSON.stringify(label));\n    }\n  });\n}\n\nfunction parseLabel(jpath: string): { path: string; text: string; speaker: string } {\n  // 실제 데이터에서는 이 함수만 라벨 설명서에 맞게 고친다\n  const lab = JSON.parse(fs.readFileSync(jpath, \"utf-8\"));\n  const wav = jpath.replace(\"라벨링데이터\", \"원천데이터\").replace(\".json\", \".wav\");\n  return { path: wav, text: lab.발화정보.stt, speaker: lab.녹음자정보.recorderId };\n}\n\nconst root = fs.mkdtempSync(path.join(os.tmpdir(), \"d11man-\"));\ntry {\n  buildTree(root);\n  const jsonFiles = (fs.readdirSync(path.join(root, \"라벨링데이터\"), { recursive: true }) as string[])\n    .filter((p) => p.endsWith(\".json\")).map((p) => path.join(root, \"라벨링데이터\", p)).sort(); // 하위 폴더까지\n  console.log(`JSON ${jsonFiles.length}개`);\n  const rows = jsonFiles.map((jp) => {\n    const r = parseLabel(jp);\n    const head = fs.readFileSync(r.path).subarray(0, 44); // 소리를 다 읽지 않고 머리말만\n    const ch = head.readUInt16LE(22), sr = head.readUInt32LE(24);\n    return { ...r, sr, channels: ch, duration: head.readUInt32LE(40) / (ch * 2) / sr };\n  });\n  for (const r of rows.slice(0, 5)) {\n    console.log(`${path.basename(r.path)} ${r.text} ${r.duration.toFixed(2)}초 ${r.sr}Hz ${r.channels}ch ${r.speaker}`);\n  }\n  const odd = rows.filter((r) => r.sr !== 16000 || r.channels !== 1).map((r) => path.basename(r.path));\n  console.log(\"16 kHz 모노가 아닌 파일:\", odd);\n  check(jsonFiles.length === 12 && rows.every((r) => fs.existsSync(r.path)) && odd.length === 1 && odd[0] === \"S003_0002.wav\",\n    \"하위 폴더까지 찾아 12개를 모두 읽고 S003_0002만 형식이 달라야 해요.\");\n} finally {\n  fs.rmSync(root, { recursive: true, force: true });\n}\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV 바이트 쓰기 · 읽기(BytesIO)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "임시 폴더에 파일 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV · PCM 바이트를 직접 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "node:os",
+     "version": "내장",
+     "purpose": "임시 폴더 위치(tmpdir)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/os.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "node:path",
+     "version": "내장",
+     "purpose": "파일 경로 이어 붙이기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/path.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "filter": {
+  "part": "Part 5 · 길이와 말 빠르기로 거르기",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    11,
+    12
+   ]
+  ],
+  "python": "# D11 · Part 5 · 품질 필터 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d11_filter.py   (표는 코드 안의 합성 목록 · 인터넷 불필요)\n#   길이와 말 빠르기(초당 글자 수, CPS)로 이상한 샘플을 이유와 함께 거른다\nROWS = [  # 출처, 전사, 길이(초)\n    (\"zeroth\", \"오늘 날씨가 정말 좋네요\", 2.5), (\"zeroth\", \"회의는 세 시에 시작합니다\", 3.0), (\"kspon\", \"그럼 세 시에 회의를 시작할까요\", 3.1),\n    (\"kspon\", \"\", 2.0), (\"aihub\", \"네\", 6.0), (\"aihub\", \"받아쓰기 모델은 위스퍼로 정했습니다\", 9.0),\n    (\"aihub\", \"다음 회의에서 다시 이야기하겠습니다 자세한 내용은 그때\", 1.5), (\"aihub\", \"안녕하세요\", 0.4), (\"aihub\", \"너무 긴 녹음 파일입니다\", 45.0),\n]\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef judge(text: str, dur: float, max_dur: float = 30, hi: float = 12, lo: float = 2) -> tuple:\n    n_chars = len(text.replace(\" \", \"\"))\n    cps = n_chars / dur\n    if n_chars == 0:\n        return cps, \"빈 전사\"\n    if dur < 1.0:\n        return cps, \"너무 짧음\"\n    if dur > max_dur:\n        return cps, \"너무 김\"\n    if cps > hi:\n        return cps, \"너무 빠름\"\n    if cps < lo:\n        return cps, \"너무 느림\"\n    return cps, \"\"\n\n\nresults = [(src, text, dur, *judge(text, dur)) for src, text, dur in ROWS]\nkept = [r for r in results if not r[4]]\nprint(f\"전체 {len(results)}개 → 남김 {len(kept)}개\")\nprint(f\"{'출처':7s}{'길이':>6s}{'CPS':>6s}  이유 · 전사\")\nfor src, text, dur, cps, why in results:\n    print(f\"{src:7s}{dur:6.1f}{cps:6.1f}  {why or '통과':8s} {text}\")\nreasons = {r[4] for r in results if r[4]}\ncheck(reasons >= {\"빈 전사\", \"너무 느림\", \"너무 빠름\", \"너무 짧음\", \"너무 김\"} and all(r[2] <= 30 for r in kept),\n      \"빈 전사 · 너무 느림 · 너무 빠름 · 너무 짧음 · 너무 김이 모두 걸러지고, 남은 샘플은 30초 이하여야 해요.\")\n",
+  "typescript": "// D11 · Part 5 · 품질 필터 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_filter.ts   (표는 코드 안의 합성 목록 · 인터넷 불필요)\n//   길이와 말 빠르기(초당 글자 수, CPS)로 이상한 샘플을 이유와 함께 거른다\nconst ROWS: [string, string, number][] = [ // 출처, 전사, 길이(초)\n  [\"zeroth\", \"오늘 날씨가 정말 좋네요\", 2.5], [\"zeroth\", \"회의는 세 시에 시작합니다\", 3.0], [\"kspon\", \"그럼 세 시에 회의를 시작할까요\", 3.1],\n  [\"kspon\", \"\", 2.0], [\"aihub\", \"네\", 6.0], [\"aihub\", \"받아쓰기 모델은 위스퍼로 정했습니다\", 9.0],\n  [\"aihub\", \"다음 회의에서 다시 이야기하겠습니다 자세한 내용은 그때\", 1.5], [\"aihub\", \"안녕하세요\", 0.4], [\"aihub\", \"너무 긴 녹음 파일입니다\", 45.0],\n];\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction judge(text: string, dur: number, maxDur: number = 30, hi: number = 12, lo: number = 2): [number, string] {\n  const nChars = text.replaceAll(\" \", \"\").length;\n  const cps = nChars / dur;\n  if (nChars === 0) return [cps, \"빈 전사\"];\n  if (dur < 1.0) return [cps, \"너무 짧음\"];\n  if (dur > maxDur) return [cps, \"너무 김\"];\n  if (cps > hi) return [cps, \"너무 빠름\"];\n  if (cps < lo) return [cps, \"너무 느림\"];\n  return [cps, \"\"];\n}\n\nconst results = ROWS.map(([src, text, dur]) => ({ src, text, dur, ...(([cps, why]) => ({ cps, why }))(judge(text, dur)) }));\nconst kept = results.filter((r) => !r.why);\nconsole.log(`전체 ${results.length}개 → 남김 ${kept.length}개`);\nconsole.log(\"출처\".padEnd(7) + \"길이\".padStart(6) + \"CPS\".padStart(6) + \"  이유 · 전사\");\nfor (const r of results) {\n  console.log(r.src.padEnd(7) + r.dur.toFixed(1).padStart(6) + r.cps.toFixed(1).padStart(6) + `  ${(r.why || \"통과\").padEnd(8)} ${r.text}`);\n}\nconst reasons = new Set(results.filter((r) => r.why).map((r) => r.why));\ncheck([\"빈 전사\", \"너무 느림\", \"너무 빠름\", \"너무 짧음\", \"너무 김\"].every((w) => reasons.has(w)) && kept.every((r) => r.dur <= 30),\n  \"빈 전사 · 너무 느림 · 너무 빠름 · 너무 짧음 · 너무 김이 모두 걸러지고, 남은 샘플은 30초 이하여야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "split": {
+  "part": "Part 6 · 화자 단위 분할",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    13,
+    13
+   ]
+  ],
+  "python": "# D11 · Part 6 · 데이터 누수: 화자 단위 분할 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 scikit-learn==1.9.1\n# 실행: python d11_split.py   (화자 12명 × 문장 10개의 합성 목록 · 인터넷 불필요)\n#   문장 단위로 섞어 나누면 같은 화자가 train · test에 걸치는 것을 보이고, GroupShuffleSplit으로 막는다\nimport numpy as np\nfrom sklearn.model_selection import GroupShuffleSplit, train_test_split\n\nspeakers = np.array([f\"spk{i:02d}\" for i in range(12) for _ in range(10)])   # 문장 120개, 화자 12명\nidx = np.arange(len(speakers))\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef split_by(index: np.ndarray, groups: np.ndarray, test_size: float, seed: int = 0) -> tuple:\n    gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=seed)\n    a, b = next(gss.split(index, groups=groups))\n    return index[a], index[b]\n\n\n# 나쁜 예: 문장 단위로 무작위 분할\ntr_bad, te_bad = train_test_split(idx, test_size=0.2, random_state=0)\nleak_bad = set(speakers[tr_bad]) & set(speakers[te_bad])\nprint(f\"문장 단위 분할: 겹치는 화자 {len(leak_bad)}명\")\n\n# 좋은 예: 화자 단위 분할 (test 20% → valid 15%)\nrest, test = split_by(idx, speakers, 0.2)\ntrain, valid = split_by(rest, speakers[rest], 0.15)\nfor name, part in [(\"train\", train), (\"valid\", valid), (\"test\", test)]:\n    print(f\"{name:5s} {len(part):4d}개 · 화자 {len(set(speakers[part])):2d}명\")\noverlap = (set(speakers[train]) & set(speakers[test])) | (set(speakers[train]) & set(speakers[valid])) | (set(speakers[valid]) & set(speakers[test]))\nprint(\"겹치는 화자:\", overlap or \"없음\")\ncheck(len(leak_bad) > 0 and not overlap and len(train) + len(valid) + len(test) == len(idx),\n      \"화자 ID 열로 나누면 겹치는 화자가 없어야 해요.\")\n",
+  "typescript": "// D11 · Part 6 · 데이터 누수: 화자 단위 분할 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_split.ts   (화자 12명 × 문장 10개의 합성 목록 · 인터넷 불필요)\n//   문장 단위로 섞어 나누면 같은 화자가 train · test에 걸치는 것을 보이고, 화자 단위로 나눠 막는다\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\n\nfunction shuffled<T>(items: T[], rnd: () => number): T[] {\n  const a = items.slice();\n  for (let i = a.length - 1; i > 0; i--) {\n    const j = Math.floor(rnd() * (i + 1));\n    [a[i], a[j]] = [a[j], a[i]];\n  }\n  return a;\n}\n\nconst speakers: string[] = [];\nfor (let i = 0; i < 12; i++) for (let k = 0; k < 10; k++) speakers.push(`spk${String(i).padStart(2, \"0\")}`); // 문장 120개, 화자 12명\nconst idx = speakers.map((_, i) => i);\nconst spkOf = (part: number[]): Set<string> => new Set(part.map((i) => speakers[i]));\nconst inter = (a: Set<string>, b: Set<string>): string[] => [...a].filter((s) => b.has(s));\n\nfunction splitBy(index: number[], testSize: number, seed: number = 0): [number[], number[]] {\n  // 화자를 섞어서 test 비율만큼 화자 통째로 test로 보냄\n  const spks = shuffled([...spkOf(index)].sort(), mulberry32(seed));\n  const nTest = Math.max(1, Math.round(spks.length * testSize));\n  const testSpk = new Set(spks.slice(0, nTest));\n  return [index.filter((i) => !testSpk.has(speakers[i])), index.filter((i) => testSpk.has(speakers[i]))];\n}\n\n// 나쁜 예: 문장 단위로 무작위 분할\nconst sh = shuffled(idx, mulberry32(0));\nconst teBad = sh.slice(0, 24), trBad = sh.slice(24);\nconst leakBad = inter(spkOf(trBad), spkOf(teBad));\nconsole.log(`문장 단위 분할: 겹치는 화자 ${leakBad.length}명`);\n\n// 좋은 예: 화자 단위 분할 (test 20% → valid 15%)\nconst [rest, test] = splitBy(idx, 0.2);\nconst [train, valid] = splitBy(rest, 0.15);\nfor (const [name, part] of [[\"train\", train], [\"valid\", valid], [\"test\", test]] as [string, number[]][]) {\n  console.log(`${name.padEnd(5)} ${String(part.length).padStart(4)}개 · 화자 ${String(spkOf(part).size).padStart(2)}명`);\n}\nconst overlap = [...inter(spkOf(train), spkOf(test)), ...inter(spkOf(train), spkOf(valid)), ...inter(spkOf(valid), spkOf(test))];\nconsole.log(\"겹치는 화자:\", overlap.length ? overlap.join(\",\") : \"없음\");\ncheck(leakBad.length > 0 && overlap.length === 0 && train.length + valid.length + test.length === idx.length,\n  \"화자 ID 열로 나누면 겹치는 화자가 없어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "scikit-learn",
+     "version": "1.9.1",
+     "purpose": "화자 단위 분할(GroupShuffleSplit)",
+     "install": "pip install scikit-learn==1.9.1",
+     "docs": "https://scikit-learn.org/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "features": {
+  "part": "Part 6 · Whisper 학습 입력으로 바꾸기",
+  "nb": "D11_한국어음성데이터셋_실습.ipynb",
+  "ord": [
+   [
+    14,
+    15
+   ]
+  ],
+  "python": "# D11 · Part 6 · Whisper 입력 (80 × 3000 특징 + labels) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d11_features.py   (합성 신호 · 인터넷 불필요)\n#   소리 → 로그 멜 특징(80 × 3000, 30초 창에 맞춰 채움), 글자 → labels(특수 토큰 + 글자 번호), 저장 크기까지 확인\n#   흉내 낸 부분: 진짜 토크나이저(BPE) 대신 UTF-8 바이트를 글자 번호로 사용\nimport numpy as np\n\nSR, N_FFT, HOP, N_MELS = 16000, 400, 160, 80\nSOT, EOT, KO, TRANSCRIBE, NOTS = 50258, 50257, 50264, 50359, 50363   # Whisper 특수 토큰 번호\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef log_mel(y: np.ndarray) -> np.ndarray:\n    y = np.pad(y, (N_FFT // 2, N_FFT // 2), mode=\"reflect\")\n    n = 1 + (len(y) - N_FFT) // HOP\n    frames = np.stack([y[i * HOP:i * HOP + N_FFT] * np.hanning(N_FFT) for i in range(n)])\n    power = np.abs(np.fft.rfft(frames, axis=1)) ** 2\n    mel = lambda f: 2595 * np.log10(1 + f / 700)\n    inv = lambda m: 700 * (10 ** (m / 2595) - 1)\n    pts = inv(np.linspace(0, mel(SR / 2), N_MELS + 2))\n    bins = np.fft.rfftfreq(N_FFT, 1 / SR)\n    fb = np.stack([np.clip(np.minimum((bins - l) / (c - l), (r - bins) / (r - c)), 0, None) for l, c, r in zip(pts[:-2], pts[1:-1], pts[2:])])\n    logm = np.log10(np.maximum(power @ fb.T, 1e-10))\n    logm = np.maximum(logm, logm.max() - 8.0)                 # Whisper 방식: 최대값보다 8 이상 낮은 곳은 자름\n    return ((logm + 4) / 4).T.astype(np.float32)               # (80, 프레임 수)\n\n\ny = (0.3 * np.sin(2 * np.pi * 300 * np.arange(int(2.5 * SR)) / SR)).astype(np.float32)\nfeat = log_mel(y)\npadded = np.full((N_MELS, 3000), feat.min(), dtype=np.float32)   # 30초 = 3000 프레임에 맞춰 뒤를 채움\npadded[:, :feat.shape[1]] = feat[:, :3000]\ntext = \"그럼 세 시에 회의를 시작할까요\"\nlabels = [SOT, KO, TRANSCRIBE, NOTS] + list(text.encode(\"utf-8\")) + [EOT]\nprint(\"input_features 모양:\", padded.shape, \"· 실제 소리 프레임\", feat.shape[1])\nprint(\"labels 앞 6개:\", labels[:6], \"· 길이\", len(labels), \"(Decoder 최대 448)\")\nmb = padded.nbytes / 1e6\nprint(f\"한 문장 특징 저장 크기 약 {mb:.2f} MB → 수백 시간이면 꺼낼 때마다 만드는 방식이 필요해요\")\ncheck(padded.shape == (80, 3000) and len(labels) <= 448 and abs(mb - 0.96) < 0.01 and labels[0] == SOT,\n      \"특징은 80 × 3000, labels는 <|startoftranscript|>로 시작하고 448 이하여야 해요.\")\n",
+  "typescript": "// D11 · Part 6 · Whisper 입력 (80 × 3000 특징 + labels) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d11_features.ts   (합성 신호 · 인터넷 불필요)\n//   소리 → 로그 멜 특징(80 × 3000, 30초 창에 맞춰 채움), 글자 → labels(특수 토큰 + 글자 번호), 저장 크기까지 확인\n//   흉내 낸 부분: 진짜 토크나이저(BPE) 대신 UTF-8 바이트를 글자 번호로 사용\nconst SR = 16000, N_FFT = 400, HOP = 160, N_MELS = 80;\nconst SOT = 50258, EOT = 50257, KO = 50264, TRANSCRIBE = 50359, NOTS = 50363; // Whisper 특수 토큰 번호\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction melFilters(): Float64Array[] {\n  const mel = (f: number): number => 2595 * Math.log10(1 + f / 700);\n  const inv = (m: number): number => 700 * (10 ** (m / 2595) - 1);\n  const pts = Array.from({ length: N_MELS + 2 }, (_, i) => inv((mel(SR / 2) * i) / (N_MELS + 1)));\n  return Array.from({ length: N_MELS }, (_, m) => {\n    const [l, c, r] = [pts[m], pts[m + 1], pts[m + 2]];\n    return Float64Array.from({ length: N_FFT / 2 + 1 }, (_, k) => {\n      const hz = (k * SR) / N_FFT;\n      return Math.max(0, Math.min((hz - l) / (c - l), (r - hz) / (r - c)));\n    });\n  });\n}\n\nfunction logMel(y: Float32Array): Float32Array[] {\n  const half = N_FFT / 2;\n  const p = new Float32Array(y.length + N_FFT); // 앞뒤로 거울처럼 덧붙임 (reflect)\n  for (let i = 0; i < p.length; i++) {\n    let s = i - half;\n    if (s < 0) s = -s;\n    if (s >= y.length) s = 2 * (y.length - 1) - s;\n    p[i] = y[s];\n  }\n  const n = 1 + Math.floor((p.length - N_FFT) / HOP);\n  const cosT = Array.from({ length: half + 1 }, (_, k) => Float64Array.from({ length: N_FFT }, (_, t) => Math.cos((2 * Math.PI * k * t) / N_FFT)));\n  const sinT = Array.from({ length: half + 1 }, (_, k) => Float64Array.from({ length: N_FFT }, (_, t) => Math.sin((2 * Math.PI * k * t) / N_FFT)));\n  const fb = melFilters();\n  const cols: number[][] = [];\n  let max = -Infinity;\n  for (let i = 0; i < n; i++) {\n    const seg = Float64Array.from({ length: N_FFT }, (_, t) => p[i * HOP + t] * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / N_FFT)));\n    const power = new Float64Array(half + 1);\n    for (let k = 0; k <= half; k++) {\n      let re = 0, im = 0;\n      for (let t = 0; t < N_FFT; t++) { re += seg[t] * cosT[k][t]; im -= seg[t] * sinT[k][t]; }\n      power[k] = re * re + im * im;\n    }\n    const col = fb.map((f) => Math.log10(Math.max(f.reduce((s, w, k) => s + w * power[k], 0), 1e-10)));\n    max = Math.max(max, ...col);\n    cols.push(col);\n  }\n  // Whisper 방식: 최대값보다 8 이상 낮은 곳은 자르고 (x + 4) / 4 로 맞춤 → (80, 프레임 수)\n  return Array.from({ length: N_MELS }, (_, m) => Float32Array.from(cols, (c) => (Math.max(c[m], max - 8) + 4) / 4));\n}\n\nconst y = new Float32Array(Math.floor(2.5 * SR));\nfor (let i = 0; i < y.length; i++) y[i] = 0.3 * Math.sin((2 * Math.PI * 300 * i) / SR);\nconst feat = logMel(y);\nconst frames = feat[0].length;\nlet floor = Infinity;\nfor (const row of feat) for (const v of row) floor = Math.min(floor, v);\nconst padded = feat.map((row) => {\n  const out = new Float32Array(3000).fill(floor); // 30초 = 3000 프레임에 맞춰 뒤를 채움\n  out.set(row.subarray(0, 3000));\n  return out;\n});\nconst text = \"그럼 세 시에 회의를 시작할까요\";\nconst labels = [SOT, KO, TRANSCRIBE, NOTS, ...Buffer.from(text, \"utf-8\"), EOT];\nconsole.log(`input_features 모양: (${padded.length}, ${padded[0].length}) · 실제 소리 프레임 ${frames}`);\nconsole.log(`labels 앞 6개: ${labels.slice(0, 6).join(\", \")} · 길이 ${labels.length} (Decoder 최대 448)`);\nconst mb = (padded.length * padded[0].length * 4) / 1e6;\nconsole.log(`한 문장 특징 저장 크기 약 ${mb.toFixed(2)} MB → 수백 시간이면 꺼낼 때마다 만드는 방식이 필요해요`);\ncheck(padded.length === 80 && padded[0].length === 3000 && labels.length <= 448 && Math.abs(mb - 0.96) < 0.01 && labels[0] === SOT,\n  \"특징은 80 × 3000, labels는 <|startoftranscript|>로 시작하고 448 이하여야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV · PCM 바이트를 직접 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ }
+}

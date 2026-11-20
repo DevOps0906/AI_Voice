@@ -1,0 +1,337 @@
+{
+ "flow": {
+  "part": "Part 0~8 · 오늘의 흐름 전체",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    2,
+    9
+   ],
+   [
+    11,
+    15
+   ],
+   [
+    17,
+    18
+   ]
+  ],
+  "python": "# D13 · Part 0~9 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d13_flow.py   (CPU에서 몇 초 · GPU·인터넷·Whisper·peft 불필요)\n#   장난감 분류 모델에 LoRA를 붙여: 원래 모델은 새 용어를 못 맞힘 → 용어 + 일반 문장(replay)으로 LoRA만 학습 → 용어는 맞히고 원래 실력은 유지 → 병합해도 결과 동일\n#   흉내 낸 부분: Whisper 대신 3층 MLP, 소리 대신 클래스마다 정해 둔 특징 벡터 + 잡음, peft 대신 직접 만든 LoRA 층\nimport numpy as np\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\ntorch.manual_seed(0)\nrng = np.random.default_rng(0)\nD, K_GEN, K_TERM = 24, 6, 4                                # 일반 글자 6종 + 새 도메인 용어 4종 (출력은 10칸)\nPROTO = rng.normal(0, 1, (K_GEN + K_TERM, D)).astype(np.float32)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef data(classes: range, n: int) -> tuple:\n    y = rng.integers(classes.start, classes.stop, n)\n    return torch.tensor(PROTO[y] + rng.normal(0, 0.4, (n, D)).astype(np.float32)), torch.tensor(y)\n\n\nclass LoRALinear(nn.Module):\n    def __init__(self, base: nn.Linear, r: int, alpha: int):\n        super().__init__()\n        self.base, self.scale = base, alpha / r\n        for p in base.parameters():\n            p.requires_grad = False                         # 원래 가중치는 얼림\n        self.A = nn.Parameter(torch.randn(r, base.in_features) / base.in_features ** 0.5)\n        self.B = nn.Parameter(torch.zeros(base.out_features, r))\n\n    def forward(self, x):\n        return self.base(x) + self.scale * (x @ self.A.T @ self.B.T)\n\n    def merged(self) -> nn.Linear:                          # W + (α/r)·B·A 를 한 층으로\n        m = nn.Linear(self.base.in_features, self.base.out_features)\n        m.weight.data = self.base.weight.data + self.scale * self.B.data @ self.A.data\n        m.bias.data = self.base.bias.data.clone()\n        return m\n\n\ndef fit(model: nn.Module, x: torch.Tensor, y: torch.Tensor, steps: int, lr: float) -> None:\n    opt = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr)\n    for _ in range(steps):\n        loss = nn.functional.cross_entropy(model(x), y)\n        opt.zero_grad()\n        loss.backward()\n        opt.step()\n\n\ndef acc(model: nn.Module, x: torch.Tensor, y: torch.Tensor) -> float:\n    with torch.no_grad():\n        return 100 * (model(x).argmax(1) == y).float().mean().item()\n\n\n# 1) 원래 모델: 일반 글자만 학습 (용어 4종은 본 적 없음)\nbase = nn.Sequential(nn.Linear(D, 64), nn.ReLU(), nn.Linear(64, 64), nn.ReLU(), nn.Linear(64, K_GEN + K_TERM))\nxg, yg = data(range(0, K_GEN), 600)\nfit(base, xg, yg, 200, 1e-2)\nxg_te, yg_te = data(range(0, K_GEN), 300)\nxt_te, yt_te = data(range(K_GEN, K_GEN + K_TERM), 300)\ngen0, term0 = acc(base, xg_te, yg_te), acc(base, xt_te, yt_te)\nprint(f\"① 원래 모델   일반 {gen0:5.1f}% · 용어 {term0:5.1f}%\")\n\n# 2) LoRA: 모든 Linear에 붙이고 A · B만 학습, 용어 문장 + 일반 문장 섞기(replay)\ntotal = sum(p.numel() for p in base.parameters())\nmodel = nn.Sequential(*[LoRALinear(m, r=2, alpha=4) if isinstance(m, nn.Linear) else m for m in base])\ntrainable = sum(p.numel() for p in model.parameters() if p.requires_grad)\nxt, yt = data(range(K_GEN, K_GEN + K_TERM), 300)\nxm, ym = torch.cat([xt, xg[:300]]), torch.cat([yt, yg[:300]])\nfit(model, xm, ym, 300, 1e-2)\ngen1, term1 = acc(model, xg_te, yg_te), acc(model, xt_te, yt_te)\nprint(f\"③ LoRA 학습 후 일반 {gen1:5.1f}% · 용어 {term1:5.1f}% (학습 대상 {trainable:,}개 = 전체의 {100 * trainable / total:.1f}%)\")\n\n# 3) 병합: 추론할 때 추가 계산이 없도록 W에 미리 더함\nmerged = nn.Sequential(*[m.merged() if isinstance(m, LoRALinear) else m for m in model])\nsame = torch.allclose(model(xt_te), merged(xt_te), atol=1e-5)\nprint(\"병합한 모델과 LoRA 모델의 출력이 같은가?\", same)\ncheck(term0 < 20 and term1 > 90 and gen1 > gen0 - 5 and trainable < 0.15 * total and same,\n      \"LoRA 후 용어 정확도가 크게 오르고, 일반 정확도는 유지되며, 병합 결과가 같아야 해요.\")\n",
+  "typescript": "// D13 · Part 0~9 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_flow.ts   (몇 초 · GPU·인터넷·Whisper·peft 불필요)\n//   장난감 분류 모델에 LoRA를 붙여: 원래 모델은 새 용어를 못 맞힘 → 용어 + 일반 문장(replay)으로 LoRA만 학습 → 용어는 맞히고 원래 실력은 유지 → 병합해도 결과 동일\n//   흉내 낸 부분: Whisper 대신 3층 MLP, 소리 대신 클래스마다 정해 둔 특징 벡터 + 잡음, peft 대신 직접 만든 LoRA 층\nconst D = 24, K_GEN = 6, K_TERM = 4, K = K_GEN + K_TERM, H = 64, R = 2, ALPHA = 4; // 일반 글자 6종 + 새 도메인 용어 4종\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = mulberry32(0);\nconst gauss = (s: number = 1): number => s * Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\nconst PROTO = Array.from({ length: K }, () => Float64Array.from({ length: D }, () => gauss()));\ntype Set = { xs: Float64Array[]; ys: number[] };\nfunction data(lo: number, hi: number, n: number): Set {\n  const ys = Array.from({ length: n }, () => lo + Math.floor(rnd() * (hi - lo)));\n  return { xs: ys.map((y) => Float64Array.from({ length: D }, (_, d) => PROTO[y][d] + gauss(0.4))), ys };\n}\n\ntype Adam = { m: Float64Array; v: Float64Array };\ntype Layer = { W: Float64Array; b: Float64Array; nin: number; nout: number; A?: Float64Array; B?: Float64Array; gW: Float64Array; gb: Float64Array; gA?: Float64Array; gB?: Float64Array; sA?: Adam; sB?: Adam; sW: Adam; sb: Adam };\n\nconst zeros = (n: number): Float64Array => new Float64Array(n);\nconst adam = (n: number): Adam => ({ m: zeros(n), v: zeros(n) });\n\nclass Net {\n  layers: Layer[] = [];\n  lora = false;\n  t = 0;\n  constructor(sizes: number[]) {\n    for (let i = 0; i < sizes.length - 1; i++) {\n      const [nin, nout] = [sizes[i], sizes[i + 1]];\n      this.layers.push({ W: Float64Array.from({ length: nin * nout }, () => gauss(1 / Math.sqrt(nin))), b: zeros(nout), nin, nout, gW: zeros(nin * nout), gb: zeros(nout), sW: adam(nin * nout), sb: adam(nout) });\n    }\n  }\n  // LoRA 붙이기: 원래 W · b는 얼리고(학습 안 함) A(r × 입력) · B(출력 × r)만 학습. B = 0 이라 시작 출력은 그대로\n  attachLora(): void {\n    this.lora = true;\n    for (const L of this.layers) {\n      L.A = Float64Array.from({ length: R * L.nin }, () => gauss(1 / Math.sqrt(L.nin)));\n      L.B = zeros(L.nout * R);\n      L.gA = zeros(L.A.length); L.gB = zeros(L.B.length); L.sA = adam(L.A.length); L.sB = adam(L.B.length);\n    }\n  }\n  forward(x: Float64Array): { acts: Float64Array[]; ax: Float64Array[] } {\n    const acts = [x], ax: Float64Array[] = [];\n    this.layers.forEach((L, l) => {\n      const a = zeros(R);\n      if (L.A) for (let r = 0; r < R; r++) for (let i = 0; i < L.nin; i++) a[r] += L.A[r * L.nin + i] * acts[l][i];\n      ax.push(a);\n      const out = zeros(L.nout);\n      for (let o = 0; o < L.nout; o++) {\n        let s = L.b[o];\n        for (let i = 0; i < L.nin; i++) s += L.W[o * L.nin + i] * acts[l][i];\n        if (L.B) for (let r = 0; r < R; r++) s += (ALPHA / R) * L.B[o * R + r] * a[r];\n        out[o] = l < this.layers.length - 1 ? Math.tanh(s) : s;\n      }\n      acts.push(out);\n    });\n    return { acts, ax };\n  }\n  probs(x: Float64Array): Float64Array {\n    const z = this.forward(x).acts.at(-1) as Float64Array;\n    const mx = Math.max(...z);\n    const e = z.map((v) => Math.exp(v - mx));\n    const s = e.reduce((a, c) => a + c, 0);\n    return e.map((v) => v / s);\n  }\n  predict(x: Float64Array): number {\n    const p = this.probs(x);\n    return p.indexOf(Math.max(...p));\n  }\n  step(set: Set, lr: number): void {\n    const n = set.xs.length, sc = ALPHA / R;\n    for (const L of this.layers) { L.gW.fill(0); L.gb.fill(0); L.gA?.fill(0); L.gB?.fill(0); }\n    set.xs.forEach((x, k) => {\n      const { acts, ax } = this.forward(x);\n      let delta = this.probs(x).map((v, c) => (v - (c === set.ys[k] ? 1 : 0)) / n);\n      for (let l = this.layers.length - 1; l >= 0; l--) {\n        const L = this.layers[l];\n        const prev = zeros(L.nin), back = zeros(R);\n        for (let o = 0; o < L.nout; o++) {\n          L.gb[o] += delta[o];\n          for (let i = 0; i < L.nin; i++) { L.gW[o * L.nin + i] += delta[o] * acts[l][i]; prev[i] += L.W[o * L.nin + i] * delta[o]; }\n          if (L.B && L.gB) for (let r = 0; r < R; r++) { L.gB[o * R + r] += sc * delta[o] * ax[l][r]; back[r] += sc * L.B[o * R + r] * delta[o]; }\n        }\n        if (L.A && L.gA) for (let r = 0; r < R; r++) for (let i = 0; i < L.nin; i++) { L.gA[r * L.nin + i] += back[r] * acts[l][i]; prev[i] += back[r] * L.A[r * L.nin + i]; }\n        delta = l > 0 ? prev.map((v, i) => v * (1 - acts[l][i] ** 2)) : prev;\n      }\n    });\n    this.t++;\n    const upd = (w: Float64Array, g: Float64Array, s: Adam): void => {\n      for (let i = 0; i < w.length; i++) {\n        s.m[i] = 0.9 * s.m[i] + 0.1 * g[i];\n        s.v[i] = 0.999 * s.v[i] + 0.001 * g[i] * g[i];\n        w[i] -= (lr * (s.m[i] / (1 - 0.9 ** this.t))) / (Math.sqrt(s.v[i] / (1 - 0.999 ** this.t)) + 1e-8);\n      }\n    };\n    for (const L of this.layers) {\n      if (this.lora && L.A && L.B && L.gA && L.gB && L.sA && L.sB) { upd(L.A, L.gA, L.sA); upd(L.B, L.gB, L.sB); } // LoRA면 A · B만 갱신\n      else { upd(L.W, L.gW, L.sW); upd(L.b, L.gb, L.sb); }\n    }\n  }\n  merged(): Net {\n    // 병합: W' = W + (α/r)·B·A 를 한 층으로 (추론할 때 추가 계산이 없음)\n    const m = new Net([this.layers[0].nin, ...this.layers.map((L) => L.nout)]);\n    m.layers.forEach((M, l) => {\n      const L = this.layers[l];\n      M.W.set(L.W);\n      M.b.set(L.b);\n      if (L.A && L.B) for (let o = 0; o < L.nout; o++) for (let i = 0; i < L.nin; i++) for (let r = 0; r < R; r++) M.W[o * L.nin + i] += (ALPHA / R) * L.B[o * R + r] * L.A[r * L.nin + i];\n    });\n    return m;\n  }\n  count(onlyTrainable: boolean): number {\n    return this.layers.reduce((s, L) => s + (onlyTrainable && this.lora ? (L.A?.length ?? 0) + (L.B?.length ?? 0) : L.W.length + L.b.length), 0);\n  }\n}\n\nconst acc = (net: Net, s: Set): number => (100 * s.xs.filter((x, i) => net.predict(x) === s.ys[i]).length) / s.xs.length;\n\n// 1) 원래 모델: 일반 글자만 학습 (용어 4종은 본 적 없음)\nconst net = new Net([D, H, H, K]);\nconst gen = data(0, K_GEN, 600);\nfor (let s = 0; s < 200; s++) net.step(gen, 1e-2);\nconst genTest = data(0, K_GEN, 300), termTest = data(K_GEN, K, 300);\nconst [gen0, term0] = [acc(net, genTest), acc(net, termTest)];\nconsole.log(`① 원래 모델   일반 ${gen0.toFixed(1).padStart(5)}% · 용어 ${term0.toFixed(1).padStart(5)}%`);\n\n// 2) LoRA: 모든 Linear에 붙이고 A · B만 학습, 용어 문장 + 일반 문장 섞기(replay)\nconst total = net.count(false);\nnet.attachLora();\nconst trainable = net.count(true);\nconst term = data(K_GEN, K, 300);\nconst mix: Set = { xs: [...term.xs, ...gen.xs.slice(0, 300)], ys: [...term.ys, ...gen.ys.slice(0, 300)] };\nfor (let s = 0; s < 300; s++) net.step(mix, 1e-2);\nconst [gen1, term1] = [acc(net, genTest), acc(net, termTest)];\nconsole.log(`③ LoRA 학습 후 일반 ${gen1.toFixed(1).padStart(5)}% · 용어 ${term1.toFixed(1).padStart(5)}% (학습 대상 ${trainable.toLocaleString(\"en-US\")}개 = 전체의 ${((100 * trainable) / total).toFixed(1)}%)`);\n\n// 3) 병합\nconst merged = net.merged();\nconst same = termTest.xs.every((x) => {\n  const a = net.probs(x), b = merged.probs(x);\n  return a.every((v, i) => Math.abs(v - b[i]) < 1e-9);\n});\nconsole.log(\"병합한 모델과 LoRA 모델의 출력이 같은가?\", same);\ncheck(term0 < 20 && term1 > 90 && gen1 > gen0 - 5 && trainable < 0.15 * total && same,\n  \"LoRA 후 용어 정확도가 크게 오르고, 일반 정확도는 유지되며, 병합 결과가 같아야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "lora": {
+  "part": "Part 1 · LoRA를 숫자로 직접 만들어 보기",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    4,
+    4
+   ]
+  ],
+  "python": "# D13 · Part 1 · LoRA 행렬: 큰 행렬은 얼리고 작은 덧붙임만 학습 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d13_lora.py   (난수 행렬로 계산 · 인터넷·GPU 불필요)\n#   W(768 × 768)는 그대로 두고 A(r × 768) · B(768 × r)만 학습: 파라미터 수, 시작 때 출력이 같은 이유(B = 0), ΔW의 rank, 병합(merge)을 숫자로 확인\nimport numpy as np\n\nd_in, d_out, r, alpha = 768, 768, 32, 64\nrng = np.random.default_rng(0)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nW = rng.normal(0, 0.02, (d_out, d_in))                    # 원래 가중치 (고정)\nA = rng.normal(0, 0.02, (r, d_in))                        # 작은 무작위 값\nB = np.zeros((d_out, r))                                  # 처음엔 0\n\nfull_params = d_in * d_out\nlora_params = r * (d_in + d_out)\nprint(f\"W: {full_params:,}개  ·  LoRA(A + B): {lora_params:,}개  →  {100 * lora_params / full_params:.1f}%\")\n\nx = rng.normal(0, 1, d_in)\ny0 = W @ x\ny_lora = W @ x + (alpha / r) * (B @ (A @ x))              # LoRA 출력 = 원래 출력 + 크기 조절(α/r) × B(Ax)\nprint(\"학습 시작 때 원래 출력과 같은가?\", np.allclose(y0, y_lora))\n\nB_trained = rng.normal(0, 0.01, (d_out, r))               # 학습이 B를 조금 바꿨다고 가정\ndelta = (alpha / r) * (B_trained @ A)                     # W에 더해질 변화량 ΔW\nrank = np.linalg.matrix_rank(delta)\nprint(f\"ΔW의 rank(독립인 방향 수) = {rank}  (최대 r = {r})\")\n\nW_merged = W + delta                                      # 병합: 배포할 때는 W에 미리 더해 두면 추가 계산이 없다\ny_unmerged = W @ x + (alpha / r) * (B_trained @ (A @ x))\nprint(\"병합한 W와 따로 계산한 결과가 같은가?\", np.allclose(W_merged @ x, y_unmerged))\ncheck(lora_params == 49152 and np.allclose(y0, y_lora) and rank == r and np.allclose(W_merged @ x, y_unmerged),\n      \"LoRA 파라미터는 r × (d_in + d_out) = 49,152, B = 0 이면 시작 출력이 같고, ΔW의 rank는 r 이하예요.\")\n",
+  "typescript": "// D13 · Part 1 · LoRA 행렬: 큰 행렬은 얼리고 작은 덧붙임만 학습 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_lora.ts   (난수 행렬로 계산 · 인터넷·GPU 불필요)\n//   W(96 × 96)는 그대로 두고 A(r × 96) · B(96 × r)만 학습: 파라미터 수, 시작 때 출력이 같은 이유(B = 0), ΔW의 rank, 병합(merge)을 숫자로 확인\n//   흉내 낸 부분: 강의 노트의 768 × 768 · r = 32 대신 같은 규칙을 작은 크기(96 · r = 8)로 계산(공식은 r × (d_in + d_out)로 같음)\nconst D = 96, R = 8, ALPHA = 16;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = mulberry32(0);\nconst gauss = (s: number): number => s * Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\ntype Mat = Float64Array[]; // 행 목록\nconst randMat = (r: number, c: number, s: number): Mat => Array.from({ length: r }, () => Float64Array.from({ length: c }, () => gauss(s)));\nconst zeros = (r: number, c: number): Mat => Array.from({ length: r }, () => new Float64Array(c));\nconst matVec = (M: Mat, x: Float64Array): Float64Array => Float64Array.from(M, (row) => row.reduce((s, v, i) => s + v * x[i], 0));\nconst matMul = (P: Mat, Q: Mat): Mat => P.map((row) => Float64Array.from(Q[0], (_, j) => row.reduce((s, v, k) => s + v * Q[k][j], 0)));\nconst close = (a: Float64Array, b: Float64Array, tol: number = 1e-9): boolean => a.every((v, i) => Math.abs(v - b[i]) < tol);\n\nfunction rank(M: Mat, tol: number = 1e-8): number {\n  // 가우스 소거법으로 독립인 행 수 세기\n  const m = M.map((r) => Float64Array.from(r));\n  let rk = 0;\n  for (let c = 0; c < m[0].length && rk < m.length; c++) {\n    let p = rk;\n    for (let r = rk + 1; r < m.length; r++) if (Math.abs(m[r][c]) > Math.abs(m[p][c])) p = r;\n    if (Math.abs(m[p][c]) < tol) continue;\n    [m[rk], m[p]] = [m[p], m[rk]];\n    for (let r = rk + 1; r < m.length; r++) {\n      const f = m[r][c] / m[rk][c];\n      for (let k = c; k < m[0].length; k++) m[r][k] -= f * m[rk][k];\n    }\n    rk++;\n  }\n  return rk;\n}\n\nconst W = randMat(D, D, 0.02); // 원래 가중치 (고정)\nconst A = randMat(R, D, 0.02); // 작은 무작위 값\nconst B = zeros(D, R); // 처음엔 0\n\nconst fullParams = D * D;\nconst loraParams = R * (D + D);\nconsole.log(`W: ${fullParams.toLocaleString(\"en-US\")}개  ·  LoRA(A + B): ${loraParams.toLocaleString(\"en-US\")}개  →  ${((100 * loraParams) / fullParams).toFixed(1)}%`);\n\nconst x = Float64Array.from({ length: D }, () => gauss(1));\nconst y0 = matVec(W, x);\nconst loraOut = (b: Mat): Float64Array => {\n  const base = matVec(W, x), add = matVec(b, matVec(A, x));\n  return base.map((v, i) => v + (ALPHA / R) * add[i]); // LoRA 출력 = 원래 출력 + 크기 조절(α/r) × B(Ax)\n};\nconst sameStart = close(y0, loraOut(B));\nconsole.log(\"학습 시작 때 원래 출력과 같은가?\", sameStart);\n\nconst Btrained = randMat(D, R, 0.01); // 학습이 B를 조금 바꿨다고 가정\nconst delta = matMul(Btrained, A).map((row) => row.map((v) => (ALPHA / R) * v)); // W에 더해질 변화량 ΔW\nconst rk = rank(delta);\nconsole.log(`ΔW의 rank(독립인 방향 수) = ${rk}  (최대 r = ${R})`);\n\nconst merged = W.map((row, i) => row.map((v, j) => v + delta[i][j])); // 병합: 배포할 때는 W에 미리 더해 두면 추가 계산이 없다\nconst sameMerged = close(matVec(merged, x), loraOut(Btrained));\nconsole.log(\"병합한 W와 따로 계산한 결과가 같은가?\", sameMerged);\ncheck(loraParams === R * 2 * D && sameStart && rk === R && sameMerged,\n  \"LoRA 파라미터는 r × (d_in + d_out), B = 0 이면 시작 출력이 같고, ΔW의 rank는 r 이하예요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "domain": {
+  "part": "Part 2 · 도메인 데이터 만들기",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    5,
+    7
+   ]
+  ],
+  "python": "# D13 · Part 2 · 도메인 데이터: 용어 × 문장 틀 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d13_domain.py   (소리 합성(TTS)은 하지 않고 문장 만들기만 · 인터넷 불필요)\n#   용어 20개 × 문장 틀 10개 = 200문장. 틀을 7 : 3으로 나눠 '처음 보는 틀'로 시험하고, 일반 문장을 섞어(replay) 원래 실력을 지킨다\n#   흉내 낸 부분: 실제로는 문장마다 TTS로 소리를 만들지만, 여기서는 같은 문장을 한 번만 만드는 캐시 규칙(해시 이름)만 확인\nimport hashlib\nimport re\n\nDOMAINS = {\n    \"의료\": [\"심방세동\", \"트로포닌\", \"와파린\", \"메트포르민\", \"아세트아미노펜\", \"크레아티닌\", \"당화혈색소\", \"심근경색\", \"폐색전증\", \"패혈증\",\n             \"기관지확장제\", \"프레드니솔론\", \"혈소판감소증\", \"갑상선기능저하증\", \"신우신염\", \"대상포진\", \"담낭절제술\", \"관상동맥조영술\", \"항응고제\", \"인슐린 글라진\"],\n}\nTEMPLATES = [                                          # 앞 7개 = 학습, 뒤 3개 = 시험 (처음 보는 틀)\n    \"오늘 회의에서 {t} 문제를 다시 다뤘습니다\", \"{t} 관련 자료를 정리해 주세요\", \"방금 말씀하신 {t} 부분을 다시 확인하겠습니다\",\n    \"보고서에 {t} 항목을 추가했습니다\", \"{t} 때문에 일정이 조금 늦어졌습니다\", \"담당자에게 {t} 내용을 전달했습니다\",\n    \"다음 주까지 {t} 검토를 마치겠습니다\",\n    \"기록지에 {t} 항목을 표시해 주세요\", \"{t} 경과를 내일 다시 보겠습니다\", \"고객에게 {t} 설명을 드렸습니다\",\n]\nN_TRAIN_TPL = 7\nGENERAL = [\"오늘 날씨가 정말 좋네요\", \"회의는 세 시에 시작합니다\", \"점심 같이 먹을래요\", \"내일 아침에 다시 연락드리겠습니다\"] * 35   # 일반 문장(replay 용)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef normalize(s: str) -> str:\n    return re.sub(r\"\\s+\", \"\", re.sub(r\"[^\\w\\s]\", \"\", s.lower()))\n\n\nTERMS = DOMAINS[\"의료\"]\ntrain_tpl, test_tpl = TEMPLATES[:N_TRAIN_TPL], TEMPLATES[N_TRAIN_TPL:]\ntrain_texts = [t.format(t=w) for t in train_tpl for w in TERMS]\ntest_texts = [t.format(t=w) for t in test_tpl for w in TERMS]\nleak = set(map(normalize, train_texts)) & set(map(normalize, test_texts))\nprint(f\"학습 문장 {len(train_texts)}개 · 시험 문장 {len(test_texts)}개 · 겹치는 문장 {len(leak)}개\")\nprint(\"시험 문장 예:\", test_texts[:2])\n\nreplay = GENERAL[:len(train_texts)]                     # 도메인 문장 수만큼 일반 문장을 섞음 (1 : 1)\nmix = train_texts + replay\ncache = {hashlib.md5(t.encode(\"utf-8\")).hexdigest()[:10] + \".mp3\": t for t in mix}   # 같은 문장은 같은 파일 이름 → 한 번만 합성\nprint(f\"섞은 학습 문장 {len(mix)}개 중 합성할 고유 문장 {len(cache)}개 (도메인 {len(train_texts)} + 일반 {len(set(replay))})\")\ncheck(len(test_tpl) == len(TEMPLATES) - N_TRAIN_TPL and not leak and len(train_texts) == 140 and len(test_texts) == 60\n      and len(cache) == len(set(mix)) == len(train_texts) + len(set(replay)),\n      \"학습 틀 7 · 시험 틀 3, 겹치는 문장 0, 같은 문장은 캐시로 한 번만 만들어야 해요.\")\n",
+  "typescript": "// D13 · Part 2 · 도메인 데이터: 용어 × 문장 틀 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_domain.ts   (소리 합성(TTS)은 하지 않고 문장 만들기만 · 인터넷 불필요)\n//   용어 20개 × 문장 틀 10개 = 200문장. 틀을 7 : 3으로 나눠 '처음 보는 틀'로 시험하고, 일반 문장을 섞어(replay) 원래 실력을 지킨다\n//   흉내 낸 부분: 실제로는 문장마다 TTS로 소리를 만들지만, 여기서는 같은 문장을 한 번만 만드는 캐시 규칙(해시 이름)만 확인\nimport { createHash } from \"node:crypto\";\n\nconst TERMS = [\"심방세동\", \"트로포닌\", \"와파린\", \"메트포르민\", \"아세트아미노펜\", \"크레아티닌\", \"당화혈색소\", \"심근경색\", \"폐색전증\", \"패혈증\",\n  \"기관지확장제\", \"프레드니솔론\", \"혈소판감소증\", \"갑상선기능저하증\", \"신우신염\", \"대상포진\", \"담낭절제술\", \"관상동맥조영술\", \"항응고제\", \"인슐린 글라진\"];\nconst TEMPLATES = [ // 앞 7개 = 학습, 뒤 3개 = 시험 (처음 보는 틀)\n  \"오늘 회의에서 {t} 문제를 다시 다뤘습니다\", \"{t} 관련 자료를 정리해 주세요\", \"방금 말씀하신 {t} 부분을 다시 확인하겠습니다\",\n  \"보고서에 {t} 항목을 추가했습니다\", \"{t} 때문에 일정이 조금 늦어졌습니다\", \"담당자에게 {t} 내용을 전달했습니다\",\n  \"다음 주까지 {t} 검토를 마치겠습니다\",\n  \"기록지에 {t} 항목을 표시해 주세요\", \"{t} 경과를 내일 다시 보겠습니다\", \"고객에게 {t} 설명을 드렸습니다\",\n];\nconst N_TRAIN_TPL = 7;\nconst GENERAL = Array.from({ length: 35 }, () => [\"오늘 날씨가 정말 좋네요\", \"회의는 세 시에 시작합니다\", \"점심 같이 먹을래요\", \"내일 아침에 다시 연락드리겠습니다\"]).flat(); // 일반 문장(replay 용)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst normalize = (s: string): string => s.toLowerCase().replace(/[^\\p{L}\\p{N}_\\s]/gu, \"\").replace(/\\s+/g, \"\");\n\nconst trainTpl = TEMPLATES.slice(0, N_TRAIN_TPL), testTpl = TEMPLATES.slice(N_TRAIN_TPL);\nconst trainTexts = trainTpl.flatMap((t) => TERMS.map((w) => t.replace(\"{t}\", w)));\nconst testTexts = testTpl.flatMap((t) => TERMS.map((w) => t.replace(\"{t}\", w)));\nconst testSet = new Set(testTexts.map(normalize));\nconst leak = trainTexts.map(normalize).filter((s) => testSet.has(s));\nconsole.log(`학습 문장 ${trainTexts.length}개 · 시험 문장 ${testTexts.length}개 · 겹치는 문장 ${leak.length}개`);\nconsole.log(\"시험 문장 예:\", testTexts.slice(0, 2));\n\nconst replay = GENERAL.slice(0, trainTexts.length); // 도메인 문장 수만큼 일반 문장을 섞음 (1 : 1)\nconst mix = [...trainTexts, ...replay];\nconst cache = new Map(mix.map((t) => [createHash(\"md5\").update(t, \"utf-8\").digest(\"hex\").slice(0, 10) + \".mp3\", t])); // 같은 문장은 같은 파일 이름 → 한 번만 합성\nconsole.log(`섞은 학습 문장 ${mix.length}개 중 합성할 고유 문장 ${cache.size}개 (도메인 ${trainTexts.length} + 일반 ${new Set(replay).size})`);\ncheck(testTpl.length === TEMPLATES.length - N_TRAIN_TPL && leak.length === 0 && trainTexts.length === 140 && testTexts.length === 60\n  && cache.size === new Set(mix).size && cache.size === trainTexts.length + new Set(replay).size,\n  \"학습 틀 7 · 시험 틀 3, 겹치는 문장 0, 같은 문장은 캐시로 한 번만 만들어야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:crypto",
+     "version": "내장",
+     "purpose": "문장마다 같은 캐시 파일 이름(md5 해시)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/crypto.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "prompt": {
+  "part": "Part 3 · 프롬프트 기준선과 네 가지 비교",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    8,
+    10
+   ],
+   [
+    15,
+    15
+   ]
+  ],
+  "python": "# D13 · Part 3~6 · 프롬프트 vs LoRA — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d13_prompt.py   (합성 점수로 계산 · 인터넷·GPU·Whisper 불필요)\n#   용어 힌트를 프롬프트로 주면(기준선 + 힌트) 용어 정확도가 오르지만 길이 제한이 있고, LoRA는 학습으로 용어 쪽 점수를 영구히 올린다\n#   흉내 낸 부분: 받아쓰기를 '후보 단어 5개 중 하나 고르기'로 단순화 · 소리 점수 = 정답 후보 +1 + 잡음, 언어 점수는 용어 −3(드문 말), 일반 단어 0\nimport numpy as np\n\nrng = np.random.default_rng(0)\nN_TERMS, TOKENS_PER_TERM, PROMPT_BUDGET = 80, 4, 224          # Whisper 프롬프트는 약 224 토큰까지\nN_PER_TERM = 6\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef make_set(seed: int) -> dict:\n    g = np.random.default_rng(seed)\n    term = np.repeat(np.arange(N_TERMS), N_PER_TERM)             # 정답 용어 번호\n    acoustic = g.normal(0, 1, (len(term), 5))                    # 후보 0 = 정답 용어, 1~4 = 비슷하게 들리는 일반 단어\n    acoustic[:, 0] += 1.0\n    return dict(term=term, acoustic=acoustic)\n\n\ndef score(data: dict, prior: float, prompt_terms: set, bonus: float) -> np.ndarray:\n    lm = np.zeros((len(data[\"term\"]), 5))\n    lm[:, 0] = prior                                             # 용어(후보 0)의 언어 점수\n    in_prompt = np.array([t in prompt_terms for t in data[\"term\"]])\n    lm[in_prompt, 0] += bonus                                    # 프롬프트에 적힌 용어만 점수를 올림\n    return data[\"acoustic\"] + lm\n\n\ndef term_acc(data: dict, prior: float, prompt_terms: set = frozenset(), bonus: float = 0.0) -> float:\n    return float(np.mean(score(data, prior, set(prompt_terms), bonus).argmax(1) == 0)) * 100\n\n\ntrain, test = make_set(1), make_set(2)\n\n\ndef lora_prior(data: dict, steps: int = 200, lr: float = 0.5) -> float:\n    \"\"\"LoRA 학습 흉내: 용어 쪽 언어 점수 하나를 경사 하강법으로 학습 (전체의 아주 작은 일부만 학습).\"\"\"\n    prior = -3.0\n    for _ in range(steps):\n        z = data[\"acoustic\"] + np.pad(np.full((len(data[\"term\"]), 1), prior), ((0, 0), (0, 4)))\n        p = np.exp(z - z.max(1, keepdims=True))\n        p /= p.sum(1, keepdims=True)\n        prior -= lr * float(np.mean(p[:, 0] - 1))                # 정답 후보 0의 확률을 올리는 방향\n    return prior\n\n\nfit = lora_prior(train)\nn_fit = PROMPT_BUDGET // TOKENS_PER_TERM                          # 프롬프트에 실제로 들어가는 용어 수\nprompt_terms = set(range(n_fit))\naccs = {\n    \"① 원래\": term_acc(test, -3.0),\n    \"② 프롬프트\": term_acc(test, -3.0, prompt_terms, bonus=3.0),\n    \"③ LoRA\": term_acc(test, fit),\n    \"④ LoRA + 프롬프트\": term_acc(test, fit, prompt_terms, bonus=1.0),\n}\nfor k, v in accs.items():\n    print(f\"{k:16s} 용어 정확도 {v:5.1f}%\")\nout_terms = np.isin(test[\"term\"], list(prompt_terms), invert=True)\nsub = {k: v[out_terms] for k, v in test.items()}\nprint(f\"프롬프트 길이 제한: 용어 {N_TERMS}개 중 앞 {n_fit}개만 들어감 → 나머지 {N_TERMS - n_fit}개 정확도: 프롬프트 {term_acc(sub, -3.0, prompt_terms, 3.0):.1f}% vs LoRA {term_acc(sub, fit):.1f}%\")\ncheck(accs[\"① 원래\"] < accs[\"② 프롬프트\"] < accs[\"③ LoRA\"] and accs[\"④ LoRA + 프롬프트\"] >= accs[\"③ LoRA\"] - 3\n      and term_acc(sub, fit) > term_acc(sub, -3.0, prompt_terms, 3.0) + 20,\n      \"원래 < 프롬프트 < LoRA 이고, 프롬프트에 못 들어간 용어는 LoRA만 맞혀야 해요.\")\n",
+  "typescript": "// D13 · Part 3~6 · 프롬프트 vs LoRA — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_prompt.ts   (합성 점수로 계산 · 인터넷·GPU·Whisper 불필요)\n//   용어 힌트를 프롬프트로 주면(기준선 + 힌트) 용어 정확도가 오르지만 길이 제한이 있고, LoRA는 학습으로 용어 쪽 점수를 영구히 올린다\n//   흉내 낸 부분: 받아쓰기를 '후보 단어 5개 중 하나 고르기'로 단순화 · 소리 점수 = 정답 후보 +1 + 잡음, 언어 점수는 용어 −3(드문 말), 일반 단어 0\nconst N_TERMS = 80, TOKENS_PER_TERM = 4, PROMPT_BUDGET = 224; // Whisper 프롬프트는 약 224 토큰까지\nconst N_PER_TERM = 6;\n\ntype Data = { term: number[]; acoustic: Float64Array[] };\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\n\nfunction makeSet(seed: number): Data {\n  const rnd = mulberry32(seed);\n  const gauss = (): number => Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n  const term = Array.from({ length: N_TERMS * N_PER_TERM }, (_, i) => Math.floor(i / N_PER_TERM)); // 정답 용어 번호\n  const acoustic = term.map(() => Float64Array.from({ length: 5 }, (_, c) => gauss() + (c === 0 ? 1.0 : 0))); // 후보 0 = 정답 용어, 1~4 = 비슷하게 들리는 일반 단어\n  return { term, acoustic };\n}\n\nfunction termAcc(data: Data, prior: number, promptTerms: Set<number> = new Set(), bonus: number = 0): number {\n  const hits = data.term.filter((t, i) => {\n    const s = Array.from(data.acoustic[i]);\n    s[0] += prior + (promptTerms.has(t) ? bonus : 0); // 용어(후보 0)의 언어 점수 + 프롬프트에 적힌 용어만 보너스\n    return s.indexOf(Math.max(...s)) === 0;\n  }).length;\n  return (100 * hits) / data.term.length;\n}\n\nfunction loraPrior(data: Data, steps: number = 200, lr: number = 0.5): number {\n  // LoRA 학습 흉내: 용어 쪽 언어 점수 하나를 경사 하강법으로 학습 (전체의 아주 작은 일부만 학습)\n  let prior = -3;\n  for (let s = 0; s < steps; s++) {\n    let g = 0;\n    for (const a of data.acoustic) {\n      const z = Array.from(a);\n      z[0] += prior;\n      const mx = Math.max(...z);\n      const e = z.map((v) => Math.exp(v - mx));\n      g += e[0] / e.reduce((x, y) => x + y, 0) - 1; // 정답 후보 0의 확률을 올리는 방향\n    }\n    prior -= (lr * g) / data.acoustic.length;\n  }\n  return prior;\n}\n\nconst train = makeSet(1), test = makeSet(2);\nconst fit = loraPrior(train);\nconst nFit = Math.floor(PROMPT_BUDGET / TOKENS_PER_TERM); // 프롬프트에 실제로 들어가는 용어 수\nconst promptTerms = new Set(Array.from({ length: nFit }, (_, i) => i));\nconst accs: [string, number][] = [\n  [\"① 원래\", termAcc(test, -3)],\n  [\"② 프롬프트\", termAcc(test, -3, promptTerms, 3)],\n  [\"③ LoRA\", termAcc(test, fit)],\n  [\"④ LoRA + 프롬프트\", termAcc(test, fit, promptTerms, 1)],\n];\nfor (const [k, v] of accs) console.log(`${k.padEnd(16)} 용어 정확도 ${v.toFixed(1).padStart(5)}%`);\nconst keep = test.term.map((t, i) => (promptTerms.has(t) ? -1 : i)).filter((i) => i >= 0);\nconst sub: Data = { term: keep.map((i) => test.term[i]), acoustic: keep.map((i) => test.acoustic[i]) };\nconst subPrompt = termAcc(sub, -3, promptTerms, 3), subLora = termAcc(sub, fit);\nconsole.log(`프롬프트 길이 제한: 용어 ${N_TERMS}개 중 앞 ${nFit}개만 들어감 → 나머지 ${N_TERMS - nFit}개 정확도: 프롬프트 ${subPrompt.toFixed(1)}% vs LoRA ${subLora.toFixed(1)}%`);\nconst [base, prompt, lora, both] = accs.map((a) => a[1]);\ncheck(base < prompt && prompt < lora && both >= lora - 3 && subLora > subPrompt + 20,\n  \"원래 < 프롬프트 < LoRA 이고, 프롬프트에 못 들어간 용어는 LoRA만 맞혀야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "targets": {
+  "part": "Part 4 · Whisper에 LoRA 붙이기 (target_modules)",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    11,
+    11
+   ]
+  ],
+  "python": "# D13 · Part 4 · LoRA를 어디에 붙일까 (target_modules) — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d13_targets.py   (모듈 이름표만 만들어 계산 · 인터넷·GPU 불필요)\n#   Whisper-small과 같은 모양(인코더 12층 · 디코더 12층, d = 768)의 Linear 이름표를 만들고, 붙일 곳을 바꿀 때마다 학습 파라미터 수가 어떻게 달라지는지 센다\n#   흉내 낸 부분: 실제 모델을 불러오지 않고 층 이름과 크기만 같게 만든 표(이름 규칙은 transformers Whisper와 같음)\nD, FFN, R = 768, 3072, 32\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nmodules = {}                                                    # 이름 → (입력, 출력)\nfor part in (\"encoder\", \"decoder\"):\n    for i in range(12):\n        attn = [\"self_attn\"] + ([\"encoder_attn\"] if part == \"decoder\" else [])   # 디코더에는 소리를 바라보는 cross-attention이 더 있음\n        for a in attn:\n            for p in (\"q_proj\", \"k_proj\", \"v_proj\", \"out_proj\"):\n                modules[f\"model.{part}.layers.{i}.{a}.{p}\"] = (D, D)\n        modules[f\"model.{part}.layers.{i}.fc1\"] = (D, FFN)\n        modules[f\"model.{part}.layers.{i}.fc2\"] = (FFN, D)\n\nnames = sorted({n.split(\".\")[-1] for n in modules if n.endswith(\"_proj\")})\nprint(\"Whisper 안의 *_proj 모듈:\", names)\n\n\ndef lora_count(targets: list, r: int = R) -> tuple:\n    hit = [n for n in modules if n.split(\".\")[-1] in targets]       # peft가 target_modules를 이름 끝으로 찾는 것과 같은 규칙\n    return len(hit), sum(r * (modules[n][0] + modules[n][1]) for n in hit)\n\n\ntotal = sum(i * o + o for i, o in modules.values())\nprint(f\"Linear 층 {len(modules)}개 · 파라미터 {total / 1e6:.1f}M\")\nprint(f\"{'붙일 곳':28s}{'모듈 수':>8s}{'LoRA 파라미터':>16s}{'Linear 대비':>12s}\")\nrows = {}\nfor label, tg in [(\"q_proj\", [\"q_proj\"]), (\"q_proj + v_proj\", [\"q_proj\", \"v_proj\"]), (\"q · k · v · out\", [\"q_proj\", \"k_proj\", \"v_proj\", \"out_proj\"]),\n                  (\"모든 Linear (+ fc1 · fc2)\", [\"q_proj\", \"k_proj\", \"v_proj\", \"out_proj\", \"fc1\", \"fc2\"])]:\n    n_mod, n_par = lora_count(tg)\n    rows[label] = (n_mod, n_par)\n    print(f\"{label:28s}{n_mod:8d}{n_par:16,d}{100 * n_par / total:11.2f}%\")\ncheck(names == [\"k_proj\", \"out_proj\", \"q_proj\", \"v_proj\"] and rows[\"q_proj + v_proj\"] == (72, 72 * R * 2 * D)\n      and rows[\"q_proj\"][1] < rows[\"q_proj + v_proj\"][1] < rows[\"q · k · v · out\"][1] < rows[\"모든 Linear (+ fc1 · fc2)\"][1],\n      \"q + v는 72개 모듈 × 32 × (768 + 768), 붙이는 곳이 늘수록 파라미터가 늘어야 해요.\")\n",
+  "typescript": "// D13 · Part 4 · LoRA를 어디에 붙일까 (target_modules) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_targets.ts   (모듈 이름표만 만들어 계산 · 인터넷·GPU 불필요)\n//   Whisper-small과 같은 모양(인코더 12층 · 디코더 12층, d = 768)의 Linear 이름표를 만들고, 붙일 곳을 바꿀 때마다 학습 파라미터 수가 어떻게 달라지는지 센다\n//   흉내 낸 부분: 실제 모델을 불러오지 않고 층 이름과 크기만 같게 만든 표(이름 규칙은 transformers Whisper와 같음)\nconst D = 768, FFN = 3072, R = 32;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst modules = new Map<string, [number, number]>(); // 이름 → [입력, 출력]\nfor (const part of [\"encoder\", \"decoder\"]) {\n  for (let i = 0; i < 12; i++) {\n    const attn = part === \"decoder\" ? [\"self_attn\", \"encoder_attn\"] : [\"self_attn\"]; // 디코더에는 소리를 바라보는 cross-attention이 더 있음\n    for (const a of attn) for (const p of [\"q_proj\", \"k_proj\", \"v_proj\", \"out_proj\"]) modules.set(`model.${part}.layers.${i}.${a}.${p}`, [D, D]);\n    modules.set(`model.${part}.layers.${i}.fc1`, [D, FFN]);\n    modules.set(`model.${part}.layers.${i}.fc2`, [FFN, D]);\n  }\n}\n\nconst last = (n: string): string => n.split(\".\").at(-1) as string;\nconst names = [...new Set([...modules.keys()].filter((n) => n.endsWith(\"_proj\")).map(last))].sort();\nconsole.log(\"Whisper 안의 *_proj 모듈:\", names);\n\nfunction loraCount(targets: string[], r: number = R): [number, number] {\n  const hit = [...modules.keys()].filter((n) => targets.includes(last(n))); // peft가 target_modules를 이름 끝으로 찾는 것과 같은 규칙\n  return [hit.length, hit.reduce((s, n) => s + r * ((modules.get(n) as [number, number])[0] + (modules.get(n) as [number, number])[1]), 0)];\n}\n\nconst total = [...modules.values()].reduce((s, [i, o]) => s + i * o + o, 0);\nconsole.log(`Linear 층 ${modules.size}개 · 파라미터 ${(total / 1e6).toFixed(1)}M`);\nconsole.log(\"붙일 곳\".padEnd(28) + \"모듈 수\".padStart(8) + \"LoRA 파라미터\".padStart(16) + \"Linear 대비\".padStart(12));\nconst rows = new Map<string, [number, number]>();\nconst options: [string, string[]][] = [\n  [\"q_proj\", [\"q_proj\"]], [\"q_proj + v_proj\", [\"q_proj\", \"v_proj\"]], [\"q · k · v · out\", [\"q_proj\", \"k_proj\", \"v_proj\", \"out_proj\"]],\n  [\"모든 Linear (+ fc1 · fc2)\", [\"q_proj\", \"k_proj\", \"v_proj\", \"out_proj\", \"fc1\", \"fc2\"]],\n];\nfor (const [label, tg] of options) {\n  const [nMod, nPar] = loraCount(tg);\n  rows.set(label, [nMod, nPar]);\n  console.log(label.padEnd(28) + String(nMod).padStart(8) + nPar.toLocaleString(\"en-US\").padStart(16) + `${((100 * nPar) / total).toFixed(2).padStart(11)}%`);\n}\nconst counts = [...rows.values()].map((v) => v[1]);\nconst qv = rows.get(\"q_proj + v_proj\") as [number, number];\ncheck(names.join() === \"k_proj,out_proj,q_proj,v_proj\" && qv[0] === 72 && qv[1] === 72 * R * 2 * D && counts.every((c, i) => i === 0 || c > counts[i - 1]),\n  \"q + v는 72개 모듈 × 32 × (768 + 768), 붙이는 곳이 늘수록 파라미터가 늘어야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "memory": {
+  "part": "Part 4~5 · 메모리와 학습 실행",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    11,
+    11
+   ],
+   [
+    14,
+    14
+   ]
+  ],
+  "python": "# D13 · Part 4~5 · GPU 메모리: Full vs LoRA — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d13_memory.py   (CPU에서 몇 초 · GPU 불필요)\n#   같은 장난감 모델을 Full과 LoRA로 한 번 학습시킨 뒤 기울기 + Adam 상태 바이트를 직접 재서, LoRA가 학습 대상 파라미터에만 메모리를 쓰는 것을 확인한다\n#   흉내 낸 부분: 장난감 MLP(층 3개)에 직접 만든 LoRA 층을 붙임. activation 메모리는 제외\nimport torch\nfrom torch import nn\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\ntorch.manual_seed(0)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nclass LoRALinear(nn.Module):\n    def __init__(self, base: nn.Linear, r: int, alpha: int):\n        super().__init__()\n        self.base, self.scale = base, alpha / r\n        for p in base.parameters():\n            p.requires_grad = False                         # 원래 가중치는 얼림\n        self.A = nn.Parameter(torch.randn(r, base.in_features) * 0.02)\n        self.B = nn.Parameter(torch.zeros(base.out_features, r))\n\n    def forward(self, x):\n        return self.base(x) + self.scale * (x @ self.A.T @ self.B.T)\n\n\ndef build() -> nn.Sequential:\n    return nn.Sequential(nn.Linear(128, 256), nn.ReLU(), nn.Linear(256, 256), nn.ReLU(), nn.Linear(256, 10))\n\n\ndef one_step(model: nn.Module) -> tuple:\n    params = [p for p in model.parameters() if p.requires_grad]\n    opt = torch.optim.AdamW(params, lr=1e-3)\n    model(torch.randn(8, 128)).sum().backward()\n    opt.step()\n    n_train = sum(p.numel() for p in params)\n    grad_b = sum(p.grad.numel() * 4 for p in params)\n    adam_b = sum(t.numel() * 4 for s in opt.state.values() for t in s.values() if t.dim() > 0)\n    return n_train, grad_b + adam_b\n\n\nfull = build()\nn_all = sum(p.numel() for p in full.parameters())\nn_full, opt_full = one_step(full)\n\nlora = build()\nfor i in (0, 2, 4):\n    lora[i] = LoRALinear(lora[i], r=4, alpha=8)\nn_lora, opt_lora = one_step(lora)\nweights = sum(p.numel() for p in lora.parameters()) * 4\nprint(f\"Full : 학습 대상 {n_full:,}개 · 기울기 + Adam {opt_full:,} B\")\nprint(f\"LoRA : 학습 대상 {n_lora:,}개 ({100 * n_lora / n_all:.1f}%) · 기울기 + Adam {opt_lora:,} B\")\nprint(f\"기울기 + Adam 메모리가 LoRA는 Full의 {100 * opt_lora / opt_full:.1f}%\")\nprint(f\"공식 가중치 4바이트 × 전체 + 12바이트 × 학습 대상 = {n_all * 4 + n_lora * 12:,} B · 실제 가중치 {weights:,} B (LoRA 층 포함)\")\ncheck(n_full == n_all and opt_full == 12 * n_full and opt_lora == 12 * n_lora and n_lora < 0.1 * n_all,\n      \"기울기 4 + Adam 8 = 학습 대상 1개당 12바이트이고, LoRA는 학습 대상이 전체의 10% 미만이어야 해요.\")\n",
+  "typescript": "// D13 · Part 4~5 · GPU 메모리: Full vs LoRA — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_memory.ts   (GPU 불필요)\n//   같은 장난감 모델(층 3개)에서 Full은 모든 가중치, LoRA는 A · B에만 기울기와 Adam 상태 배열을 만들어 바이트를 직접 재고, LoRA가 학습 대상에만 메모리를 쓰는 것을 확인한다\n//   흉내 낸 부분: 실제 학습은 하지 않고 배열 크기만 계산(activation 메모리는 제외)\nconst LAYERS: [number, number][] = [[128, 256], [256, 256], [256, 10]]; // [입력, 출력]\nconst R = 4;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction optimizerBytes(sizes: number[]): number {\n  // 학습 대상 배열마다 기울기 1개 + Adam 상태 2개(m, v)를 Float32로 만들어 크기를 더함\n  const arrays = sizes.flatMap((n) => [new Float32Array(n), new Float32Array(n), new Float32Array(n)]);\n  return arrays.reduce((s, a) => s + a.byteLength, 0);\n}\n\nconst baseSizes = LAYERS.flatMap(([i, o]) => [i * o, o]); // 가중치 + 편향\nconst loraSizes = LAYERS.flatMap(([i, o]) => [R * i, o * R]); // A(r × 입력) + B(출력 × r)\nconst nAll = baseSizes.reduce((s, n) => s + n, 0);\nconst nLora = loraSizes.reduce((s, n) => s + n, 0);\nconst optFull = optimizerBytes(baseSizes), optLora = optimizerBytes(loraSizes);\nconsole.log(`Full : 학습 대상 ${nAll.toLocaleString(\"en-US\")}개 · 기울기 + Adam ${optFull.toLocaleString(\"en-US\")} B`);\nconsole.log(`LoRA : 학습 대상 ${nLora.toLocaleString(\"en-US\")}개 (${((100 * nLora) / nAll).toFixed(1)}%) · 기울기 + Adam ${optLora.toLocaleString(\"en-US\")} B`);\nconsole.log(`기울기 + Adam 메모리가 LoRA는 Full의 ${((100 * optLora) / optFull).toFixed(1)}%`);\nconsole.log(`공식 가중치 4바이트 × 전체 + 12바이트 × 학습 대상 = ${(nAll * 4 + nLora * 12).toLocaleString(\"en-US\")} B`);\ncheck(optFull === 12 * nAll && optLora === 12 * nLora && nLora < 0.1 * nAll,\n  \"기울기 4 + Adam 8 = 학습 대상 1개당 12바이트이고, LoRA는 학습 대상이 전체의 10% 미만이어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "lr": {
+  "part": "Part 5 · LoRA 학습률",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    13,
+    13
+   ]
+  ],
+  "python": "# D13 · Part 5 · LoRA 학습률 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d13_lr.py   (CPU에서 몇 초 · GPU 불필요)\n#   LoRA의 A · B만 학습하는 장난감 회귀 문제를 학습률 6가지로 돌려 비교하고, α/r 배율이 학습 속도에 미치는 영향도 본다\n#   (Full Fine-tuning은 1e-5 근처를 쓰지만 LoRA는 새로 붙인 작은 행렬만 학습하므로 1e-3 ~ 1e-2 처럼 훨씬 큰 값을 쓴다)\n#   흉내 낸 부분: Whisper 대신 16 × 16 선형층 하나. 목표는 원래 가중치에 rank 2 변화량을 더한 층(= LoRA가 배워야 할 도메인 차이)\nimport numpy as np\nimport torch\n\ntorch.set_num_threads(1)                                   # 아주 작은 모델은 스레드 1개가 더 빠르다\nrng = np.random.default_rng(0)\nD, R = 16, 4\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nW0 = torch.tensor(rng.normal(0, 0.5, (D, D)).astype(np.float32))                 # 원래 가중치 (고정)\ndelta = torch.tensor((rng.normal(0, 1, (D, 2)) @ rng.normal(0, 1, (2, D)) * 0.3).astype(np.float32))   # rank 2 변화량\nX = torch.tensor(rng.normal(0, 1, (400, D)).astype(np.float32))\nY = X @ (W0 + delta).T                                                           # 새 도메인에서의 정답\nXv = torch.tensor(rng.normal(0, 1, (400, D)).astype(np.float32))\nYv = Xv @ (W0 + delta).T\n\n\ndef run(lr: float, alpha: int = 8, steps: int = 60) -> float:\n    torch.manual_seed(0)\n    A = torch.nn.Parameter(torch.randn(R, D) / D ** 0.5)                         # 작은 무작위 값\n    B = torch.nn.Parameter(torch.zeros(D, R))                                    # 처음엔 0\n    opt = torch.optim.Adam([A, B], lr=lr)\n    scale = alpha / R\n    for _ in range(steps):\n        loss = ((X @ W0.T + scale * (X @ A.T @ B.T) - Y) ** 2).mean()\n        opt.zero_grad()\n        loss.backward()\n        opt.step()\n    with torch.no_grad():\n        return ((Xv @ W0.T + scale * (Xv @ A.T @ B.T) - Yv) ** 2).mean().item()\n\n\nstart = ((Xv @ W0.T - Yv) ** 2).mean().item()\nprint(f\"학습 전(원래 가중치) 검증 오차 {start:.3f}\")\nlrs = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0]\nres = {lr: run(lr) for lr in lrs}\nfor lr, v in res.items():\n    print(f\"lr={lr:7.0e}  검증 오차 {v:8.4f}\")\nres_small, res_big = run(1e-2, alpha=2), run(1e-2, alpha=32)                       # α/r = 0.5 vs 8 : 같은 학습률에서 배율만 바꿈\nprint(f\"lr=1e-2에서 α=2 → {res_small:.4f}, α=8 → {res[1e-2]:.4f}, α=32 → {res_big:.4f}\")\ncheck(res[1e-5] > 0.9 * start and res[1e-5] > res[1e-4] > res[1e-3] > res[1e-2] and res[1e-2] < 0.2 * start and res_small > res[1e-2],\n      \"너무 작은 학습률(1e-5)은 거의 배우지 못하고, 키울수록 빨리 배우며, α가 작으면(배율 ↓) 같은 학습률에서 느려요.\")\n",
+  "typescript": "// D13 · Part 5 · LoRA 학습률 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_lr.ts   (몇 초 · GPU 불필요)\n//   LoRA의 A · B만 학습하는 장난감 회귀 문제를 학습률 6가지로 돌려 비교하고, α/r 배율이 학습 속도에 미치는 영향도 본다\n//   (Full Fine-tuning은 1e-5 근처를 쓰지만 LoRA는 새로 붙인 작은 행렬만 학습하므로 1e-3 ~ 1e-2 처럼 훨씬 큰 값을 쓴다)\n//   흉내 낸 부분: Whisper 대신 16 × 16 선형층 하나. 목표는 원래 가중치에 rank 2 변화량을 더한 층(= LoRA가 배워야 할 도메인 차이)\nconst D = 16, R = 4, N = 400;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nlet rnd = mulberry32(0);\nconst gauss = (s: number = 1): number => s * Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\ntype Mat = Float64Array[];\nconst randMat = (r: number, c: number, s: number): Mat => Array.from({ length: r }, () => Float64Array.from({ length: c }, () => gauss(s)));\nconst mv = (M: Mat, x: Float64Array): Float64Array => Float64Array.from(M, (row) => row.reduce((s, v, i) => s + v * x[i], 0));\n\nconst W0 = randMat(D, D, 0.5); // 원래 가중치 (고정)\nconst U = randMat(D, 2, 1), V = randMat(2, D, 1);\nconst delta: Mat = U.map((u) => Float64Array.from({ length: D }, (_, j) => 0.3 * (u[0] * V[0][j] + u[1] * V[1][j]))); // rank 2 변화량\nconst target = (x: Float64Array): Float64Array => mv(W0.map((row, i) => row.map((v, j) => v + delta[i][j])), x); // 새 도메인에서의 정답\nconst mkSet = (): { X: Float64Array[]; Y: Float64Array[] } => {\n  const X = Array.from({ length: N }, () => Float64Array.from({ length: D }, () => gauss()));\n  return { X, Y: X.map(target) };\n};\nconst train = mkSet(), valid = mkSet();\n\nfunction mse(A: Mat, B: Mat, scale: number, set: { X: Float64Array[]; Y: Float64Array[] }): number {\n  let s = 0;\n  set.X.forEach((x, n) => {\n    const base = mv(W0, x), add = mv(B, mv(A, x));\n    for (let d = 0; d < D; d++) s += (base[d] + scale * add[d] - set.Y[n][d]) ** 2;\n  });\n  return s / (N * D);\n}\n\nfunction run(lr: number, alpha: number = 8, steps: number = 60): number {\n  rnd = mulberry32(1);\n  const A = randMat(R, D, 1 / Math.sqrt(D)); // 작은 무작위 값\n  const B: Mat = Array.from({ length: D }, () => new Float64Array(R)); // 처음엔 0\n  const scale = alpha / R;\n  const st = [A, B].map((M) => ({ m: M.map((r) => new Float64Array(r.length)), v: M.map((r) => new Float64Array(r.length)) }));\n  for (let t = 1; t <= steps; t++) {\n    const gA = A.map((r) => new Float64Array(r.length)), gB = B.map((r) => new Float64Array(r.length));\n    train.X.forEach((x, n) => {\n      const ax = mv(A, x), add = mv(B, ax), base = mv(W0, x);\n      const dp = Float64Array.from({ length: D }, (_, d) => (2 * (base[d] + scale * add[d] - train.Y[n][d])) / (N * D));\n      for (let d = 0; d < D; d++) for (let r = 0; r < R; r++) gB[d][r] += scale * dp[d] * ax[r];\n      for (let r = 0; r < R; r++) {\n        let back = 0;\n        for (let d = 0; d < D; d++) back += B[d][r] * dp[d];\n        for (let j = 0; j < D; j++) gA[r][j] += scale * back * x[j];\n      }\n    });\n    [[A, gA], [B, gB]].forEach(([M, G], k) => M.forEach((row, i) => row.forEach((_, j) => { // Adam 한 걸음\n      st[k].m[i][j] = 0.9 * st[k].m[i][j] + 0.1 * G[i][j];\n      st[k].v[i][j] = 0.999 * st[k].v[i][j] + 0.001 * G[i][j] ** 2;\n      row[j] -= (lr * (st[k].m[i][j] / (1 - 0.9 ** t))) / (Math.sqrt(st[k].v[i][j] / (1 - 0.999 ** t)) + 1e-8);\n    })));\n  }\n  return mse(A, B, scale, valid);\n}\n\nconst zeroB: Mat = Array.from({ length: D }, () => new Float64Array(R));\nconst start = mse(randMat(R, D, 1), zeroB, 1, valid);\nconsole.log(`학습 전(원래 가중치) 검증 오차 ${start.toFixed(3)}`);\nconst lrs = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 1.0];\nconst res = new Map(lrs.map((lr) => [lr, run(lr)]));\nfor (const [lr, v] of res) console.log(`lr=${lr.toExponential(0).padStart(6)}  검증 오차 ${v.toFixed(4).padStart(8)}`);\nconst small = run(1e-2, 2), big = run(1e-2, 32); // α/r = 0.5 vs 8 : 같은 학습률에서 배율만 바꿈\nconst r = (lr: number): number => res.get(lr) as number;\nconsole.log(`lr=1e-2에서 α=2 → ${small.toFixed(4)}, α=8 → ${r(1e-2).toFixed(4)}, α=32 → ${big.toFixed(4)}`);\ncheck(r(1e-5) > 0.9 * start && r(1e-5) > r(1e-4) && r(1e-4) > r(1e-3) && r(1e-3) > r(1e-2) && r(1e-2) < 0.2 * start && small > r(1e-2),\n  \"너무 작은 학습률(1e-5)은 거의 배우지 못하고, 키울수록 빨리 배우며, α가 작으면(배율 ↓) 같은 학습률에서 느려요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "장난감 모델 학습(CPU) · 자동 미분",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "adapters": {
+  "part": "Part 7 · 어댑터 저장 · 불러오기 · 병합 · 갈아 끼우기",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    17,
+    19
+   ]
+  ],
+  "python": "# D13 · Part 7 · 어댑터 갈아 끼우기 (저장 · 불러오기 · 병합 · 교체) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d13_adapters.py   (난수 행렬 · 인터넷·GPU 불필요, 임시 폴더에 어댑터 파일 저장)\n#   기본 모델 하나에 의료 · 법률 어댑터 두 개: 파일 크기 비교, 저장 → 새로 불러오기, 병합(merge), 어댑터 바꿔 끼우기를 확인한다\n#   흉내 낸 부분: Whisper 대신 256 × 256 가중치 한 장, 도메인 차이는 rank 4 변화량으로 만든 정답\nimport os\nimport tempfile\n\nimport numpy as np\n\nrng = np.random.default_rng(0)\nD, R, ALPHA = 256, 4, 8\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nW = rng.normal(0, 0.05, (D, D)).astype(np.float32)                         # 기본 모델 (모든 도메인이 공유)\n\n\ndef make_adapter() -> dict:\n    return dict(A=rng.normal(0, 0.3, (R, D)).astype(np.float32), B=rng.normal(0, 0.3, (D, R)).astype(np.float32))\n\n\ndef apply(x: np.ndarray, adapter: dict | None, merged: np.ndarray | None = None) -> np.ndarray:\n    if merged is not None:\n        return x @ merged.T\n    out = x @ W.T\n    if adapter is not None:\n        out = out + (ALPHA / R) * (x @ adapter[\"A\"].T @ adapter[\"B\"].T)    # 어댑터가 있을 때만 덧붙임\n    return out\n\n\nadapters = {\"med\": make_adapter(), \"law\": make_adapter()}\nx = rng.normal(0, 1, (64, D)).astype(np.float32)\ny_med = apply(x, adapters[\"med\"])                                          # '의료 도메인의 정답'\n\nerrors = {name: float(np.abs(apply(x, a) - y_med).mean()) for name, a in adapters.items()}\nerrors[\"없음\"] = float(np.abs(apply(x, None) - y_med).mean())\nprint(\"의료 정답과의 차이:\", {k: round(v, 4) for k, v in errors.items()})\n\nwith tempfile.TemporaryDirectory() as d:\n    for name, a in adapters.items():\n        np.savez(os.path.join(d, f\"lora-{name}.npz\"), **a)                 # 어댑터만 저장 (save_pretrained 와 같은 일)\n    np.save(os.path.join(d, \"base.npy\"), W)\n    sizes = {n: os.path.getsize(os.path.join(d, f)) for n, f in [(\"어댑터(med)\", \"lora-med.npz\"), (\"기본 모델\", \"base.npy\")]}\n    loaded = dict(np.load(os.path.join(d, \"lora-med.npz\")))               # 새로 불러오기\nprint(f\"어댑터 파일 {sizes['어댑터(med)']:,} B · 기본 모델 파일 {sizes['기본 모델']:,} B ({100 * sizes['어댑터(med)'] / sizes['기본 모델']:.1f}%)\")\n\nmerged = W + (ALPHA / R) * (adapters[\"med\"][\"B\"] @ adapters[\"med\"][\"A\"])   # merge: 배포용으로 W에 미리 더함\nsame_loaded = np.allclose(apply(x, loaded), y_med, atol=1e-5)\nsame_merged = np.allclose(apply(x, None, merged), y_med, atol=1e-4)\nprint(\"다시 불러온 어댑터 결과 동일?\", same_loaded, \"· 병합한 가중치 결과 동일?\", same_merged)\ncheck(errors[\"med\"] < 1e-6 and errors[\"law\"] > 10 * errors[\"med\"] and same_loaded and same_merged and sizes[\"어댑터(med)\"] < 0.2 * sizes[\"기본 모델\"],\n      \"의료 어댑터는 의료 정답과 같고, 법률 어댑터는 다르며, 저장 · 불러오기 · 병합 결과가 같아야 해요.\")\n",
+  "typescript": "// D13 · Part 7 · 어댑터 갈아 끼우기 (저장 · 불러오기 · 병합 · 교체) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_adapters.ts   (난수 행렬 · 인터넷·GPU 불필요, 임시 폴더에 어댑터 파일 저장)\n//   기본 모델 하나에 의료 · 법률 어댑터 두 개: 파일 크기 비교, 저장 → 새로 불러오기, 병합(merge), 어댑터 바꿔 끼우기를 확인한다\n//   흉내 낸 부분: Whisper 대신 256 × 256 가중치 한 장, 도메인 차이는 rank 4 변화량으로 만든 정답\nimport fs from \"node:fs\";\nimport os from \"node:os\";\nimport path from \"node:path\";\n\nconst D = 256, R = 4, ALPHA = 8;\n\ntype Adapter = { A: Float32Array; B: Float32Array }; // A: R × D, B: D × R (행 우선으로 한 줄에 펼침)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = mulberry32(0);\nconst gauss = (s: number): number => s * Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\nconst randArr = (n: number, s: number): Float32Array => Float32Array.from({ length: n }, () => gauss(s));\n\nconst W = randArr(D * D, 0.05); // 기본 모델 (모든 도메인이 공유)\nconst makeAdapter = (): Adapter => ({ A: randArr(R * D, 0.3), B: randArr(D * R, 0.3) });\nconst x = randArr(D, 1);\n\nfunction apply(adapter: Adapter | null, weight: Float32Array = W): Float64Array {\n  const out = new Float64Array(D);\n  for (let o = 0; o < D; o++) for (let i = 0; i < D; i++) out[o] += weight[o * D + i] * x[i];\n  if (adapter) {\n    const ax = new Float64Array(R);\n    for (let r = 0; r < R; r++) for (let i = 0; i < D; i++) ax[r] += adapter.A[r * D + i] * x[i];\n    for (let o = 0; o < D; o++) for (let r = 0; r < R; r++) out[o] += (ALPHA / R) * adapter.B[o * R + r] * ax[r]; // 어댑터가 있을 때만 덧붙임\n  }\n  return out;\n}\n\nconst meanAbsDiff = (a: Float64Array, b: Float64Array): number => a.reduce((s, v, i) => s + Math.abs(v - b[i]), 0) / a.length;\n\nconst adapters: Record<string, Adapter> = { med: makeAdapter(), law: makeAdapter() };\nconst yMed = apply(adapters.med); // '의료 도메인의 정답'\nconst errors: Record<string, number> = { med: meanAbsDiff(apply(adapters.med), yMed), law: meanAbsDiff(apply(adapters.law), yMed), 없음: meanAbsDiff(apply(null), yMed) };\nconsole.log(\"의료 정답과의 차이:\", Object.fromEntries(Object.entries(errors).map(([k, v]) => [k, Math.round(v * 1e4) / 1e4])));\n\nconst dir = fs.mkdtempSync(path.join(os.tmpdir(), \"d13ad-\"));\ntry {\n  const save = (name: string, arr: Float32Array[]): number => {\n    const buf = Buffer.concat(arr.map((a) => Buffer.from(a.buffer, a.byteOffset, a.byteLength)));\n    fs.writeFileSync(path.join(dir, name), buf); // 어댑터만 저장 (save_pretrained 와 같은 일)\n    return buf.length;\n  };\n  const adapterBytes = save(\"lora-med.bin\", [adapters.med.A, adapters.med.B]);\n  const baseBytes = save(\"base.bin\", [W]);\n  const raw = fs.readFileSync(path.join(dir, \"lora-med.bin\")); // 새로 불러오기\n  const f32 = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.length));\n  const loaded: Adapter = { A: f32.slice(0, R * D), B: f32.slice(R * D) };\n  console.log(`어댑터 파일 ${adapterBytes.toLocaleString(\"en-US\")} B · 기본 모델 파일 ${baseBytes.toLocaleString(\"en-US\")} B (${((100 * adapterBytes) / baseBytes).toFixed(1)}%)`);\n\n  const merged = Float32Array.from(W); // merge: 배포용으로 W에 미리 더함\n  for (let o = 0; o < D; o++) for (let i = 0; i < D; i++) {\n    let s = 0;\n    for (let r = 0; r < R; r++) s += adapters.med.B[o * R + r] * adapters.med.A[r * D + i];\n    merged[o * D + i] += (ALPHA / R) * s;\n  }\n  const sameLoaded = meanAbsDiff(apply(loaded), yMed) < 1e-5;\n  const sameMerged = meanAbsDiff(apply(null, merged), yMed) < 1e-3; // 병합 가중치는 Float32로 저장되어 아주 작은 반올림 차이가 생김\n  console.log(\"다시 불러온 어댑터 결과 동일?\", sameLoaded, \"· 병합한 가중치 결과 동일?\", sameMerged);\n  check(errors.med < 1e-6 && errors.law > 10 * errors.med && sameLoaded && sameMerged && adapterBytes < 0.2 * baseBytes,\n    \"의료 어댑터는 의료 정답과 같고, 법률 어댑터는 다르며, 저장 · 불러오기 · 병합 결과가 같아야 해요.\");\n} finally {\n  fs.rmSync(dir, { recursive: true, force: true });\n}\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "임시 폴더에 파일 쓰고 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "node:os",
+     "version": "내장",
+     "purpose": "임시 폴더 위치(tmpdir)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/os.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "node:path",
+     "version": "내장",
+     "purpose": "파일 경로 이어 붙이기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/path.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "quant": {
+  "part": "Part 8 · 8-bit 양자화",
+  "nb": "D13_PEFT_LoRA_실습.ipynb",
+  "ord": [
+   [
+    21,
+    21
+   ]
+  ],
+  "python": "# D13 · Part 8 · 양자화 (8-bit) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d13_quant.py   (난수 가중치 · 인터넷·GPU 불필요)\n#   가중치를 8비트 정수로 줄이면 메모리가 1/4: 한 장 전체에 척도 하나(per-tensor) vs 행마다 척도(per-row), 그리고 튀는 값(outlier)이 있을 때의 오차를 비교한다\n#   흉내 낸 부분: bitsandbytes의 LLM.int8()은 튀는 열만 따로 정밀하게 계산 — 여기서는 같은 아이디어를 '튀는 열 분리'로 직접 구현\nimport numpy as np\n\nrng = np.random.default_rng(0)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef quant_tensor(w: np.ndarray) -> tuple:\n    scale = np.abs(w).max() / 127                          # 가장 큰 값이 127이 되도록\n    return np.round(w / scale).astype(np.int8), scale\n\n\ndef quant_rows(w: np.ndarray) -> tuple:\n    scale = np.abs(w).max(axis=1, keepdims=True) / 127     # 행마다 따로\n    return np.round(w / scale).astype(np.int8), scale\n\n\nW = rng.normal(0, 0.02, (512, 512)).astype(np.float32)\nX = rng.normal(0, 1, (64, 512)).astype(np.float32)\nq, s = quant_tensor(W)\nprint(f\"fp32 {W.nbytes:,} B → int8 {q.nbytes:,} B (1/{W.nbytes // q.nbytes}) · 가중치 평균 오차 {np.abs(q * s - W).mean():.2e}\")\n\nWo = W.copy()\nWo[:, 7] *= 200                                            # 튀는 열 하나 (큰 모델에서 실제로 생기는 현상)\nref = X @ Wo.T\n\n\ndef err(y: np.ndarray) -> float:\n    return float(np.abs(y - ref).mean() / np.abs(ref).mean())\n\n\nqt, st = quant_tensor(Wo)\nqr, sr = quant_rows(Wo)\ny_tensor = X @ (qt * st).T\ny_rows = X @ (qr * sr).T\nkeep = np.zeros(512, bool)\nkeep[np.abs(Wo).max(axis=0) > 6 * np.abs(W).max()] = True  # 튀는 열은 정밀하게 따로 계산(LLM.int8 아이디어)\nqm, sm = quant_tensor(np.where(keep, 0, Wo))\ny_mixed = X[:, ~keep] @ (qm * sm)[:, ~keep].T + X[:, keep] @ Wo[:, keep].T\nfor name, y in [(\"전체 척도 1개\", y_tensor), (\"행마다 척도\", y_rows), (\"튀는 열 분리\", y_mixed)]:\n    print(f\"{name:14s} 출력 상대 오차 {100 * err(y):6.2f}%\")\ncheck(q.nbytes * 4 == W.nbytes and np.abs(q * s - W).mean() < 1e-3 and err(y_mixed) < 0.5 * err(y_tensor) and err(y_mixed) < 0.02,\n      \"int8은 메모리가 1/4이고, 튀는 값이 있으면 전체 척도 1개는 오차가 커서 튀는 열을 따로 다뤄야 해요.\")\n",
+  "typescript": "// D13 · Part 8 · 양자화 (8-bit) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d13_quant.ts   (난수 가중치 · 인터넷·GPU 불필요)\n//   가중치를 8비트 정수로 줄이면 메모리가 1/4: 한 장 전체에 척도 하나(per-tensor) vs 행마다 척도(per-row), 그리고 튀는 값(outlier)이 있을 때의 오차를 비교한다\n//   흉내 낸 부분: bitsandbytes의 LLM.int8()은 튀는 열만 따로 정밀하게 계산 — 여기서는 같은 아이디어를 '튀는 열 분리'로 직접 구현\nconst N = 256, B = 32; // 가중치 N × N, 입력 B개\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗을 주면 늘 같은 순서의 난수를 주는 작은 생성기\n  let a = seed >>> 0;\n  return () => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\nconst rnd = mulberry32(0);\nconst gauss = (s: number): number => s * Math.sqrt(-2 * Math.log(Math.max(rnd(), 1e-12))) * Math.cos(2 * Math.PI * rnd());\n\ntype Q = { q: Int8Array; scale: Float64Array }; // scale: 행마다(길이 N) 또는 전체 하나(길이 1)\n\nfunction quant(w: Float32Array, perRow: boolean): Q {\n  const groups = perRow ? N : 1;\n  const per = w.length / groups;\n  const scale = new Float64Array(groups);\n  for (let g = 0; g < groups; g++) scale[g] = Math.max(...Array.from(w.subarray(g * per, (g + 1) * per), Math.abs)) / 127; // 가장 큰 값이 127이 되도록\n  return { q: Int8Array.from(w, (v, i) => Math.round(v / scale[Math.floor(i / per)])), scale };\n}\nconst dequant = (t: Q): Float64Array => Float64Array.from(t.q, (v, i) => v * t.scale[t.scale.length === 1 ? 0 : Math.floor(i / N)]);\n\nfunction matmul(X: Float32Array, W: Float64Array | Float32Array, skip: Set<number> = new Set()): Float64Array {\n  const out = new Float64Array(B * N);\n  for (let b = 0; b < B; b++) for (let o = 0; o < N; o++) {\n    let s = 0;\n    for (let i = 0; i < N; i++) if (!skip.has(i)) s += X[b * N + i] * W[o * N + i];\n    out[b * N + o] = s;\n  }\n  return out;\n}\n\nconst W = Float32Array.from({ length: N * N }, () => gauss(0.02));\nconst X = Float32Array.from({ length: B * N }, () => gauss(1));\nconst t = quant(W, false);\nconst wDeq = dequant(t);\nconst meanErr = W.reduce((s, v, i) => s + Math.abs(v - wDeq[i]), 0) / W.length;\nconsole.log(`fp32 ${W.byteLength.toLocaleString(\"en-US\")} B → int8 ${t.q.byteLength.toLocaleString(\"en-US\")} B (1/${W.byteLength / t.q.byteLength}) · 가중치 평균 오차 ${meanErr.toExponential(2)}`);\n\nconst Wo = Float32Array.from(W);\nfor (let o = 0; o < N; o++) Wo[o * N + 7] *= 200; // 튀는 열 하나 (큰 모델에서 실제로 생기는 현상)\nconst ref = matmul(X, Wo);\nconst meanRef = ref.reduce((s, v) => s + Math.abs(v), 0) / ref.length;\nconst err = (y: Float64Array): number => y.reduce((s, v, i) => s + Math.abs(v - ref[i]), 0) / y.length / meanRef;\n\nconst yTensor = matmul(X, dequant(quant(Wo, false)));\nconst yRows = matmul(X, dequant(quant(Wo, true)));\nconst maxNormal = Math.max(...Array.from(W, Math.abs));\nconst outCols = new Set<number>(); // 튀는 열은 정밀하게 따로 계산(LLM.int8 아이디어)\nfor (let i = 0; i < N; i++) if (Math.max(...Array.from({ length: N }, (_, o) => Math.abs(Wo[o * N + i]))) > 6 * maxNormal) outCols.add(i);\nconst WoRest = Float32Array.from(Wo, (v, k) => (outCols.has(k % N) ? 0 : v));\nconst yMixed = matmul(X, dequant(quant(WoRest, false)), outCols).map((v, k) => {\n  const b = Math.floor(k / N), o = k % N;\n  let s = v;\n  for (const i of outCols) s += X[b * N + i] * Wo[o * N + i]; // 튀는 열은 원래 정밀도로\n  return s;\n});\nconst errs: [string, number][] = [[\"전체 척도 1개\", err(yTensor)], [\"행마다 척도\", err(yRows)], [\"튀는 열 분리\", err(yMixed)]];\nfor (const [name, e] of errs) console.log(`${name.padEnd(14)} 출력 상대 오차 ${(100 * e).toFixed(2).padStart(6)}%`);\ncheck(t.q.byteLength * 4 === W.byteLength && meanErr < 1e-3 && errs[2][1] < 0.5 * errs[0][1] && errs[2][1] < 0.02,\n  \"int8은 메모리가 1/4이고, 튀는 값이 있으면 전체 척도 1개는 오차가 커서 튀는 열을 따로 다뤄야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "배열 계산 · 난수 · 합성 신호",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ }
+}
