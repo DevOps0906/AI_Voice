@@ -1,0 +1,99 @@
+{
+ "notebook": "day17/D17_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~7 · 오늘의 흐름 전체",
+   [
+    3,
+    7,
+    10,
+    14,
+    19,
+    21,
+    24,
+    29,
+    31,
+    35,
+    37
+   ]
+  ],
+  "arch": [
+   "Part 3 · KModel 들여다보기: 음소 → 길이 → 소리",
+   [
+    7,
+    14
+   ]
+  ],
+  "phonemes": [
+   "Part 2 · 첫 합성과 misaki G2P",
+   [
+    7,
+    10
+   ]
+  ],
+  "duration": [
+   "Part 3 · 프레임 → 샘플, 단어 타임스탬프",
+   [
+    14,
+    16
+   ]
+  ],
+  "voicepack": [
+   "Part 4 · voice pack 열어 보기",
+   [
+    19,
+    21
+   ]
+  ],
+  "stream": [
+   "Part 5 · 문장마다 흘려보내기",
+   [
+    29,
+    31
+   ]
+  ],
+  "korean": [
+   "Part 6 · 한국어는? 음소를 직접 넣어 보기",
+   [
+    35,
+    37,
+    39
+   ]
+  ],
+  "blend": [
+   "Part 4 · 목소리 섞기",
+   [
+    24,
+    26
+   ]
+  ],
+  "cpu": [
+   "Part 5 · CPU 실시간 합성: RTF",
+   [
+    29
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "장난감 모델의 음소 · voice pack · 파형 계산 배열",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float32Array\\(",
+   "Float32Array",
+   "합성한 소리 샘플(실수) 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Float32Array"
+  ],
+  [
+   "\\bperformance\\.now\\(",
+   "performance.now",
+   "합성 시간을 재서 RTF 계산",
+   "https://nodejs.org/api/perf_hooks.html#performancenow"
+  ]
+ ]
+}

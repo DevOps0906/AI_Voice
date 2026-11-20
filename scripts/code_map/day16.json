@@ -1,0 +1,97 @@
+{
+ "notebook": "day16/D16_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~7 · 오늘의 흐름 전체",
+   [
+    3,
+    8,
+    11,
+    15,
+    18,
+    21,
+    23,
+    27,
+    31,
+    33,
+    38,
+    40,
+    43,
+    48
+   ]
+  ],
+  "norm": [
+   "Part 2 · 텍스트 정규화: 읽는 대로 글자를 고치기",
+   [
+    8,
+    11
+   ]
+  ],
+  "hangul": [
+   "Part 3 · 한글 분해 (빈칸 실습 3)",
+   [
+    15
+   ]
+  ],
+  "g2p": [
+   "Part 3 · G2P: 소리 나는 대로",
+   [
+    15,
+    18
+   ]
+  ],
+  "mel": [
+   "Part 4 · Acoustic Model의 목표: mel",
+   [
+    21,
+    23
+   ]
+  ],
+  "duration": [
+   "Part 4-1 · Duration과 Length Regulator",
+   [
+    27
+   ]
+  ],
+  "vocoder": [
+   "Part 5 · Vocoder: 소리 그림을 진짜 소리로",
+   [
+    31,
+    33,
+    35
+   ]
+  ],
+  "vits": [
+   "Part 6 · End-to-end: 한국어 VITS",
+   [
+    38,
+    40,
+    43,
+    45
+   ]
+  ],
+  "backcheck": [
+   "Part 7 · ASR 역검증",
+   [
+    48,
+    49
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "합성 신호 · mel 필터 · 프레임 · 업샘플 계산 배열",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float32Array\\(",
+   "Float32Array",
+   "합성한 소리 샘플(실수) 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Float32Array"
+  ]
+ ]
+}

@@ -1,0 +1,105 @@
+{
+ "notebook": "day18/D18_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~7 · 오늘의 흐름 전체",
+   [
+    3,
+    7,
+    10,
+    11,
+    14,
+    16,
+    19,
+    22,
+    25,
+    28,
+    32,
+    35,
+    39,
+    42,
+    46,
+    50
+   ]
+  ],
+  "knobs": [
+   "Part 1~3 · 말투 조절 4방식과 손잡이 실험",
+   [
+    14,
+    22,
+    25,
+    28
+   ]
+  ],
+  "arch": [
+   "Part 2 · Chatterbox 구조와 첫 합성",
+   [
+    7,
+    10,
+    14
+   ]
+  ],
+  "cfg": [
+   "Part 3 · CFG 식을 직접 계산하기",
+   [
+    16
+   ]
+  ],
+  "prompt": [
+   "Part 4 · 참고 음성으로 말투 옮기기",
+   [
+    32,
+    35
+   ]
+  ],
+  "f5": [
+   "Part 5 · F5-TTS: 길이와 nfe_step",
+   [
+    39,
+    42,
+    46
+   ]
+  ],
+  "compare": [
+   "Part 6 · 같은 조건 비교와 워터마크",
+   [
+    50
+   ]
+  ],
+  "prosody": [
+   "Part 3 · 운율을 숫자로 재기",
+   [
+    19
+   ]
+  ],
+  "arnar": [
+   "Part 2 · 자기회귀(AR)와 F5의 비자기회귀(NAR)",
+   [
+    7,
+    39
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "장난감 모델의 소리 합성 · 운율 측정 배열",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float32Array\\(",
+   "Float32Array",
+   "합성한 소리 샘플(실수) 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Float32Array"
+  ],
+  [
+   "\\bnew TextEncoder\\(",
+   "TextEncoder",
+   "글자를 UTF-8 바이트로 바꿔 바이트 수 세기",
+   "https://nodejs.org/api/util.html#class-utiltextencoder"
+  ]
+ ]
+}

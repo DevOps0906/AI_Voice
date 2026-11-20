@@ -1,0 +1,111 @@
+{
+ "notebook": "day20/D20_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~7 · 오늘의 흐름 전체",
+   [
+    6,
+    8,
+    9,
+    11,
+    16,
+    18,
+    22,
+    27,
+    30,
+    33,
+    36
+   ]
+  ],
+  "metrics": [
+   "Part 1 · TTS 평가 지표 지도",
+   [
+    11,
+    16,
+    18,
+    22,
+    27
+   ]
+  ],
+  "mos": [
+   "Part 2 · 반 전체 MOS와 95% 신뢰구간",
+   [
+    11
+   ]
+  ],
+  "utmos": [
+   "Part 3 · UTMOS와 ASR 역검증, 사람 점수와의 상관",
+   [
+    16,
+    18
+   ]
+  ],
+  "stream": [
+   "Part 4 · Streaming TTS: TTFA와 끊김",
+   [
+    22
+   ]
+  ],
+  "gen": [
+   "Part 5 · 오디오북 · 안내방송 생성기",
+   [
+    27,
+    30,
+    33
+   ]
+  ],
+  "loud": [
+   "Part 5 · 편집 · 마스터링 도구 (LUFS · 피크)",
+   [
+    27
+   ]
+  ],
+  "goals": [
+   "Part 6 · 목표 판정과 품질 리포트",
+   [
+    30,
+    36
+   ]
+  ],
+  "rubric": [
+   "Part 6 · 품질 리포트와 3분 발표 평가",
+   [
+    36
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "장난감 목소리 합성 · 음량 · 상관계수 계산 배열",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ],
+  "scipy": [
+   "scipy",
+   "MOS 신뢰구간의 t 분포 값(stats.t.ppf)",
+   "https://docs.scipy.org/doc/scipy/",
+   "BSD-3-Clause"
+  ],
+  "soundfile": [
+   "soundfile",
+   "audiobook.wav 쓰기 · 정보 읽기",
+   "https://python-soundfile.readthedocs.io/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float32Array\\(",
+   "Float32Array",
+   "합성한 소리 샘플(실수) 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Float32Array"
+  ],
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "SRT · WAV · 리포트 파일 쓰기 · 읽기",
+   "https://nodejs.org/api/fs.html"
+  ]
+ ]
+}

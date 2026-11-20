@@ -1,0 +1,111 @@
+{
+ "notebook": "day19/D19_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~7 · 오늘의 흐름 전체",
+   [
+    9,
+    14,
+    19,
+    22,
+    26,
+    30,
+    33,
+    37,
+    41
+   ]
+  ],
+  "risk": [
+   "Part 1 · 복제의 지형: 쓰임 · 위험 · 법",
+   [
+    37
+   ]
+  ],
+  "law": [
+   "Part 1 · 법 · 제도와 동의 기록",
+   [
+    14,
+    37,
+    41
+   ]
+  ],
+  "consent": [
+   "Part 2 · 동의 게이트와 동의 기록",
+   [
+    12,
+    14
+   ]
+  ],
+  "embed": [
+   "Part 2 · 화자 인증 함수 만들기",
+   [
+    9
+   ]
+  ],
+  "wm": [
+   "Part 5 · 워터마크는 얼마나 버티나",
+   [
+    30,
+    33
+   ]
+  ],
+  "layers": [
+   "Part 6 · 책임 있는 복제 함수 만들기",
+   [
+    37
+   ]
+  ],
+  "snr": [
+   "Part 5 · 잡음과 전화 변형 만들기: SNR",
+   [
+    30
+   ]
+  ],
+  "phone": [
+   "Part 5 · 잡음과 전화 변형 만들기: 전화 음질",
+   [
+    30
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "장난감 목소리 합성 · 잡음 · 필터 · 워터마크 계산 배열",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float32Array\\(",
+   "Float32Array",
+   "합성한 소리 샘플(실수) 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Float32Array"
+  ],
+  [
+   "from \"node:crypto\"",
+   "node:crypto",
+   "동의 녹음의 지문(sha256) 만들기",
+   "https://nodejs.org/api/crypto.html"
+  ],
+  [
+   "from \"node:os\"",
+   "node:os",
+   "임시 폴더 위치(tmpdir)",
+   "https://nodejs.org/api/os.html"
+  ],
+  [
+   "from \"node:path\"",
+   "node:path",
+   "임시 파일 경로 이어 붙이기",
+   "https://nodejs.org/api/path.html"
+  ],
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "임시 파일 쓰고 지우기",
+   "https://nodejs.org/api/fs.html"
+  ]
+ ]
+}
