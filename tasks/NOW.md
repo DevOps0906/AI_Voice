@@ -1,12 +1,10 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
 - 갱신: 2026-11-20
-- 현재 작업: 없음 — task-001~019 모두 완료, main 배포됨 (https://devops0906.github.io/AI_Voice/dashboard/)
-- 마지막으로 한 일: task-015(주차 버튼·10문항 이동·이전 페이지)·017(D1·D10 코드 36개 단독 실행+라이브러리 표+run_code.py)·018(하위 메뉴·개념 학습 노트)·019(애니메이션 페이지 항목별 코드 상자) 배포
-- 다음 한 걸음: 나머지 42일 코드(756개) 주차별 병렬 작성 → run_code.py 검사 → 독립 리뷰 → 배포 (사용자가 D1·D10 확인 후)
+- 현재 작업: 없음 — task-020~029 완료, main push
+- 마지막으로 한 일: 정리 퀴즈 정답 보기(020), 코드 탭 D2~D44 단독 실행 코드 792개 통과(021~029, 리뷰 2회 반영)
+- 다음 한 걸음: 사용자 확인(배포 화면 코드 상자). API 키 경로(D14 --real·D22·D23) 실제 키 검증은 미실행
 - 열린 결정(사용자 확인 필요):
-  - 코드 탭 D2~D44 확장 여부 (확장 시 build_code.py MAP과 index.html CODE_DAYS에 일차 추가)
-  - 정리 퀴즈 탭 fill·bucket·lab 문항 빈 화면 수정 여부 (tasks/README.md 발견한 문제)
   - 과정 지도 주차별 버튼(전체·1~9주차) 도입 여부
   - 주차 줄에 모듈 이름 표시(수업 자료에서 추출 필요) 여부
   - 모바일 '주차 한눈에' 접기 여부, 메뉴 카드 설명 문구 9개 확정
@@ -15,7 +13,7 @@
   - 원본 D1~34 script는 IIFE라 연결 코드는 닫는 줄 앞에 넣어야 한다
   - git status의 dashboard/d* 변경은 줄바꿈(CRLF) 차이일 수 있음 → `git diff --ignore-cr-at-eol --stat`로 확인
 - SDLC 단계: 08 배포 완료
-- 담당 모델/역할: 팀장(Opus) · builder(sonnet)
-- 수정 파일: dashboard/index.html, dashboard/d*/animation.html, scripts/reskin.py, scripts/extract.py, scripts/build_library.py, data/library.json, data/*.json, README.md
-- 테스트 상태: 통과 (Playwright 1440·1024·390 콘솔 오류 0, 390px 가로 넘침 0, reskin 검사 실패 0)
-- 남은 작업: 없음
+- 담당 모델/역할: 팀장(Opus) · builder(sonnet)×주차별 · codex-reviewer
+- 수정 파일: dashboard/index.html, scripts/build_code.py, scripts/code_map/day02~44.json, data/code/*.json, docs/code-run-report.md
+- 테스트 상태: run_code 792/792 통과(주차별 venv .venv-code*), 로컬 브라우저 코드 상자 9일차 확인
+- 남은 작업: 없음 (열린 결정만)
