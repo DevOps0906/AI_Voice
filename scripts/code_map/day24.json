@@ -1,0 +1,79 @@
+{
+ "notebook": "day24/D24_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~6 · 오늘의 흐름 전체",
+   [
+    9,
+    20,
+    22,
+    29,
+    32,
+    37,
+    41
+   ]
+  ],
+  "nxm": [
+   "Part 1~2 · 왜 MCP인가 (N×M → N+M)",
+   [
+    9,
+    20
+   ]
+  ],
+  "arch": [
+   "Part 1·4 · Host · Client · Server",
+   [
+    20,
+    22
+   ]
+  ],
+  "tool": [
+   "Part 2 · 함수 → MCP 도구 설명서",
+   [
+    9,
+    13
+   ]
+  ],
+  "rpc": [
+   "Part 3 · JSON-RPC 한 줄씩 주고받기",
+   [
+    16
+   ]
+  ],
+  "hub": [
+   "Part 4 · 여러 서버를 한 목록으로 (MCPHub)",
+   [
+    22,
+    23
+   ]
+  ],
+  "gate": [
+   "Part 5 · annotations → 확인 정책",
+   [
+    29,
+    32
+   ]
+  ],
+  "poison": [
+   "Part 5 · 남이 만든 서버 점검 · 도구 지문",
+   [
+    37
+   ]
+  ],
+  "voice": [
+   "Part 4·6 · 음성 한 턴 시간표",
+   [
+    26,
+    41
+   ]
+  ]
+ },
+ "ts_libs": [
+  [
+   "from \"node:crypto\"",
+   "node:crypto",
+   "도구 목록·프로젝트 카드의 지문(sha256) 만들기",
+   "https://nodejs.org/api/crypto.html"
+  ]
+ ]
+}

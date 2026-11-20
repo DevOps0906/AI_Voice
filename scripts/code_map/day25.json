@@ -1,0 +1,89 @@
+{
+ "notebook": "day25/D25_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~8 · 오늘의 흐름 전체",
+   [
+    6,
+    12,
+    18,
+    24,
+    27,
+    29,
+    35,
+    38,
+    48
+   ]
+  ],
+  "card": [
+   "Part 1 · 프로젝트 카드와 목표",
+   [
+    6
+   ]
+  ],
+  "mic": [
+   "Part 3 · 마이크 입력: 16 kHz · 모노",
+   [
+    16,
+    18
+   ]
+  ],
+  "turn": [
+   "Part 4 · 음성 비서 한 턴 조립",
+   [
+    24,
+    27,
+    29
+   ]
+  ],
+  "history": [
+   "Part 4 · 이력 창과 도구 결과 줄이기",
+   [
+    24
+   ]
+  ],
+  "scenario": [
+   "Part 5 · 시나리오 시험과 판정",
+   [
+    33,
+    35,
+    37
+   ]
+  ],
+  "latency": [
+   "Part 5·6 · 지연 백분위와 개선 전후",
+   [
+    35,
+    38,
+    43
+   ]
+  ],
+  "report": [
+   "Part 7 · 한글 리포트 저장",
+   [
+    46,
+    48
+   ]
+  ],
+  "rubric": [
+   "Part 8 · 발표 평가표 · 동료 평가",
+   [
+    48
+   ]
+  ]
+ },
+ "ts_libs": [
+  [
+   "from \"node:crypto\"",
+   "node:crypto",
+   "프로젝트 카드 잠금 지문(sha256)",
+   "https://nodejs.org/api/crypto.html"
+  ],
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "report.md 저장·읽기",
+   "https://nodejs.org/api/fs.html"
+  ]
+ ]
+}

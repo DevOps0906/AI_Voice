@@ -1,0 +1,174 @@
+{
+ "flow": {
+  "part": "Part 0~6 · 오늘의 흐름 전체",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    3,
+    3
+   ],
+   [
+    5,
+    5
+   ],
+   [
+    7,
+    8
+   ],
+   [
+    10,
+    10
+   ],
+   [
+    12,
+    12
+   ],
+   [
+    14,
+    14
+   ]
+  ],
+  "python": "# D21 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_flow.py   (모델·마이크·인터넷 불필요)\n#   [대체 경로] STT·LLM·TTS 모델 대신 '글자 수·토큰 수로 걸리는 시간을 계산하는 규칙 함수'를 쓴다.\n#   끝점(말 끝 기다림) → STT → LLM → TTS 한 턴의 시간(v1 순차 vs v2 스트리밍)과 예산·p95를 한 번에 확인\nimport re\n\nEND = re.compile(r\"[.!?。…~]+\\s\")   # 문장 끝 = 마침표·물음표·느낌표 뒤 띄어쓰기\nBUDGET = {\"endpoint\": 0.50, \"stt\": 0.30, \"llm\": 0.50, \"tts\": 0.20}   # 단계별 한도(초)\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef tokens(text: str) -> int:\n    return max(1, len(text) // 2)                    # 한국어는 대략 2글자 = 1토큰으로 어림\n\n\ndef split_sentences(text: str) -> list[str]:\n    out, buf = [], text + \" \"\n    while (m := END.search(buf)):\n        out.append(buf[: m.end()].strip())\n        buf = buf[m.end():]\n    return out\n\n\ndef turn_time(reply: str, speech_sec: float = 2.0, silence_ms: int = 500, stream: bool = False) -> dict:\n    ttft, tps = 0.20, 30.0                           # LLM 첫 토큰까지 0.2초, 초당 30토큰 (모의 값)\n    stt = 0.15 + 0.05 * speech_sec                   # 모의 STT: 말이 길수록 조금 오래\n    tts = lambda s: 0.05 + 0.01 * len(s)             # 모의 TTS: 글자 수에 비례\n    first = split_sentences(reply)[0] if stream else reply\n    llm = ttft + tokens(first) / tps                 # v2는 첫 문장이 끝날 때까지만 기다린다\n    t = {\"endpoint\": silence_ms / 1000 + 0.03, \"stt\": stt, \"llm\": llm, \"tts\": tts(first)}\n    t[\"v2v\"] = sum(t.values())\n    return t\n\n\nREPLY = \"내일 서울은 맑아요. 낮 최고 기온은 18도예요. 우산은 필요 없어요.\"\nv1 = turn_time(REPLY)\nv2 = turn_time(REPLY, stream=True)\nprint(f\"v1 {v1['v2v']:.2f}초 → v2 {v2['v2v']:.2f}초 (예산 합계 {sum(BUDGET.values()):.2f}초)\")\nprint({k: round(v, 2) for k, v in v1.items()})\ncheck(v2[\"v2v\"] < v1[\"v2v\"] and len(split_sentences(REPLY)) == 3, \"v2(스트리밍)는 첫 문장만 기다려서 v1보다 빨라야 해요.\")\n\nruns = sorted(turn_time(REPLY, speech_sec=s, stream=True)[\"v2v\"] for s in (1.0, 1.5, 2.0, 2.5, 3.0, 4.0))\ndef pct(xs: list[float], p: float) -> float:\n    k = (len(xs) - 1) * p / 100\n    lo = int(k)\n    hi = min(lo + 1, len(xs) - 1)\n    return xs[lo] + (xs[hi] - xs[lo]) * (k - lo)\np50, p95 = pct(runs, 50), pct(runs, 95)\nprint(f\"p50 {p50:.2f}초 · p95 {p95:.2f}초\")\ncheck(p50 <= p95 and p95 <= runs[-1], \"p95는 p50 이상, 최댓값 이하입니다.\")\n",
+  "typescript": "// D21 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_flow.ts   (모델·마이크·인터넷 불필요)\n//   [대체 경로] STT·LLM·TTS 모델 대신 글자 수·토큰 수로 걸리는 시간을 계산하는 규칙 함수를 쓴다.\nconst END = /[.!?。…~]+\\s/;\nconst BUDGET: Record<string, number> = { endpoint: 0.5, stt: 0.3, llm: 0.5, tts: 0.2 };\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction tokens(text: string): number {\n  return Math.max(1, Math.floor(text.length / 2)); // 2글자 = 1토큰 어림\n}\n\nfunction splitSentences(text: string): string[] {\n  const out: string[] = [];\n  let buf = text + \" \";\n  let m: RegExpExecArray | null;\n  while ((m = END.exec(buf)) !== null) {\n    const cut = m.index + m[0].length;\n    out.push(buf.slice(0, cut).trim());\n    buf = buf.slice(cut);\n  }\n  return out;\n}\n\nfunction turnTime(reply: string, speechSec: number = 2, silenceMs: number = 500, stream: boolean = false): Record<string, number> {\n  const ttft = 0.2;\n  const tps = 30;\n  const first = stream ? splitSentences(reply)[0] : reply; // v2는 첫 문장만 기다린다\n  const t: Record<string, number> = {\n    endpoint: silenceMs / 1000 + 0.03,\n    stt: 0.15 + 0.05 * speechSec,\n    llm: ttft + tokens(first) / tps,\n    tts: 0.05 + 0.01 * first.length,\n  };\n  t.v2v = t.endpoint + t.stt + t.llm + t.tts;\n  return t;\n}\n\nfunction pct(xs: number[], p: number): number {\n  const k = ((xs.length - 1) * p) / 100;\n  const lo = Math.floor(k);\n  const hi = Math.min(lo + 1, xs.length - 1);\n  return xs[lo] + (xs[hi] - xs[lo]) * (k - lo);\n}\n\nconst REPLY = \"내일 서울은 맑아요. 낮 최고 기온은 18도예요. 우산은 필요 없어요.\";\nconst v1 = turnTime(REPLY);\nconst v2 = turnTime(REPLY, 2, 500, true);\nconst total = Object.values(BUDGET).reduce((a, b) => a + b, 0);\nconsole.log(`v1 ${v1.v2v.toFixed(2)}초 → v2 ${v2.v2v.toFixed(2)}초 (예산 합계 ${total.toFixed(2)}초)`);\ncheck(v2.v2v < v1.v2v && splitSentences(REPLY).length === 3, \"v2(스트리밍)는 첫 문장만 기다려서 v1보다 빨라야 해요.\");\n\nconst runs = [1, 1.5, 2, 2.5, 3, 4].map((s) => turnTime(REPLY, s, 500, true).v2v).sort((a, b) => a - b);\nconst p50 = pct(runs, 50);\nconst p95 = pct(runs, 95);\nconsole.log(`p50 ${p50.toFixed(2)}초 · p95 ${p95.toFixed(2)}초`);\ncheck(p50 <= p95 && p95 <= runs[runs.length - 1], \"p95는 p50 이상, 최댓값 이하입니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "arch": {
+  "part": "Part 6 · Cascade vs S2S 구조 비교",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    14,
+    14
+   ]
+  ],
+  "python": "# D21 · Part 6 · Cascade vs S2S 구조 비교 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_arch.py   (모델·인터넷 불필요 · 점수는 수업 토론용 상대 점수)\nARCH = {   # 1~5점\n    \"Cascade (로컬)\": dict(지연=2, 감정=1, 디버깅=5, 도구=5, 한국어=4, 비용=4, 개인정보=5),\n    \"Cascade (API)\": dict(지연=3, 감정=2, 디버깅=5, 도구=5, 한국어=5, 비용=3, 개인정보=2),\n    \"S2S (API)\": dict(지연=5, 감정=5, 디버깅=2, 도구=3, 한국어=3, 비용=2, 개인정보=2),\n}\nCLINIC = dict(지연=0, 감정=0, 디버깅=3, 도구=3, 한국어=3, 비용=0, 개인정보=3)   # 병원 예약 콜센터 가정\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef total(weights: dict, pts: dict) -> int:\n    return sum(weights[k] * pts[k] for k in weights)   # 기준마다 가중치 × 점수\n\n\nscores = {name: total(CLINIC, pts) for name, pts in ARCH.items()}\nfor name, s in scores.items():\n    print(f\"{name:<16} {s}점\")\nbest = max(scores, key=scores.get)                     # 값(점수)으로 비교 — key=scores.get\nprint(\"선택:\", best)\ncheck(best == \"Cascade (로컬)\" and max(scores) != best, \"max(사전)은 이름순이라 key=scores.get 이 필요해요.\")\n",
+  "typescript": "// D21 · Part 6 · Cascade vs S2S 구조 비교 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_arch.ts   (점수는 수업 토론용 상대 점수)\ntype Pts = Record<string, number>;\nconst ARCH: Record<string, Pts> = {\n  \"Cascade (로컬)\": { 지연: 2, 감정: 1, 디버깅: 5, 도구: 5, 한국어: 4, 비용: 4, 개인정보: 5 },\n  \"Cascade (API)\": { 지연: 3, 감정: 2, 디버깅: 5, 도구: 5, 한국어: 5, 비용: 3, 개인정보: 2 },\n  \"S2S (API)\": { 지연: 5, 감정: 5, 디버깅: 2, 도구: 3, 한국어: 3, 비용: 2, 개인정보: 2 },\n};\nconst CLINIC: Pts = { 지연: 0, 감정: 0, 디버깅: 3, 도구: 3, 한국어: 3, 비용: 0, 개인정보: 3 }; // 병원 예약 콜센터 가정\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction total(weights: Pts, pts: Pts): number {\n  return Object.keys(weights).reduce((s, k) => s + weights[k] * pts[k], 0); // 가중치 × 점수\n}\n\nconst scores: Record<string, number> = {};\nfor (const [name, pts] of Object.entries(ARCH)) scores[name] = total(CLINIC, pts);\nfor (const [name, s] of Object.entries(scores)) console.log(`${name.padEnd(16)} ${s}점`);\nconst names = Object.keys(scores);\nconst best = names.reduce((a, b) => (scores[b] > scores[a] ? b : a)); // 점수로 비교 (이름순이 아님)\nconsole.log(\"선택:\", best);\ncheck(best === \"Cascade (로컬)\" && [...names].sort().pop() !== best, \"이름순이 아니라 점수로 비교해야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "budget": {
+  "part": "Part 3 · Latency Budget 예산 설계",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    8,
+    8
+   ]
+  ],
+  "python": "# D21 · Part 3 · 예산 설계기 (Latency Budget) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_budget.py   (측정값은 코드 안의 모의 숫자 · 인터넷 불필요)\nBUDGET = {\"endpoint\": 0.50, \"stt\": 0.30, \"llm\": 0.50, \"tts\": 0.20}   # 단계별 한도(초)\nMEASURED = {\"endpoint\": 0.53, \"stt\": 0.28, \"llm\": 0.71, \"tts\": 0.16}  # 모의 측정 p50\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nTOTAL = sum(BUDGET.values())                   # 값들만 더한다\nprint(f\"예산 합계 {TOTAL:.2f}초 · 측정 합계 {sum(MEASURED.values()):.2f}초\")\nover = [k for k in BUDGET if MEASURED[k] > BUDGET[k]]\nfor k in BUDGET:\n    mark = \"넘침\" if k in over else \"OK\"\n    print(f\"{k:<9} 예산 {BUDGET[k]:.2f} 측정 {MEASURED[k]:.2f} {mark}\")\nslack = {k: round(BUDGET[k] - MEASURED[k], 2) for k in BUDGET}\nworst = min(slack, key=slack.get)              # 예산을 가장 크게 넘긴 단계\nprint(\"가장 먼저 줄일 곳:\", worst)\ncheck(abs(TOTAL - 1.5) < 1e-9 and over == [\"endpoint\", \"llm\"] and worst == \"llm\", \"넘친 단계는 endpoint와 llm, 최악은 llm입니다.\")\n",
+  "typescript": "// D21 · Part 3 · 예산 설계기 (Latency Budget) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_budget.ts   (측정값은 코드 안의 모의 숫자)\nconst BUDGET: Record<string, number> = { endpoint: 0.5, stt: 0.3, llm: 0.5, tts: 0.2 };\nconst MEASURED: Record<string, number> = { endpoint: 0.53, stt: 0.28, llm: 0.71, tts: 0.16 }; // 모의 측정 p50\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst sum = (o: Record<string, number>): number => Object.values(o).reduce((a, b) => a + b, 0);\nconst TOTAL = sum(BUDGET);\nconsole.log(`예산 합계 ${TOTAL.toFixed(2)}초 · 측정 합계 ${sum(MEASURED).toFixed(2)}초`);\nconst keys = Object.keys(BUDGET);\nconst over = keys.filter((k) => MEASURED[k] > BUDGET[k]);\nfor (const k of keys) {\n  console.log(`${k.padEnd(9)} 예산 ${BUDGET[k].toFixed(2)} 측정 ${MEASURED[k].toFixed(2)} ${over.includes(k) ? \"넘침\" : \"OK\"}`);\n}\nconst slack = (k: string): number => BUDGET[k] - MEASURED[k];\nconst worst = keys.reduce((a, b) => (slack(b) < slack(a) ? b : a)); // 예산을 가장 크게 넘긴 단계\nconsole.log(\"가장 먼저 줄일 곳:\", worst);\ncheck(Math.abs(TOTAL - 1.5) < 1e-9 && over.join() === \"endpoint,llm\" && worst === \"llm\", \"넘친 단계는 endpoint와 llm, 최악은 llm입니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "pipeline": {
+  "part": "Part 2·4 · Cascade v1 vs v2 타임라인",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    7,
+    7
+   ],
+   [
+    10,
+    11
+   ]
+  ],
+  "python": "# D21 · Part 2·4 · v1 vs v2 타임라인 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_pipeline.py   (모델 대신 LLM 토큰이 일정 속도로 나온다고 보는 모의 스트림)\nimport re\n\nEND = re.compile(r\"[.!?。…~]+\\s\")\nMIN_CHARS = 8\nTPS = 30.0                                     # 모의 LLM 속도: 초당 30토큰\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef stream(text: str):\n    \"\"\"2글자 = 1토큰으로 보고 (시각, 글 조각)을 차례로 내준다 — 토큰 스트리밍 흉내.\"\"\"\n    t = 0.2                                    # 첫 토큰까지(TTFT)\n    for i in range(0, len(text), 2):\n        yield t, text[i:i + 2]\n        t += 1 / TPS\n\n\ndef sentences(pieces):\n    buf = \"\"\n    for t, p in pieces:\n        buf += p\n        while (m := END.search(buf, MIN_CHARS)):   # 너무 짧은 조각('네.')은 따로 보내지 않음\n            yield t, buf[: m.end()].strip()\n            buf = buf[m.end():]\n\n\nREPLY = \"네, 알겠어요. 회의를 세 시 반으로 옮겼어요. 다른 일정도 확인해 드릴까요? \"\nchunks = list(sentences(stream(REPLY)))\nfor t, s in chunks:\n    print(f\"{t:.2f}초 첫 소리 가능 → '{s}'\")\nv1_start = 0.2 + (len(REPLY) // 2) / TPS       # v1: 답 전체가 끝나야 TTS 시작\nv2_start = chunks[0][0]                        # v2: 첫 문장이 완성되는 즉시 TTS 시작\nprint(f\"TTS 시작 v1 {v1_start:.2f}초 · v2 {v2_start:.2f}초 · 줄어든 시간 {v1_start - v2_start:.2f}초\")\ncheck(len(chunks) == 2 and v2_start < v1_start, \"문장이 2조각으로 잘리고(짧은 '네.'는 합쳐짐), v2가 더 일찍 말하기 시작해야 해요.\")\n",
+  "typescript": "// D21 · Part 2·4 · v1 vs v2 타임라인 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_pipeline.ts   (LLM 토큰이 일정 속도로 나온다고 보는 모의 스트림)\nconst END = /[.!?。…~]+\\s/;\nconst MIN_CHARS = 8;\nconst TPS = 30; // 모의 LLM 속도: 초당 30토큰\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ntype Piece = { t: number; text: string };\n\nfunction* stream(text: string): Generator<Piece> {\n  // 2글자 = 1토큰으로 보고 (시각, 글 조각)을 차례로 내준다 — 토큰 스트리밍 흉내\n  let t = 0.2; // 첫 토큰까지(TTFT)\n  for (let i = 0; i < text.length; i += 2) {\n    yield { t, text: text.slice(i, i + 2) };\n    t += 1 / TPS;\n  }\n}\n\nfunction sentences(pieces: Iterable<Piece>): Piece[] {\n  const out: Piece[] = [];\n  let buf = \"\";\n  for (const p of pieces) {\n    buf += p.text;\n    for (;;) {\n      const m = END.exec(buf.slice(MIN_CHARS)); // 너무 짧은 조각('네.')은 따로 보내지 않음\n      if (m === null) break;\n      const cut = MIN_CHARS + m.index + m[0].length;\n      out.push({ t: p.t, text: buf.slice(0, cut).trim() });\n      buf = buf.slice(cut);\n    }\n  }\n  return out;\n}\n\nconst REPLY = \"네, 알겠어요. 회의를 세 시 반으로 옮겼어요. 다른 일정도 확인해 드릴까요? \";\nconst chunks = sentences(stream(REPLY));\nfor (const c of chunks) console.log(`${c.t.toFixed(2)}초 첫 소리 가능 → '${c.text}'`);\nconst v1Start = 0.2 + Math.floor(REPLY.length / 2) / TPS; // v1: 답 전체가 끝나야 TTS 시작\nconst v2Start = chunks[0].t; // v2: 첫 문장이 완성되는 즉시 TTS 시작\nconsole.log(`TTS 시작 v1 ${v1Start.toFixed(2)}초 · v2 ${v2Start.toFixed(2)}초 · 줄어든 시간 ${(v1Start - v2Start).toFixed(2)}초`);\ncheck(chunks.length === 2 && v2Start < v1Start, \"문장이 2조각으로 잘리고(짧은 '네.'는 합쳐짐), v2가 더 일찍 말하기 시작해야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "vad": {
+  "part": "Part 5 · VAD 말 끝 감지와 침묵 기준",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    5,
+    5
+   ],
+   [
+    12,
+    13
+   ]
+  ],
+  "python": "# D21 · Part 5 · VAD 말 끝 감지 (침묵 기준) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_vad.py   (인터넷·마이크 불필요)\n#   [대체 경로] Silero VAD 대신 '32ms 프레임의 소리 크기(RMS)가 문턱보다 큰가'로 말/침묵을 가르는 간단한 VAD.\n#   말소리 대신 사인파 두 토막(사이에 0.6초 쉼)을 합성해 쓴다.\nimport math\n\nSR, CHUNK = 16000, 512                         # 16kHz, 한 프레임 = 32ms\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef burst(sec: float, freq: float) -> list[float]:\n    return [0.3 * math.sin(2 * math.pi * freq * i / SR) for i in range(int(sec * SR))]\n\n\ndef silence(sec: float) -> list[float]:\n    return [0.0] * int(sec * SR)\n\n\ndef endpoint(y: list[float], min_silence_ms: int) -> float | None:\n    \"\"\"말이 한 번 시작된 뒤 침묵이 min_silence_ms 이상 이어지면 '말 끝'을 알린 시각(초)을 돌려준다.\"\"\"\n    quiet, speaking = 0.0, False\n    for i in range(0, len(y) - CHUNK + 1, CHUNK):\n        frame = y[i:i + CHUNK]\n        rms = math.sqrt(sum(v * v for v in frame) / CHUNK)\n        if rms > 0.05:\n            speaking, quiet = True, 0.0\n        elif speaking:\n            quiet += CHUNK / SR * 1000\n            if quiet >= min_silence_ms:\n                return (i + CHUNK) / SR\n    return None\n\n\nPAUSE = 0.6\ny = silence(0.8) + burst(0.8, 220) + silence(PAUSE) + burst(0.8, 180) + silence(2.0)\ntrue_end = (len(y) - 2.0 * SR) / SR            # 실제로 말이 끝난 시각\nrows = []\nfor ms in (200, 300, 500, 800, 1000):\n    det = endpoint(y, ms)\n    cut = det is not None and det < true_end - 0.3    # 실제 끝보다 한참 일찍 판정 = 말 잘림\n    rows.append((ms, det, cut))\n    print(f\"침묵 기준 {ms:>4}ms → 판정 {det:.2f}초 · {'말 잘림' if cut else '끝까지 기다림'}\")\ncheck([r[2] for r in rows] == [True, True, True, False, False], \"쉼(0.6초)보다 짧은 기준(500ms 이하)은 말을 자릅니다.\")\n",
+  "typescript": "// D21 · Part 5 · VAD 말 끝 감지 (침묵 기준) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_vad.ts\n//   [대체 경로] Silero VAD 대신 '32ms 프레임의 소리 크기(RMS)가 문턱보다 큰가'로 말/침묵을 가르는 간단한 VAD.\n//   말소리 대신 사인파 두 토막(사이에 0.6초 쉼)을 합성해 쓴다.\nconst SR = 16000;\nconst CHUNK = 512; // 한 프레임 = 32ms\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction burst(sec: number, freq: number): number[] {\n  return Array.from({ length: Math.floor(sec * SR) }, (_, i) => 0.3 * Math.sin((2 * Math.PI * freq * i) / SR));\n}\n\nfunction silence(sec: number): number[] {\n  return new Array(Math.floor(sec * SR)).fill(0);\n}\n\nfunction endpoint(y: number[], minSilenceMs: number): number | null {\n  // 말이 한 번 시작된 뒤 침묵이 minSilenceMs 이상 이어지면 '말 끝'을 알린 시각(초)\n  let quiet = 0;\n  let speaking = false;\n  for (let i = 0; i + CHUNK <= y.length; i += CHUNK) {\n    let e = 0;\n    for (let j = i; j < i + CHUNK; j++) e += y[j] * y[j];\n    const rms = Math.sqrt(e / CHUNK);\n    if (rms > 0.05) {\n      speaking = true;\n      quiet = 0;\n    } else if (speaking) {\n      quiet += (CHUNK / SR) * 1000;\n      if (quiet >= minSilenceMs) return (i + CHUNK) / SR;\n    }\n  }\n  return null;\n}\n\nconst y = [...silence(0.8), ...burst(0.8, 220), ...silence(0.6), ...burst(0.8, 180), ...silence(2)];\nconst trueEnd = (y.length - 2 * SR) / SR; // 실제로 말이 끝난 시각\nconst cuts: boolean[] = [];\nfor (const ms of [200, 300, 500, 800, 1000]) {\n  const det = endpoint(y, ms);\n  const cut = det !== null && det < trueEnd - 0.3; // 실제 끝보다 한참 일찍 판정 = 말 잘림\n  cuts.push(cut);\n  console.log(`침묵 기준 ${String(ms).padStart(4)}ms → 판정 ${det?.toFixed(2)}초 · ${cut ? \"말 잘림\" : \"끝까지 기다림\"}`);\n}\ncheck(cuts.join() === \"true,true,true,false,false\", \"쉼(0.6초)보다 짧은 기준(500ms 이하)은 말을 자릅니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "turn": {
+  "part": "Part 5 · 턴 테이킹: 기다림과 말 잘림",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    12,
+    13
+   ]
+  ],
+  "python": "# D21 · Part 5 · 턴 테이킹 (끼어듦 vs 늦은 대답) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_turn.py   (인터넷 불필요)\n#   [대체 경로] 사람 대화 대신 '말 도중 쉼 길이' 표본을 코드에 적어 두고 침묵 기준별 결과를 센다.\nPAUSES_MS = [150, 250, 400, 650, 300, 900, 200, 500, 700, 350]   # 한 문장 안에서 쉬는 길이(모의 표본)\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef evaluate(threshold_ms: int) -> dict:\n    cuts = sum(1 for p in PAUSES_MS if p >= threshold_ms)   # 쉼이 기준 이상이면 비서가 먼저 끼어든다\n    return {\"기준\": threshold_ms, \"끼어듦\": cuts, \"추가_기다림_ms\": threshold_ms}   # 모든 턴이 기준만큼 늦어짐\n\n\ntable = [evaluate(t) for t in (200, 400, 700, 1000)]\nfor r in table:\n    print(r)\ncheck([r[\"끼어듦\"] for r in table] == [9, 5, 2, 0] and table[0][\"추가_기다림_ms\"] < table[-1][\"추가_기다림_ms\"],\n      \"기준이 짧으면 끼어듦이 늘고, 길면 모든 턴이 늦어져요.\")\n",
+  "typescript": "// D21 · Part 5 · 턴 테이킹 (끼어듦 vs 늦은 대답) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_turn.ts\n//   [대체 경로] 사람 대화 대신 '말 도중 쉼 길이' 표본을 코드에 적어 두고 침묵 기준별 결과를 센다.\nconst PAUSES_MS = [150, 250, 400, 650, 300, 900, 200, 500, 700, 350]; // 한 문장 안에서 쉬는 길이(모의 표본)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction evaluate(thresholdMs: number): { 기준: number; 끼어듦: number; 추가_기다림_ms: number } {\n  const cuts = PAUSES_MS.filter((p) => p >= thresholdMs).length; // 쉼이 기준 이상이면 비서가 먼저 끼어든다\n  return { 기준: thresholdMs, 끼어듦: cuts, 추가_기다림_ms: thresholdMs }; // 모든 턴이 기준만큼 늦어짐\n}\n\nconst table = [200, 400, 700, 1000].map(evaluate);\nfor (const r of table) console.log(r);\ncheck(table.map((r) => r.끼어듦).join() === \"9,5,2,0\" && table[0].추가_기다림_ms < table[3].추가_기다림_ms, \"기준이 짧으면 끼어듦이 늘고, 길면 모든 턴이 늦어져요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "pct": {
+  "part": "Part 3 · p50 · p95로 지연 읽기",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    8,
+    8
+   ]
+  ],
+  "python": "# D21 · Part 3 · p50 · p95 읽기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_pct.py   (지연 표본은 씨앗 고정 난수로 합성 · 인터넷 불필요)\nimport random\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef percentile(xs: list[float], p: float) -> float:\n    \"\"\"선형 보간 백분위수(numpy 기본 방식과 같음).\"\"\"\n    s = sorted(xs)\n    k = (len(s) - 1) * p / 100\n    lo = int(k)\n    hi = min(lo + 1, len(s) - 1)\n    return s[lo] + (s[hi] - s[lo]) * (k - lo)\n\n\nrng = random.Random(7)\nv2v = [1.0 + rng.random() * 0.3 for _ in range(18)] + [2.4, 2.9]   # 대부분 1.0~1.3초, 가끔 아주 느린 턴 2개\np50, p95 = percentile(v2v, 50), percentile(v2v, 95)\nmean = sum(v2v) / len(v2v)\nprint(f\"평균 {mean:.2f}초 · p50 {p50:.2f}초 · p95 {p95:.2f}초 · 최대 {max(v2v):.2f}초\")\ncheck(p50 < mean < p95 and percentile([1, 2, 3, 4, 5], 50) == 3 and percentile([0, 10], 95) == 9.5,\n      \"느린 꼬리가 평균은 끌어올리지만 p50은 거의 안 움직여요. p95로 꼬리를 봅니다.\")\n",
+  "typescript": "// D21 · Part 3 · p50 · p95 읽기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_pct.ts   (지연 표본은 씨앗 고정 난수로 합성)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction mulberry32(seed: number): () => number {\n  let a = seed >>> 0;\n  return (): number => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\n\nfunction percentile(xs: number[], p: number): number {\n  // 선형 보간 백분위수(numpy 기본 방식과 같음)\n  const s = [...xs].sort((a, b) => a - b);\n  const k = ((s.length - 1) * p) / 100;\n  const lo = Math.floor(k);\n  const hi = Math.min(lo + 1, s.length - 1);\n  return s[lo] + (s[hi] - s[lo]) * (k - lo);\n}\n\nconst rnd = mulberry32(7);\nconst v2v = [...Array.from({ length: 18 }, () => 1 + rnd() * 0.3), 2.4, 2.9]; // 대부분 1.0~1.3초, 가끔 아주 느린 턴 2개\nconst p50 = percentile(v2v, 50);\nconst p95 = percentile(v2v, 95);\nconst mean = v2v.reduce((a, b) => a + b, 0) / v2v.length;\nconsole.log(`평균 ${mean.toFixed(2)}초 · p50 ${p50.toFixed(2)}초 · p95 ${p95.toFixed(2)}초 · 최대 ${Math.max(...v2v).toFixed(2)}초`);\ncheck(p50 < mean && mean < p95 && percentile([1, 2, 3, 4, 5], 50) === 3 && percentile([0, 10], 95) === 9.5, \"느린 꼬리가 평균은 끌어올리지만 p50은 거의 안 움직여요. p95로 꼬리를 봅니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "length": {
+  "part": "Part 3-1 · 답 길이 = 지연",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    9,
+    9
+   ]
+  ],
+  "python": "# D21 · Part 3-1 · 답 길이 = 지연 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_length.py   (모델 없이 'LLM 시간 = 첫 토큰 + 토큰 수 ÷ 초당 토큰' 식으로 계산)\nTTFT, TPS = 0.2, 30.0                         # 모의 LLM: 첫 토큰 0.2초, 초당 30토큰\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef tokens(text: str) -> int:\n    return max(1, len(text) // 2)             # 2글자 = 1토큰 어림\n\n\ndef llm_seconds(text: str) -> float:\n    return TTFT + tokens(text) / TPS\n\n\nSHORT = \"내일 서울은 맑고 최고 18도예요.\"                                   # 음성용 짧은 지시를 받은 답\nLONG = (\"내일 서울의 날씨는 대체로 맑겠습니다. 아침 최저 기온은 9도, 낮 최고 기온은 18도로 일교차가 큽니다. \"\n        \"미세먼지는 보통 수준이며, 자외선 지수는 중간입니다. 가벼운 겉옷을 챙기시면 좋겠습니다. 우산은 필요하지 않습니다.\")   # 글 채팅용\nfor name, text in ((\"음성용\", SHORT), (\"글 채팅용\", LONG)):\n    print(f\"{name:<6} 토큰 {tokens(text):>3} → LLM {llm_seconds(text):.2f}초\")\nratio = tokens(LONG) / tokens(SHORT)\ncheck(llm_seconds(LONG) > 2 * llm_seconds(SHORT) and ratio > 4, \"토큰이 4배 이상 늘면 시간도 크게 늘어요.\")\n",
+  "typescript": "// D21 · Part 3-1 · 답 길이 = 지연 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_length.ts   (모델 없이 'LLM 시간 = 첫 토큰 + 토큰 수 ÷ 초당 토큰' 식으로 계산)\nconst TTFT = 0.2;\nconst TPS = 30; // 모의 LLM: 첫 토큰 0.2초, 초당 30토큰\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst tokens = (text: string): number => Math.max(1, Math.floor(text.length / 2)); // 2글자 = 1토큰 어림\nconst llmSeconds = (text: string): number => TTFT + tokens(text) / TPS;\n\nconst SHORT = \"내일 서울은 맑고 최고 18도예요.\"; // 음성용 짧은 지시를 받은 답\nconst LONG =\n  \"내일 서울의 날씨는 대체로 맑겠습니다. 아침 최저 기온은 9도, 낮 최고 기온은 18도로 일교차가 큽니다. \" +\n  \"미세먼지는 보통 수준이며, 자외선 지수는 중간입니다. 가벼운 겉옷을 챙기시면 좋겠습니다. 우산은 필요하지 않습니다.\"; // 글 채팅용\nfor (const [name, text] of [[\"음성용\", SHORT], [\"글 채팅용\", LONG]]) {\n  console.log(`${name.padEnd(6)} 토큰 ${String(tokens(text)).padStart(3)} → LLM ${llmSeconds(text).toFixed(2)}초`);\n}\ncheck(llmSeconds(LONG) > 2 * llmSeconds(SHORT) && tokens(LONG) / tokens(SHORT) > 4, \"토큰이 4배 이상 늘면 시간도 크게 늘어요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "choose": {
+  "part": "Part 6 · 가중치로 아키텍처 고르기",
+  "nb": "D21_VoiceAgent아키텍처_실습.ipynb",
+  "ord": [
+   [
+    14,
+    15
+   ]
+  ],
+  "python": "# D21 · Part 6 · 아키텍처 선택기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d21_choose.py   (점수·가중치는 수업 토론용 상대 값)\nARCH = {\n    \"Cascade (로컬)\": dict(지연=2, 감정=1, 디버깅=5, 도구=5, 한국어=4, 비용=4, 개인정보=5),\n    \"Cascade (API)\": dict(지연=3, 감정=2, 디버깅=5, 도구=5, 한국어=5, 비용=3, 개인정보=2),\n    \"S2S (API)\": dict(지연=5, 감정=5, 디버깅=2, 도구=3, 한국어=3, 비용=2, 개인정보=2),\n}\nSCENARIOS = {\n    \"병원 예약 콜센터\": dict(지연=2, 감정=1, 디버깅=3, 도구=3, 한국어=3, 비용=2, 개인정보=3),\n    \"외국어 회화 튜터\": dict(지연=3, 감정=3, 디버깅=1, 도구=0, 한국어=1, 비용=2, 개인정보=1),\n    \"어르신 말벗\": dict(지연=2, 감정=3, 디버깅=2, 도구=1, 한국어=3, 비용=1, 개인정보=3),\n}\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef choose(weights: dict) -> tuple[str, dict]:\n    scores = {name: sum(weights[k] * pts[k] for k in weights) for name, pts in ARCH.items()}\n    return max(scores, key=scores.get), scores\n\n\npicks = {}\nfor sc, w in SCENARIOS.items():\n    best, scores = choose(w)\n    picks[sc] = best\n    print(f\"{sc:<10} → {best}  {scores}\")\nmine = dict(지연=3, 감정=0, 디버깅=2, 도구=3, 한국어=3, 비용=2, 개인정보=1)   # 키오스크 음성 주문\nbase, _ = choose(mine)\nflips = []\nfor k in mine:                                # 민감도: 가중치 하나를 1 올리면 선택이 바뀌나?\n    w2 = dict(mine)\n    w2[k] += 1\n    if choose(w2)[0] != base:\n        flips.append(k)\nprint(\"키오스크 선택:\", base, \"· 바뀌는 기준:\", flips or \"없음\")\ncheck(picks[\"병원 예약 콜센터\"] == \"Cascade (로컬)\" and picks[\"외국어 회화 튜터\"] == \"S2S (API)\",\n      \"도구·개인정보가 큰 곳은 Cascade, 지연·감정이 큰 곳은 S2S입니다.\")\n",
+  "typescript": "// D21 · Part 6 · 아키텍처 선택기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d21_choose.ts   (점수·가중치는 수업 토론용 상대 값)\ntype Pts = Record<string, number>;\nconst ARCH: Record<string, Pts> = {\n  \"Cascade (로컬)\": { 지연: 2, 감정: 1, 디버깅: 5, 도구: 5, 한국어: 4, 비용: 4, 개인정보: 5 },\n  \"Cascade (API)\": { 지연: 3, 감정: 2, 디버깅: 5, 도구: 5, 한국어: 5, 비용: 3, 개인정보: 2 },\n  \"S2S (API)\": { 지연: 5, 감정: 5, 디버깅: 2, 도구: 3, 한국어: 3, 비용: 2, 개인정보: 2 },\n};\nconst SCENARIOS: Record<string, Pts> = {\n  \"병원 예약 콜센터\": { 지연: 2, 감정: 1, 디버깅: 3, 도구: 3, 한국어: 3, 비용: 2, 개인정보: 3 },\n  \"외국어 회화 튜터\": { 지연: 3, 감정: 3, 디버깅: 1, 도구: 0, 한국어: 1, 비용: 2, 개인정보: 1 },\n  \"어르신 말벗\": { 지연: 2, 감정: 3, 디버깅: 2, 도구: 1, 한국어: 3, 비용: 1, 개인정보: 3 },\n};\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction choose(weights: Pts): [string, Record<string, number>] {\n  const scores: Record<string, number> = {};\n  for (const [name, pts] of Object.entries(ARCH)) scores[name] = Object.keys(weights).reduce((s, k) => s + weights[k] * pts[k], 0);\n  const best = Object.keys(scores).reduce((a, b) => (scores[b] > scores[a] ? b : a));\n  return [best, scores];\n}\n\nconst picks: Record<string, string> = {};\nfor (const [sc, w] of Object.entries(SCENARIOS)) {\n  const [best, scores] = choose(w);\n  picks[sc] = best;\n  console.log(`${sc.padEnd(10)} → ${best}`, scores);\n}\nconst mine: Pts = { 지연: 3, 감정: 0, 디버깅: 2, 도구: 3, 한국어: 3, 비용: 2, 개인정보: 1 }; // 키오스크 음성 주문\nconst base = choose(mine)[0];\nconst flips = Object.keys(mine).filter((k) => choose({ ...mine, [k]: mine[k] + 1 })[0] !== base); // 가중치 하나를 1 올리면 바뀌나?\nconsole.log(\"키오스크 선택:\", base, \"· 바뀌는 기준:\", flips.length ? flips : \"없음\");\ncheck(picks[\"병원 예약 콜센터\"] === \"Cascade (로컬)\" && picks[\"외국어 회화 튜터\"] === \"S2S (API)\", \"도구·개인정보가 큰 곳은 Cascade, 지연·감정이 큰 곳은 S2S입니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ }
+}

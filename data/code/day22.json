@@ -1,0 +1,194 @@
+{
+ "flow": {
+  "part": "Part 0~6 · 오늘의 흐름 전체",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    3,
+    3
+   ],
+   [
+    5,
+    7
+   ],
+   [
+    9,
+    9
+   ],
+   [
+    12,
+    12
+   ]
+  ],
+  "python": "# D22 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install anthropic==2.11.0\n# 실행: python d22_flow.py   (ANTHROPIC_API_KEY가 있으면 실제 Claude 호출, 없으면 규칙 기반 모의 응답)\n#   [대체 경로] 키가 없으면 키워드 규칙으로 답하는 모의 LLM을 쓴다. 나머지(이력·점검·비용)는 실제 로직이다.\nimport os\nimport re\n\nSYSTEM = \"너는 한국어 음성 비서야. 한두 문장, 80자 안쪽의 짧은 구어체로 답해. 목록·마크다운·이모지는 쓰지 마.\"\nPRICE = dict(inp=0.10, out=0.50)   # 100만 토큰당 USD (참고값)\nMD = re.compile(r\"(^\\s*([-*•]|\\d+[.)])\\s)|[*#`|]\", re.M)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef ask(system: str, messages: list[dict], max_tokens: int = 150) -> dict:\n    key = os.environ.get(\"ANTHROPIC_API_KEY\")\n    if key:                                            # 실제 경로: 키가 있을 때만\n        import anthropic\n        r = anthropic.Anthropic(api_key=key).messages.create(\n            model=\"claude-haiku-5-5\", system=system, messages=messages, max_tokens=max_tokens)\n        return dict(text=r.content[0].text, in_tok=r.usage.input_tokens, out_tok=r.usage.output_tokens)\n    last = messages[-1][\"content\"]                     # 모의 경로\n    seen = \" \".join(m[\"content\"] for m in messages)\n    if \"이름\" in last and \"지민\" in seen:\n        text = \"지민 님이라고 하셨어요.\"\n    elif \"날씨\" in last:\n        text = \"실시간 날씨는 지금 확인할 수 없어요.\"\n    else:\n        text = \"네, 알겠어요.\"\n    return dict(text=text, in_tok=len(system + seen) // 2, out_tok=len(text) // 2)\n\n\ndef voice_lint(text: str, max_chars: int = 80, max_sent: int = 2) -> bool:\n    sents = [s for s in re.split(r\"(?<=[.!?])\\s+|\\n+\", text.strip()) if s.strip()]\n    return len(text) <= max_chars and len(sents) <= max_sent and not MD.search(text)\n\n\nclass Conversation:\n    def __init__(self, system: str, max_turns: int = 2):\n        self.system, self.max_turns, self.turns = system, max_turns, []\n\n    def messages(self, user_text: str) -> list[dict]:\n        recent = self.turns[-self.max_turns * 2:]      # 한 턴 = user + assistant 메시지 2개\n        return recent + [{\"role\": \"user\", \"content\": user_text}]\n\n    def commit(self, user_text: str, reply: str) -> None:\n        self.turns += [{\"role\": \"user\", \"content\": user_text}, {\"role\": \"assistant\", \"content\": reply}]\n\n\nconv, cost = Conversation(SYSTEM), 0.0\nfor q in [\"안녕, 내 이름은 지민이야.\", \"내일 날씨 어때?\", \"내 이름이 뭐였지?\"]:\n    msgs = conv.messages(q)\n    r = ask(SYSTEM, msgs)\n    conv.commit(q, r[\"text\"])\n    cost += (r[\"in_tok\"] * PRICE[\"inp\"] + r[\"out_tok\"] * PRICE[\"out\"]) / 1e6\n    print(f\"사용자: {q}\\n비서  : {r['text']}  (입력 {r['in_tok']} · 출력 {r['out_tok']} 토큰)\")\nprint(f\"3턴 비용 약 {cost:.6f} USD · 마지막 답 음성 점검 {voice_lint(conv.turns[-1]['content'])}\")\ncheck(len(conv.turns) == 6 and len(conv.messages(\"다음\")) == 5 and voice_lint(\"네, 알겠어요.\") and not voice_lint(\"- 목록 **굵게**\"),\n      \"3턴이면 메시지 6개, 창(2턴)을 쓰면 다음 요청은 4+1=5개입니다.\")\n",
+  "typescript": "// D22 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_flow.ts   (ANTHROPIC_API_KEY가 있으면 fetch로 실제 Claude 호출, 없으면 모의 응답)\n//   [대체 경로] 키가 없으면 키워드 규칙으로 답하는 모의 LLM을 쓴다. 나머지(이력·점검·비용)는 실제 로직이다.\ntype Msg = { role: string; content: string };\ntype Reply = { text: string; inTok: number; outTok: number };\n\nconst SYSTEM = \"너는 한국어 음성 비서야. 한두 문장, 80자 안쪽의 짧은 구어체로 답해. 목록·마크다운·이모지는 쓰지 마.\";\nconst PRICE = { inp: 0.1, out: 0.5 }; // 100만 토큰당 USD (참고값)\nconst MD = /(^\\s*([-*•]|\\d+[.)])\\s)|[*#`|]/m;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nasync function ask(system: string, messages: Msg[], maxTokens: number = 150): Promise<Reply> {\n  const key = process.env.ANTHROPIC_API_KEY;\n  if (key) {\n    // 실제 경로: 키가 있을 때만\n    const res = await fetch(\"https://api.anthropic.com/v1/messages\", {\n      method: \"POST\",\n      headers: { \"x-api-key\": key, \"anthropic-version\": \"2023-06-01\", \"content-type\": \"application/json\" },\n      body: JSON.stringify({ model: \"claude-haiku-5-5\", system, messages, max_tokens: maxTokens }),\n    });\n    const j = (await res.json()) as { content: { text: string }[]; usage: { input_tokens: number; output_tokens: number } };\n    return { text: j.content[0].text, inTok: j.usage.input_tokens, outTok: j.usage.output_tokens };\n  }\n  const last = messages[messages.length - 1].content; // 모의 경로\n  const seen = messages.map((m) => m.content).join(\" \");\n  let text = \"네, 알겠어요.\";\n  if (last.includes(\"이름\") && seen.includes(\"지민\")) text = \"지민 님이라고 하셨어요.\";\n  else if (last.includes(\"날씨\")) text = \"실시간 날씨는 지금 확인할 수 없어요.\";\n  return { text, inTok: Math.floor((system + seen).length / 2), outTok: Math.floor(text.length / 2) };\n}\n\nfunction voiceLint(text: string, maxChars: number = 80, maxSent: number = 2): boolean {\n  const sents = text.trim().split(/(?<=[.!?])\\s+|\\n+/).filter((s) => s.trim() !== \"\");\n  return text.length <= maxChars && sents.length <= maxSent && !MD.test(text);\n}\n\nclass Conversation {\n  system: string;\n  maxTurns: number;\n  turns: Msg[] = [];\n  constructor(system: string, maxTurns: number = 2) {\n    this.system = system;\n    this.maxTurns = maxTurns;\n  }\n  messages(userText: string): Msg[] {\n    const recent = this.turns.slice(-this.maxTurns * 2); // 한 턴 = user + assistant 메시지 2개\n    return [...recent, { role: \"user\", content: userText }];\n  }\n  commit(userText: string, reply: string): void {\n    this.turns.push({ role: \"user\", content: userText }, { role: \"assistant\", content: reply });\n  }\n}\n\nconst conv = new Conversation(SYSTEM);\nlet cost = 0;\nfor (const q of [\"안녕, 내 이름은 지민이야.\", \"내일 날씨 어때?\", \"내 이름이 뭐였지?\"]) {\n  const r = await ask(SYSTEM, conv.messages(q));\n  conv.commit(q, r.text);\n  cost += (r.inTok * PRICE.inp + r.outTok * PRICE.out) / 1e6;\n  console.log(`사용자: ${q}\\n비서  : ${r.text}  (입력 ${r.inTok} · 출력 ${r.outTok} 토큰)`);\n}\nconsole.log(`3턴 비용 약 ${cost.toFixed(6)} USD · 마지막 답 음성 점검 ${voiceLint(conv.turns[5].content)}`);\ncheck(conv.turns.length === 6 && conv.messages(\"다음\").length === 5 && voiceLint(\"네, 알겠어요.\") && !voiceLint(\"- 목록 **굵게**\"), \"3턴이면 메시지 6개, 창(2턴)을 쓰면 다음 요청은 4+1=5개입니다.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "anthropic",
+     "version": "2.11.0",
+     "purpose": "Claude API 호출(ANTHROPIC_API_KEY 있을 때만)",
+     "install": "pip install anthropic==2.11.0",
+     "docs": "https://docs.anthropic.com/en/api/client-sdks",
+     "license": "Apache-2.0"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "fetch",
+     "version": "내장",
+     "purpose": "Claude API 호출(키가 있을 때만)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/globals.html#fetch",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "anatomy": {
+  "part": "Part 1 · LLM API의 공통 구조",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    3,
+    3
+   ]
+  ],
+  "python": "# D22 · Part 1 · 세 API 비교 (요청 구조) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d22_anatomy.py   (요청 본문(JSON)만 만들어 비교하므로 키·인터넷 불필요)\n#   [대체 경로] 실제 호출은 하지 않는다. 세 회사의 요청 모양을 같은 입력에서 만들어 공통점·차이를 확인한다.\nimport json\n\nSYSTEM, USER, MAX_TOKENS = \"한두 문장으로 짧게 답해.\", \"내일 서울 날씨 어때?\", 150\nHISTORY = [{\"role\": \"user\", \"content\": \"안녕\"}, {\"role\": \"assistant\", \"content\": \"안녕하세요.\"}]\nTURNS = HISTORY + [{\"role\": \"user\", \"content\": USER}]\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef claude_body() -> dict:       # messages API: system은 따로, max_tokens 필수\n    return dict(model=\"claude-haiku-5-5\", system=SYSTEM, max_tokens=MAX_TOKENS, stream=True, messages=TURNS)\n\n\ndef openai_body() -> dict:       # Responses API: instructions + input\n    return dict(model=\"gpt-6-luna\", instructions=SYSTEM, max_output_tokens=MAX_TOKENS, stream=True, input=TURNS)\n\n\ndef gemini_body() -> dict:       # generateContent: 역할 이름이 user / model\n    role = lambda r: \"model\" if r == \"assistant\" else \"user\"\n    return dict(system_instruction={\"parts\": [{\"text\": SYSTEM}]},\n                generationConfig={\"maxOutputTokens\": MAX_TOKENS},\n                contents=[{\"role\": role(m[\"role\"]), \"parts\": [{\"text\": m[\"content\"]}]} for m in TURNS])\n\n\nbodies = {\"claude\": claude_body(), \"openai\": openai_body(), \"gemini\": gemini_body()}\nfor name, b in bodies.items():\n    print(f\"{name:<7} 최상위 키: {sorted(b)}\")\ntext_of = {n: json.dumps(b, ensure_ascii=False) for n, b in bodies.items()}\ncommon = all(SYSTEM in t and USER in t and str(MAX_TOKENS) in t for t in text_of.values())\ncheck(common and bodies[\"gemini\"][\"contents\"][1][\"role\"] == \"model\" and \"system\" in bodies[\"claude\"],\n      \"세 API 모두 시스템 지시·대화·길이 상한이 들어가고, Gemini만 assistant 대신 model을 씁니다.\")\n",
+  "typescript": "// D22 · Part 1 · 세 API 비교 (요청 구조) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_anatomy.ts   (요청 본문(JSON)만 만들어 비교하므로 키·인터넷 불필요)\n//   [대체 경로] 실제 호출은 하지 않는다. 세 회사의 요청 모양을 같은 입력에서 만들어 공통점·차이를 확인한다.\ntype Msg = { role: string; content: string };\nconst SYSTEM = \"한두 문장으로 짧게 답해.\";\nconst USER = \"내일 서울 날씨 어때?\";\nconst MAX_TOKENS = 150;\nconst TURNS: Msg[] = [\n  { role: \"user\", content: \"안녕\" },\n  { role: \"assistant\", content: \"안녕하세요.\" },\n  { role: \"user\", content: USER },\n];\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// messages API: system은 따로, max_tokens 필수\nconst claudeBody = (): Record<string, unknown> => ({ model: \"claude-haiku-5-5\", system: SYSTEM, max_tokens: MAX_TOKENS, stream: true, messages: TURNS });\n// Responses API: instructions + input\nconst openaiBody = (): Record<string, unknown> => ({ model: \"gpt-6-luna\", instructions: SYSTEM, max_output_tokens: MAX_TOKENS, stream: true, input: TURNS });\n// generateContent: 역할 이름이 user / model\nconst geminiBody = (): Record<string, unknown> => ({\n  system_instruction: { parts: [{ text: SYSTEM }] },\n  generationConfig: { maxOutputTokens: MAX_TOKENS },\n  contents: TURNS.map((m) => ({ role: m.role === \"assistant\" ? \"model\" : \"user\", parts: [{ text: m.content }] })),\n});\n\nconst bodies: Record<string, Record<string, unknown>> = { claude: claudeBody(), openai: openaiBody(), gemini: geminiBody() };\nfor (const [name, b] of Object.entries(bodies)) console.log(`${name.padEnd(7)} 최상위 키:`, Object.keys(b).sort());\nconst common = Object.values(bodies).every((b) => {\n  const t = JSON.stringify(b);\n  return t.includes(SYSTEM) && t.includes(USER) && t.includes(String(MAX_TOKENS));\n});\nconst gContents = bodies.gemini.contents as { role: string }[];\ncheck(common && gContents[1].role === \"model\" && \"system\" in bodies.claude, \"세 API 모두 시스템 지시·대화·길이 상한이 들어가고, Gemini만 assistant 대신 model을 씁니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "stream": {
+  "part": "Part 2 · 세 API의 Streaming 통일",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    5,
+    5
+   ]
+  ],
+  "python": "# D22 · Part 2 · Streaming 이벤트 통일 — 단독 실행 완성 코드 (Python 3.11)\n# pip install anthropic==2.11.0\n# 실행: python d22_stream.py   (ANTHROPIC_API_KEY가 있으면 실제 Claude 스트림도 같은 함수로 읽음)\n#   [대체 경로] 키가 없으면 세 회사의 이벤트 모양을 흉내 낸 가짜 이벤트 목록을 쓴다.\nimport os\nimport time\n\nWORDS = [\"내일\", \" 서울은\", \" 맑고\", \" 최고\", \" 18도예요.\"]\nFAKE = {   # 회사마다 다른 이벤트 모양 (모의)\n    \"claude\": [{\"type\": \"content_block_delta\", \"delta\": {\"type\": \"text_delta\", \"text\": w}} for w in WORDS],\n    \"openai\": [{\"type\": \"response.output_text.delta\", \"delta\": w} for w in WORDS] + [{\"type\": \"response.completed\"}],\n    \"gemini\": [{\"candidates\": [{\"content\": {\"parts\": [{\"text\": w}]}}]} for w in WORDS],\n}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef pieces(provider: str, events: list):\n    \"\"\"회사마다 다른 이벤트에서 '글 조각'만 꺼내 똑같은 generator로 내준다.\"\"\"\n    for ev in events:\n        if provider == \"claude\" and ev[\"type\"] == \"content_block_delta\":\n            yield ev[\"delta\"][\"text\"]\n        elif provider == \"openai\" and ev[\"type\"] == \"response.output_text.delta\":\n            yield ev[\"delta\"]\n        elif provider == \"gemini\":\n            yield ev[\"candidates\"][0][\"content\"][\"parts\"][0][\"text\"]\n\n\ndef stream_real(question: str):\n    import anthropic                                   # 실제 경로: 키가 있을 때만\n    with anthropic.Anthropic().messages.stream(model=\"claude-haiku-5-5\", max_tokens=100,\n                                               messages=[{\"role\": \"user\", \"content\": question}]) as s:\n        yield from s.text_stream\n\n\ndef run(gen):\n    t0, ttft, out = time.perf_counter(), None, []\n    for p in gen:\n        if ttft is None:\n            ttft = time.perf_counter() - t0            # 첫 조각이 온 시각 = TTFT\n        out.append(p)\n    return \"\".join(out), ttft\n\n\nresults = {p: run(pieces(p, ev)) for p, ev in FAKE.items()}\nfor p, (text, ttft) in results.items():\n    print(f\"{p:<7} TTFT {ttft * 1000:.2f}ms → {text}\")\nif os.environ.get(\"ANTHROPIC_API_KEY\"):\n    text, ttft = run(stream_real(\"서울은 어느 나라 수도야? 한 문장으로.\"))\n    print(f\"실제 Claude TTFT {ttft:.2f}초 → {text}\")\ncheck({t for t, _ in results.values()} == {\"내일 서울은 맑고 최고 18도예요.\"},\n      \"세 회사 모두 같은 글 조각 순서로 합쳐져야 해요.\")\n",
+  "typescript": "// D22 · Part 2 · Streaming 이벤트 통일 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_stream.ts   (ANTHROPIC_API_KEY가 있으면 fetch 스트림도 같은 함수로 읽음)\n//   [대체 경로] 키가 없으면 세 회사의 이벤트 모양을 흉내 낸 가짜 이벤트 목록을 쓴다.\ntype Ev = Record<string, any>;\nconst WORDS = [\"내일\", \" 서울은\", \" 맑고\", \" 최고\", \" 18도예요.\"];\nconst FAKE: Record<string, Ev[]> = {\n  claude: WORDS.map((w) => ({ type: \"content_block_delta\", delta: { type: \"text_delta\", text: w } })),\n  openai: [...WORDS.map((w) => ({ type: \"response.output_text.delta\", delta: w })), { type: \"response.completed\" }],\n  gemini: WORDS.map((w) => ({ candidates: [{ content: { parts: [{ text: w }] } }] })),\n};\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction* pieces(provider: string, events: Ev[]): Generator<string> {\n  // 회사마다 다른 이벤트에서 '글 조각'만 꺼내 똑같은 generator로 내준다\n  for (const ev of events) {\n    if (provider === \"claude\" && ev.type === \"content_block_delta\") yield ev.delta.text;\n    else if (provider === \"openai\" && ev.type === \"response.output_text.delta\") yield ev.delta;\n    else if (provider === \"gemini\") yield ev.candidates[0].content.parts[0].text;\n  }\n}\n\nasync function* streamReal(question: string, key: string): AsyncGenerator<string> {\n  // 실제 경로: 키가 있을 때만 (SSE 줄에서 text_delta만 꺼냄)\n  const res = await fetch(\"https://api.anthropic.com/v1/messages\", {\n    method: \"POST\",\n    headers: { \"x-api-key\": key, \"anthropic-version\": \"2023-06-01\", \"content-type\": \"application/json\" },\n    body: JSON.stringify({ model: \"claude-haiku-5-5\", max_tokens: 100, stream: true, messages: [{ role: \"user\", content: question }] }),\n  });\n  const decoder = new TextDecoder();\n  let buf = \"\";\n  for await (const chunk of res.body as unknown as AsyncIterable<Uint8Array>) {\n    buf += decoder.decode(chunk, { stream: true });\n    const lines = buf.split(\"\\n\");\n    buf = lines.pop() ?? \"\";\n    for (const line of lines) {\n      if (!line.startsWith(\"data: \")) continue;\n      const ev = JSON.parse(line.slice(6)) as Ev;\n      if (ev.type === \"content_block_delta\") yield ev.delta.text;\n    }\n  }\n}\n\nasync function run(gen: Iterable<string> | AsyncIterable<string>): Promise<[string, number]> {\n  const t0 = performance.now();\n  let ttft = -1;\n  const out: string[] = [];\n  for await (const p of gen) {\n    if (ttft < 0) ttft = performance.now() - t0; // 첫 조각이 온 시각 = TTFT\n    out.push(p);\n  }\n  return [out.join(\"\"), ttft];\n}\n\nconst results: Record<string, [string, number]> = {};\nfor (const [p, ev] of Object.entries(FAKE)) results[p] = await run(pieces(p, ev));\nfor (const [p, [text, ttft]] of Object.entries(results)) console.log(`${p.padEnd(7)} TTFT ${ttft.toFixed(2)}ms → ${text}`);\nconst key = process.env.ANTHROPIC_API_KEY;\nif (key) {\n  const [text, ttft] = await run(streamReal(\"서울은 어느 나라 수도야? 한 문장으로.\", key));\n  console.log(`실제 Claude TTFT ${(ttft / 1000).toFixed(2)}초 → ${text}`);\n}\ncheck(new Set(Object.values(results).map((r) => r[0])).size === 1 && results.claude[0] === \"내일 서울은 맑고 최고 18도예요.\", \"세 회사 모두 같은 글 조각 순서로 합쳐져야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "anthropic",
+     "version": "2.11.0",
+     "purpose": "Claude API 호출(ANTHROPIC_API_KEY 있을 때만)",
+     "install": "pip install anthropic==2.11.0",
+     "docs": "https://docs.anthropic.com/en/api/client-sdks",
+     "license": "Apache-2.0"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "fetch",
+     "version": "내장",
+     "purpose": "Claude API 호출(키가 있을 때만)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/globals.html#fetch",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "cost": {
+  "part": "Part 3 · TTFT · 속도 · 비용 비교",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    6,
+    6
+   ]
+  ],
+  "python": "# D22 · Part 3 · 비용 계산기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d22_cost.py   (단가는 참고용 예시값 — 실제 값은 각 회사 공식 가격표 확인)\nPRICES = {\"A\": dict(inp=0.10, out=0.50), \"B\": dict(inp=0.54, out=4.50), \"local\": dict(inp=0.0, out=0.0)}   # 100만 토큰당 USD\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef turn_cost(in_tok: int, out_tok: int, pr: dict) -> float:\n    return (in_tok * pr[\"inp\"] + out_tok * pr[\"out\"]) / 1e6      # 출력 단가의 키는 \"out\"\n\n\nrows = {name: turn_cost(900, 60, pr) for name, pr in PRICES.items()}\nfor name, c in rows.items():\n    print(f\"{name:<6} 1턴 {c:.6f} USD · 1000턴 {c * 1000:.4f} USD\")\n# 이력 전체를 매번 보내면 입력 토큰이 턴마다 늘어난다 (턴당 +120토큰)\nfull = sum(turn_cost(200 + 120 * t, 60, PRICES[\"B\"]) for t in range(30))\nwindow = sum(turn_cost(200 + 120 * min(t, 4), 60, PRICES[\"B\"]) for t in range(30))   # 최근 4턴만\nprint(f\"30턴 합계: 전체 이력 {full:.5f} USD · 최근 4턴 {window:.5f} USD\")\ncheck(rows[\"local\"] == 0 and abs(rows[\"A\"] - 0.00012) < 1e-9 and window < full,\n      \"1턴 = (입력×단가 + 출력×단가) / 100만, 창을 쓰면 더 싸요.\")\n",
+  "typescript": "// D22 · Part 3 · 비용 계산기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_cost.ts   (단가는 참고용 예시값 — 실제 값은 각 회사 공식 가격표 확인)\ntype Price = { inp: number; out: number };\nconst PRICES: Record<string, Price> = { A: { inp: 0.1, out: 0.5 }, B: { inp: 0.54, out: 4.5 }, local: { inp: 0, out: 0 } }; // 100만 토큰당 USD\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst turnCost = (inTok: number, outTok: number, pr: Price): number => (inTok * pr.inp + outTok * pr.out) / 1e6; // 출력 단가의 키는 out\n\nconst rows: Record<string, number> = {};\nfor (const [name, pr] of Object.entries(PRICES)) {\n  rows[name] = turnCost(900, 60, pr);\n  console.log(`${name.padEnd(6)} 1턴 ${rows[name].toFixed(6)} USD · 1000턴 ${(rows[name] * 1000).toFixed(4)} USD`);\n}\n// 이력 전체를 매번 보내면 입력 토큰이 턴마다 늘어난다 (턴당 +120토큰)\nconst turns = Array.from({ length: 30 }, (_, t) => t);\nconst full = turns.reduce((s, t) => s + turnCost(200 + 120 * t, 60, PRICES.B), 0);\nconst windowed = turns.reduce((s, t) => s + turnCost(200 + 120 * Math.min(t, 4), 60, PRICES.B), 0); // 최근 4턴만\nconsole.log(`30턴 합계: 전체 이력 ${full.toFixed(5)} USD · 최근 4턴 ${windowed.toFixed(5)} USD`);\ncheck(rows.local === 0 && Math.abs(rows.A - 0.00012) < 1e-9 && windowed < full, \"1턴 = (입력×단가 + 출력×단가) / 100만, 창을 쓰면 더 싸요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "lint": {
+  "part": "Part 4 · 음성용 답 자동 점검 voice_lint",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    7,
+    8
+   ]
+  ],
+  "python": "# D22 · Part 4 · 음성용 답 점검기 voice_lint — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d22_lint.py   (인터넷 불필요)\nimport re\n\nMAX_CHARS, MAX_SENT = 80, 2\nMD = re.compile(r\"(^\\s*([-*•]|\\d+[.)])\\s)|[*#`|]|\\[[^\\]]*\\]\\(\", re.M)\nEMOJI = re.compile(r\"[\\U0001F300-\\U0001FAFF☀-➿]\")\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef voice_lint(text: str, max_chars: int = MAX_CHARS, max_sent: int = MAX_SENT) -> dict:\n    r = dict(글자=len(text),\n             문장=len([s for s in re.split(r\"(?<=[.!?])\\s+|\\n+\", text.strip()) if s.strip()]),\n             마크다운=bool(MD.search(text)), 이모지=bool(EMOJI.search(text)),\n             영어=len(re.findall(r\"[A-Za-z]{3,}\", text)))\n    r[\"ok\"] = r[\"글자\"] <= max_chars and r[\"문장\"] <= max_sent and not r[\"마크다운\"] and not r[\"이모지\"]\n    return r\n\n\nsamples = [\"내일 서울은 맑고 낮 최고 18도예요. 우산은 필요 없어요.\",\n           \"## 내일 날씨\\n- **최고 기온**: 18도\\n- 강수 확률: 10% ☀️\",\n           \"네. 알겠어요. 바로 옮길게요. 3시 30분으로 바꿨어요. 더 필요한 것 있나요?\"]\noks = []\nfor s in samples:\n    r = voice_lint(s)\n    oks.append(r[\"ok\"])\n    print(s.replace(\"\\n\", \" / \")[:34], \"→\", r)\ncheck(oks == [True, False, False], \"첫 문장만 통과: 둘째는 마크다운·이모지, 셋째는 문장이 5개입니다.\")\n",
+  "typescript": "// D22 · Part 4 · 음성용 답 점검기 voiceLint — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_lint.ts   (인터넷 불필요)\nconst MAX_CHARS = 80;\nconst MAX_SENT = 2;\nconst MD = /(^\\s*([-*•]|\\d+[.)])\\s)|[*#`|]|\\[[^\\]]*\\]\\(/m;\nconst EMOJI = /[\\u{1F300}-\\u{1FAFF}☀-➿]/u;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction voiceLint(text: string, maxChars: number = MAX_CHARS, maxSent: number = MAX_SENT): Record<string, number | boolean> {\n  const sents = text.trim().split(/(?<=[.!?])\\s+|\\n+/).filter((s) => s.trim() !== \"\").length;\n  const r = {\n    글자: [...text].length,\n    문장: sents,\n    마크다운: MD.test(text),\n    이모지: EMOJI.test(text),\n    영어: (text.match(/[A-Za-z]{3,}/g) ?? []).length,\n  };\n  return { ...r, ok: r.글자 <= maxChars && r.문장 <= maxSent && !r.마크다운 && !r.이모지 };\n}\n\nconst samples = [\n  \"내일 서울은 맑고 낮 최고 18도예요. 우산은 필요 없어요.\",\n  \"## 내일 날씨\\n- **최고 기온**: 18도\\n- 강수 확률: 10% ☀️\",\n  \"네. 알겠어요. 바로 옮길게요. 3시 30분으로 바꿨어요. 더 필요한 것 있나요?\",\n];\nconst oks: boolean[] = [];\nfor (const s of samples) {\n  const r = voiceLint(s);\n  oks.push(r.ok as boolean);\n  console.log(s.replace(/\\n/g, \" / \").slice(0, 34), \"→\", r);\n}\ncheck(oks.join() === \"true,false,false\", \"첫 문장만 통과: 둘째는 마크다운·이모지, 셋째는 문장이 5개입니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "history": {
+  "part": "Part 5 · 대화 이력 관리: 창 · 요약",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    9,
+    10
+   ]
+  ],
+  "python": "# D22 · Part 5 · 이력 창 · 요약 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d22_history.py   (요약은 LLM 대신 '지난 턴에서 이름·약속을 뽑는 규칙'으로 대신함)\n#   [대체 경로] 실제로는 LLM에게 요약을 시키지만 여기서는 정규식으로 핵심 사실만 모은다.\nimport re\n\nSCRIPT = [\"안녕, 내 이름은 지민이야.\", \"나 금요일 오후 2시에 치과 예약이 있어.\", \"점심 메뉴 하나만 추천해 줘.\",\n          \"그럼 저녁은 뭐가 좋을까?\", \"주말에 갈 만한 산책 장소 있을까?\"]\nFACT = re.compile(r\"이름은 \\S+|금요일 오후 \\d시\")\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nclass Conversation:\n    def __init__(self, max_turns: int, summarize: bool = False):\n        self.max_turns, self.summarize, self.turns, self.facts = max_turns, summarize, [], []\n\n    def messages(self, user_text: str) -> list[dict]:\n        recent = self.turns[-self.max_turns * 2:] if self.max_turns else list(self.turns)   # 한 턴 = 메시지 2개\n        head = [{\"role\": \"user\", \"content\": \"[지난 대화 요약] \" + \"; \".join(self.facts)},\n                {\"role\": \"assistant\", \"content\": \"알겠어요.\"}] if self.facts else []\n        return head + recent + [{\"role\": \"user\", \"content\": user_text}]\n\n    def commit(self, user_text: str, reply: str) -> None:\n        self.turns += [{\"role\": \"user\", \"content\": user_text}, {\"role\": \"assistant\", \"content\": reply}]\n        if self.summarize:\n            found = [FACT.search(t[\"content\"]) for t in self.turns if t[\"role\"] == \"user\"]\n            self.facts = [m.group(0) for m in found if m]\n\n\ndef remembers(conv: Conversation) -> bool:\n    text = \" \".join(m[\"content\"] for m in conv.messages(\"내 이름이 뭐였지?\"))\n    return \"지민\" in text and \"금요일\" in text\n\n\nresult = {}\nfor name, conv in {\"전체 이력\": Conversation(0), \"최근 2턴\": Conversation(2), \"최근 2턴 + 요약\": Conversation(2, True)}.items():\n    sizes = []\n    for q in SCRIPT:\n        sizes.append(len(conv.messages(q)))\n        conv.commit(q, \"네.\")\n    result[name] = (sizes, remembers(conv))\n    print(f\"{name:<14} 보낸 메시지 수 {sizes} · 이름·약속 기억 {result[name][1]}\")\ncheck(result[\"전체 이력\"][0] == [1, 3, 5, 7, 9] and result[\"최근 2턴\"][1] is False and result[\"최근 2턴 + 요약\"][1] is True,\n      \"전체는 계단식으로 늘고, 창만 쓰면 잊고, 창 + 요약은 기억해야 해요.\")\n",
+  "typescript": "// D22 · Part 5 · 이력 창 · 요약 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_history.ts   (요약은 LLM 대신 '지난 턴에서 이름·약속을 뽑는 규칙'으로 대신함)\n//   [대체 경로] 실제로는 LLM에게 요약을 시키지만 여기서는 정규식으로 핵심 사실만 모은다.\ntype Msg = { role: string; content: string };\nconst SCRIPT = [\"안녕, 내 이름은 지민이야.\", \"나 금요일 오후 2시에 치과 예약이 있어.\", \"점심 메뉴 하나만 추천해 줘.\", \"그럼 저녁은 뭐가 좋을까?\", \"주말에 갈 만한 산책 장소 있을까?\"];\nconst FACT = /이름은 \\S+|금요일 오후 \\d시/;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nclass Conversation {\n  maxTurns: number;\n  summarize: boolean;\n  turns: Msg[] = [];\n  facts: string[] = [];\n  constructor(maxTurns: number, summarize: boolean = false) {\n    this.maxTurns = maxTurns;\n    this.summarize = summarize;\n  }\n  messages(userText: string): Msg[] {\n    const recent = this.maxTurns ? this.turns.slice(-this.maxTurns * 2) : [...this.turns]; // 한 턴 = 메시지 2개\n    const head: Msg[] = this.facts.length\n      ? [{ role: \"user\", content: \"[지난 대화 요약] \" + this.facts.join(\"; \") }, { role: \"assistant\", content: \"알겠어요.\" }]\n      : [];\n    return [...head, ...recent, { role: \"user\", content: userText }];\n  }\n  commit(userText: string, reply: string): void {\n    this.turns.push({ role: \"user\", content: userText }, { role: \"assistant\", content: reply });\n    if (this.summarize) {\n      this.facts = this.turns.filter((t) => t.role === \"user\").map((t) => FACT.exec(t.content)).filter((m) => m !== null).map((m) => m[0]);\n    }\n  }\n}\n\nfunction remembers(conv: Conversation): boolean {\n  const text = conv.messages(\"내 이름이 뭐였지?\").map((m) => m.content).join(\" \");\n  return text.includes(\"지민\") && text.includes(\"금요일\");\n}\n\nconst result: Record<string, [number[], boolean]> = {};\nconst setups: Record<string, Conversation> = { \"전체 이력\": new Conversation(0), \"최근 2턴\": new Conversation(2), \"최근 2턴 + 요약\": new Conversation(2, true) };\nfor (const [name, conv] of Object.entries(setups)) {\n  const sizes: number[] = [];\n  for (const q of SCRIPT) {\n    sizes.push(conv.messages(q).length);\n    conv.commit(q, \"네.\");\n  }\n  result[name] = [sizes, remembers(conv)];\n  console.log(`${name.padEnd(14)} 보낸 메시지 수 [${sizes.join(\", \")}] · 이름·약속 기억 ${result[name][1]}`);\n}\ncheck(result[\"전체 이력\"][0].join() === \"1,3,5,7,9\" && !result[\"최근 2턴\"][1] && result[\"최근 2턴 + 요약\"][1], \"전체는 계단식으로 늘고, 창만 쓰면 잊고, 창 + 요약은 기억해야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "bargein": {
+  "part": "Part 5 · 끼어들기 저장",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    9,
+    9
+   ]
+  ],
+  "python": "# D22 · Part 5 · 끼어들기 저장 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d22_bargein.py   (스피커 대신 '초당 N글자 읽는다'는 시간 계산으로 대신함)\n#   [대체 경로] 실제 TTS 재생 없이 재생 시간(초)으로 '실제로 말한 글자 수'를 계산한다.\nCHARS_PER_SEC = 8.0   # 모의 TTS 속도: 초당 8글자\nREPLY = \"내일 서울은 맑고 낮 최고 기온은 18도예요. 아침에는 조금 쌀쌀하니 겉옷을 챙기세요.\"\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef spoken_chars(played_sec: float) -> int:\n    return min(len(REPLY), int(played_sec * CHARS_PER_SEC))\n\n\ndef commit(turns: list, user_text: str, reply: str, spoken: int | None = None) -> None:\n    said = reply if spoken is None else reply[:spoken].rstrip() + \" …(사용자가 끼어듦)\"   # 말한 만큼만 저장\n    turns += [{\"role\": \"user\", \"content\": user_text}, {\"role\": \"assistant\", \"content\": said}]\n\n\nturns: list = []\nn = spoken_chars(2.5)                                   # 2.5초 말하다 사용자가 끼어듦\ncommit(turns, \"내일 날씨 알려 줘\", REPLY, spoken=n)\nprint(f\"전체 {len(REPLY)}자 중 {n}자만 말함 → 저장: {turns[-1]['content']}\")\nfull: list = []\ncommit(full, \"내일 날씨 알려 줘\", REPLY)\ncheck(n == 20 and turns[-1][\"content\"].endswith(\"(사용자가 끼어듦)\") and \"겉옷\" not in turns[-1][\"content\"] and \"겉옷\" in full[-1][\"content\"],\n      \"끼어들면 사용자가 듣지 못한 뒷부분은 이력에 남기지 않아요.\")\n",
+  "typescript": "// D22 · Part 5 · 끼어들기 저장 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_bargein.ts   (스피커 대신 '초당 N글자 읽는다'는 시간 계산으로 대신함)\n//   [대체 경로] 실제 TTS 재생 없이 재생 시간(초)으로 '실제로 말한 글자 수'를 계산한다.\ntype Msg = { role: string; content: string };\nconst CHARS_PER_SEC = 8; // 모의 TTS 속도: 초당 8글자\nconst REPLY = \"내일 서울은 맑고 낮 최고 기온은 18도예요. 아침에는 조금 쌀쌀하니 겉옷을 챙기세요.\";\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst spokenChars = (playedSec: number): number => Math.min(REPLY.length, Math.floor(playedSec * CHARS_PER_SEC));\n\nfunction commit(turns: Msg[], userText: string, reply: string, spoken: number | null = null): void {\n  const said = spoken === null ? reply : reply.slice(0, spoken).trimEnd() + \" …(사용자가 끼어듦)\"; // 말한 만큼만 저장\n  turns.push({ role: \"user\", content: userText }, { role: \"assistant\", content: said });\n}\n\nconst turns: Msg[] = [];\nconst n = spokenChars(2.5); // 2.5초 말하다 사용자가 끼어듦\ncommit(turns, \"내일 날씨 알려 줘\", REPLY, n);\nconst saved = turns[turns.length - 1].content;\nconsole.log(`전체 ${REPLY.length}자 중 ${n}자만 말함 → 저장: ${saved}`);\nconst full: Msg[] = [];\ncommit(full, \"내일 날씨 알려 줘\", REPLY);\ncheck(n === 20 && saved.endsWith(\"(사용자가 끼어듦)\") && !saved.includes(\"겉옷\") && full[1].content.includes(\"겉옷\"), \"끼어들면 사용자가 듣지 못한 뒷부분은 이력에 남기지 않아요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "thinking": {
+  "part": "Part 2 · 생각 모드와 TTFT",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    5,
+    5
+   ]
+  ],
+  "python": "# D22 · Part 2 · 생각 모드와 TTFT — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d22_thinking.py   (모델 없이 '생각 토큰 수 ÷ 생성 속도'만큼 첫 글자가 늦어진다고 계산)\n#   [대체 경로] 실제 API 대신 생각 예산별 TTFT를 식으로 계산한다.\nTPS, BASE_TTFT = 60.0, 0.30     # 모의: 초당 60토큰, 생각 없이 첫 글자까지 0.3초\nBUDGETS = {\"minimal\": 0, \"low\": 512, \"medium\": 2048, \"high\": 8192}   # 생각 토큰 상한\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef ttft(level: str, used_ratio: float = 0.1) -> float:\n    return BASE_TTFT + BUDGETS[level] * used_ratio / TPS     # 생각 토큰이 다 나올 때까지 글자는 안 나옴\n\n\nrows = {lv: ttft(lv) for lv in BUDGETS}\nfor lv, t in rows.items():\n    print(f\"{lv:<8} 생각 {BUDGETS[lv]:>5}토큰 → 첫 글자까지 약 {t:.2f}초 {'(음성 비서 OK)' if t <= 1.5 else '(음성에는 너무 느림)'}\")\nvoice_ok = [lv for lv, t in rows.items() if t <= 1.5]\ncheck(voice_ok == [\"minimal\", \"low\"] and rows[\"high\"] > 5 * rows[\"minimal\"], \"음성 비서는 생각을 minimal·low로 줄여 TTFT를 지킵니다.\")\n",
+  "typescript": "// D22 · Part 2 · 생각 모드와 TTFT — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_thinking.ts   (모델 없이 '생각 토큰 수 ÷ 생성 속도'만큼 첫 글자가 늦어진다고 계산)\n//   [대체 경로] 실제 API 대신 생각 예산별 TTFT를 식으로 계산한다.\nconst TPS = 60; // 모의: 초당 60토큰\nconst BASE_TTFT = 0.3; // 생각 없이 첫 글자까지 0.3초\nconst BUDGETS: Record<string, number> = { minimal: 0, low: 512, medium: 2048, high: 8192 }; // 생각 토큰 상한\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 생각 토큰이 다 나올 때까지 글자는 안 나온다\nconst ttft = (level: string, usedRatio: number = 0.1): number => BASE_TTFT + (BUDGETS[level] * usedRatio) / TPS;\n\nconst rows: Record<string, number> = {};\nfor (const lv of Object.keys(BUDGETS)) {\n  rows[lv] = ttft(lv);\n  console.log(`${lv.padEnd(8)} 생각 ${String(BUDGETS[lv]).padStart(5)}토큰 → 첫 글자까지 약 ${rows[lv].toFixed(2)}초 ${rows[lv] <= 1.5 ? \"(음성 비서 OK)\" : \"(음성에는 너무 느림)\"}`);\n}\nconst voiceOk = Object.keys(rows).filter((lv) => rows[lv] <= 1.5);\ncheck(voiceOk.join() === \"minimal,low\" && rows.high > 5 * rows.minimal, \"음성 비서는 생각을 minimal·low로 줄여 TTFT를 지킵니다.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "keys": {
+  "part": "Part 1 · API 키 읽기와 안전",
+  "nb": "D22_LLM_API연동_실습.ipynb",
+  "ord": [
+   [
+    3,
+    3
+   ]
+  ],
+  "python": "# D22 · Part 1 · API 키 안전 점검 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d22_keys.py   (가짜 키로만 검사하므로 진짜 키·인터넷 불필요)\nimport re\n\n# 가짜 키는 실행할 때 조립한다 (저장소에 키 모양 문자열을 남기지 않기 위해)\nFAKE = \"sk-ant-\" + \"A1b2C3d4\" * 3\nSECRET = re.compile(r\"(sk-ant-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,})\")\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef mask(key: str) -> str:\n    return key[:7] + \"…\" + key[-2:] if len(key) > 12 else \"***\"\n\n\ndef scan(name: str, text: str) -> list[str]:\n    return [f\"{name}: 키 모양 발견 → {mask(m.group(0))}\" for m in SECRET.finditer(text)]\n\n\nfiles = {\n    \"app.py\": 'client = Anthropic(api_key=\"' + FAKE + '\")\\n',     # 나쁜 예: 코드에 직접\n    \"good.py\": 'client = Anthropic(api_key=os.environ[\"ANTHROPIC_API_KEY\"])\\n',\n    \".env.example\": \"ANTHROPIC_API_KEY=\\n\",\n    \"log.txt\": \"요청 헤더 x-api-key: \" + FAKE + \"\\n\",\n}\nbad = [msg for n, t in files.items() for msg in scan(n, t)]\nprint(\"\\n\".join(bad))\ncheck([m.split(\":\")[0] for m in bad] == [\"app.py\", \"log.txt\"] and FAKE not in \"\\n\".join(bad), \"코드·로그의 키는 잡고, 환경 변수 읽기와 .env.example은 통과, 출력엔 마스킹된 키만.\")\n",
+  "typescript": "// D22 · Part 1 · API 키 안전 점검 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d22_keys.ts   (가짜 키로만 검사하므로 진짜 키·인터넷 불필요)\n// 가짜 키는 실행할 때 조립한다 (저장소에 키 모양 문자열을 남기지 않기 위해)\nconst FAKE = \"sk-ant-\" + \"A1b2C3d4\".repeat(3);\nconst SECRET = /(sk-ant-[A-Za-z0-9_-]{16,}|AIza[0-9A-Za-z_-]{20,}|sk-[A-Za-z0-9]{20,})/g;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst mask = (key: string): string => (key.length > 12 ? key.slice(0, 7) + \"…\" + key.slice(-2) : \"***\");\nconst scan = (name: string, text: string): string[] => [...text.matchAll(SECRET)].map((m) => `${name}: 키 모양 발견 → ${mask(m[0])}`);\n\nconst files: Record<string, string> = {\n  \"app.ts\": 'const client = new Anthropic({ apiKey: \"' + FAKE + '\" });\\n', // 나쁜 예: 코드에 직접\n  \"good.ts\": \"const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });\\n\",\n  \".env.example\": \"ANTHROPIC_API_KEY=\\n\",\n  \"log.txt\": \"요청 헤더 x-api-key: \" + FAKE + \"\\n\",\n};\nconst bad = Object.entries(files).flatMap(([n, t]) => scan(n, t));\nconsole.log(bad.join(\"\\n\"));\ncheck(bad.map((m) => m.split(\":\")[0]).join() === \"app.ts,log.txt\" && !bad.join(\"\\n\").includes(FAKE), \"코드·로그의 키는 잡고, 환경 변수 읽기와 .env.example은 통과, 출력엔 마스킹된 키만.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ }
+}

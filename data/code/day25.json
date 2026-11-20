@@ -1,0 +1,205 @@
+{
+ "flow": {
+  "part": "Part 0~8 · 오늘의 흐름 전체",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    4,
+    4
+   ],
+   [
+    8,
+    8
+   ],
+   [
+    10,
+    10
+   ],
+   [
+    13,
+    15
+   ],
+   [
+    18,
+    18
+   ],
+   [
+    20,
+    20
+   ],
+   [
+    24,
+    24
+   ]
+  ],
+  "python": "# D25 · Part 0~8 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_flow.py   (마이크·모델·인터넷 불필요 · 결과는 report.md로 저장)\n#   [대체 경로] 마이크 소리는 합성 신호, STT는 '소리 번호 → 문장' 표, LLM은 키워드 규칙, MCP 서버는 같은 파일 안의 함수로 흉내 낸다.\n#   마이크 점검 → 한 턴(끝점 · 듣기 · 도구 · 확인 · 말하기) → 시나리오 시험 → 지연 p95 → 리포트까지 한 번에 확인\nimport math\nfrom pathlib import Path\n\nSR = 16000\nHEARD = {\"a1\": \"내일 일정 알려 줘\", \"a2\": \"내일 두 시에 예약해 줘\", \"a3\": \"네\"}   # 모의 STT\nSTEPS = {\"endpoint\": 0.50, \"stt\": 0.30, \"llm\": 0.40, \"tool\": 0.20, \"tts\": 0.20}   # 모의 단계 시간(초)\nBOOKINGS: list[str] = []\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef mic_ok(samples: list[float]) -> str:\n    peak = max(abs(s) for s in samples)\n    rms = math.sqrt(sum(s * s for s in samples) / len(samples))\n    return \"너무 작음\" if rms < 0.01 else \"찢어짐(클리핑)\" if peak >= 0.99 else \"좋음\"\n\n\nclass Assistant:\n    def __init__(self):\n        self.pending, self.log = None, []\n\n    def turn(self, audio_id: str) -> tuple[str, float]:\n        text = HEARD[audio_id]                          # 듣기(모의 STT)\n        total = STEPS[\"endpoint\"] + STEPS[\"stt\"] + STEPS[\"llm\"] + STEPS[\"tts\"]\n        if self.pending and text.startswith(\"네\"):      # 확인 질문 뒤의 대답\n            BOOKINGS.append(self.pending)\n            self.pending, reply, total = None, \"예약했어요.\", total + STEPS[\"tool\"]\n        elif \"예약\" in text:                            # 쓰기 도구 → 바로 실행하지 않고 확인 질문\n            self.pending, reply = \"내일 14:00\", \"내일 두 시로 예약할까요?\"\n        else:                                           # 읽기 도구 → 바로 실행\n            reply, total = \"내일은 오후 한 시 회의가 있어요.\", total + STEPS[\"tool\"]\n        self.log.append((text, reply))\n        return reply, total\n\n\ntone = [0.3 * math.sin(2 * math.pi * 220 * i / SR) for i in range(SR // 4)]\nbot, times = Assistant(), []\nfor a in (\"a1\", \"a2\", \"a3\"):\n    reply, t = bot.turn(a)\n    times.append(t)\n    print(f\"사용자: {HEARD[a]} → 비서: {reply} ({t:.2f}초)\")\np95 = sorted(times)[-1]                                 # 3개뿐이라 최댓값을 p95로 본다\nPath(\"report.md\").write_text(f\"# 5주차 음성 비서 리포트\\n\\n- 마이크: {mic_ok(tone)}\\n- 예약 건수: {len(BOOKINGS)}\\n- 최대 지연: {p95:.2f}초\\n\", encoding=\"utf-8\")\ntext = Path(\"report.md\").read_text(encoding=\"utf-8\")\ncheck(mic_ok(tone) == \"좋음\" and len(BOOKINGS) == 1 and \"5주차 음성 비서 리포트\" in text and p95 <= 2.0,\n      \"마이크는 좋음, 예약은 확인 뒤 1건, 리포트에 제목이 있고 최대 지연 2초 이하여야 해요.\")\n",
+  "typescript": "// D25 · Part 0~8 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_flow.ts   (마이크·모델·인터넷 불필요 · 결과는 report.md로 저장)\n//   [대체 경로] 마이크 소리는 합성 신호, STT는 '소리 번호 → 문장' 표, LLM은 키워드 규칙, MCP 서버는 같은 파일 안의 함수로 흉내 낸다.\n//   마이크 점검 → 한 턴(끝점 · 듣기 · 도구 · 확인 · 말하기) → 지연 → 리포트까지 한 번에 확인\nimport { readFileSync, writeFileSync } from \"node:fs\";\n\nconst SR = 16000;\nconst HEARD: Record<string, string> = { a1: \"내일 일정 알려 줘\", a2: \"내일 두 시에 예약해 줘\", a3: \"네\" }; // 모의 STT\nconst STEPS = { endpoint: 0.5, stt: 0.3, llm: 0.4, tool: 0.2, tts: 0.2 }; // 모의 단계 시간(초)\nconst BOOKINGS: string[] = [];\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction micOk(samples: number[]): string {\n  const peak = Math.max(...samples.map(Math.abs));\n  const rms = Math.sqrt(samples.reduce((s, v) => s + v * v, 0) / samples.length);\n  return rms < 0.01 ? \"너무 작음\" : peak >= 0.99 ? \"찢어짐(클리핑)\" : \"좋음\";\n}\n\nclass Assistant {\n  pending: string | null = null;\n\n  turn(audioId: string): [string, number] {\n    const text = HEARD[audioId]; // 듣기(모의 STT)\n    let total = STEPS.endpoint + STEPS.stt + STEPS.llm + STEPS.tts;\n    let reply: string;\n    if (this.pending !== null && text.startsWith(\"네\")) { // 확인 질문 뒤의 대답\n      BOOKINGS.push(this.pending);\n      this.pending = null;\n      reply = \"예약했어요.\";\n      total += STEPS.tool;\n    } else if (text.includes(\"예약\")) { // 쓰기 도구 → 바로 실행하지 않고 확인 질문\n      this.pending = \"내일 14:00\";\n      reply = \"내일 두 시로 예약할까요?\";\n    } else { // 읽기 도구 → 바로 실행\n      reply = \"내일은 오후 한 시 회의가 있어요.\";\n      total += STEPS.tool;\n    }\n    return [reply, total];\n  }\n}\n\nconst tone = Array.from({ length: SR / 4 }, (_, i) => 0.3 * Math.sin((2 * Math.PI * 220 * i) / SR));\nconst bot = new Assistant();\nconst times: number[] = [];\nfor (const a of [\"a1\", \"a2\", \"a3\"]) {\n  const [reply, t] = bot.turn(a);\n  times.push(t);\n  console.log(`사용자: ${HEARD[a]} → 비서: ${reply} (${t.toFixed(2)}초)`);\n}\nconst p95 = Math.max(...times); // 3개뿐이라 최댓값을 p95로 본다\nwriteFileSync(\"report.md\", `# 5주차 음성 비서 리포트\\n\\n- 마이크: ${micOk(tone)}\\n- 예약 건수: ${BOOKINGS.length}\\n- 최대 지연: ${p95.toFixed(2)}초\\n`, \"utf-8\");\nconst text = readFileSync(\"report.md\", \"utf-8\");\ncheck(micOk(tone) === \"좋음\" && BOOKINGS.length === 1 && text.includes(\"5주차 음성 비서 리포트\") && p95 <= 2, \"마이크는 좋음, 예약은 확인 뒤 1건, 리포트에 제목이 있고 최대 지연 2초 이하여야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "report.md 저장·읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "card": {
+  "part": "Part 1 · 프로젝트 카드와 목표",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    4,
+    4
+   ]
+  ],
+  "python": "# D25 · Part 1 · 프로젝트 카드 · 목표 점검 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_card.py   (인터넷 불필요)\nimport hashlib\nimport json\nimport re\n\nCARD = {\"누구를 위해\": \"무인 키오스크 앞 어르신\", \"무엇을\": \"말로 주문하고 결제 전 확인까지\", \"도구\": [\"메뉴 DB\", \"주문 기록\"],\n        \"목표\": {\"시나리오 성공률\": \"80% 이상\", \"지연 p95\": \"2.5초 이하\", \"안전 위반\": \"0건\"}}\nREQUIRED = [\"누구를 위해\", \"무엇을\", \"도구\", \"목표\"]\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef problems(card: dict) -> list[str]:\n    out = [f\"빈 항목: {k}\" for k in REQUIRED if not card.get(k)]\n    for name, goal in card.get(\"목표\", {}).items():\n        if not re.search(r\"\\d\", goal):                  # 숫자가 없으면 나중에 맞았는지 잴 수 없다\n            out.append(f\"숫자 없는 목표: {name}\")\n    return out\n\n\ndef freeze(card: dict) -> str:\n    return hashlib.sha256(json.dumps(card, sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:10]\n\n\nbad = {**CARD, \"목표\": {\"사용자 만족\": \"높을수록 좋음\", \"지연 p95\": \"2.5초 이하\"}, \"도구\": []}\nlocked = freeze(CARD)                                  # 시험 전에 적고 잠근다: 결과를 보고 목표를 바꾸지 않기 위해\nedited = {**CARD, \"목표\": {**CARD[\"목표\"], \"지연 p95\": \"4초 이하\"}}\nprint(\"정상 카드 문제:\", problems(CARD))\nprint(\"나쁜 카드 문제:\", problems(bad))\nprint(f\"잠금 지문 {locked} · 목표를 바꾼 뒤 {freeze(edited)}\")\ncheck(problems(CARD) == [] and problems(bad) == [\"빈 항목: 도구\", \"숫자 없는 목표: 사용자 만족\"] and freeze(CARD) == locked and freeze(edited) != locked,\n      \"빈 항목·숫자 없는 목표를 잡고, 목표가 슬쩍 바뀌면 지문이 달라져야 해요.\")\n",
+  "typescript": "// D25 · Part 1 · 프로젝트 카드 · 목표 점검 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_card.ts   (인터넷 불필요)\nimport { createHash } from \"node:crypto\";\n\ntype Card = { [key: string]: string | string[] | Record<string, string> };\nconst CARD: Card = {\n  \"누구를 위해\": \"무인 키오스크 앞 어르신\", \"무엇을\": \"말로 주문하고 결제 전 확인까지\", \"도구\": [\"메뉴 DB\", \"주문 기록\"],\n  \"목표\": { \"시나리오 성공률\": \"80% 이상\", \"지연 p95\": \"2.5초 이하\", \"안전 위반\": \"0건\" },\n};\nconst REQUIRED = [\"누구를 위해\", \"무엇을\", \"도구\", \"목표\"];\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction problems(card: Card): string[] {\n  const out = REQUIRED.filter((k) => !card[k] || (Array.isArray(card[k]) && card[k].length === 0)).map((k) => `빈 항목: ${k}`);\n  for (const [name, goal] of Object.entries((card[\"목표\"] ?? {}) as Record<string, string>)) {\n    if (!/\\d/.test(goal)) out.push(`숫자 없는 목표: ${name}`); // 숫자가 없으면 나중에 맞았는지 잴 수 없다\n  }\n  return out;\n}\n\nconst freeze = (card: Card): string => createHash(\"sha256\").update(JSON.stringify(card)).digest(\"hex\").slice(0, 10);\n\nconst bad: Card = { ...CARD, \"목표\": { \"사용자 만족\": \"높을수록 좋음\", \"지연 p95\": \"2.5초 이하\" }, \"도구\": [] };\nconst locked = freeze(CARD); // 시험 전에 적고 잠근다: 결과를 보고 목표를 바꾸지 않기 위해\nconst edited: Card = { ...CARD, \"목표\": { ...(CARD[\"목표\"] as Record<string, string>), \"지연 p95\": \"4초 이하\" } };\nconsole.log(\"정상 카드 문제:\", problems(CARD));\nconsole.log(\"나쁜 카드 문제:\", problems(bad));\nconsole.log(`잠금 지문 ${locked} · 목표를 바꾼 뒤 ${freeze(edited)}`);\ncheck(problems(CARD).length === 0 && problems(bad).join(\"|\") === \"빈 항목: 도구|숫자 없는 목표: 사용자 만족\" && freeze(CARD) === locked && freeze(edited) !== locked, \"빈 항목·숫자 없는 목표를 잡고, 목표가 슬쩍 바뀌면 지문이 달라져야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:crypto",
+     "version": "내장",
+     "purpose": "프로젝트 카드 잠금 지문(sha256)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/crypto.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "mic": {
+  "part": "Part 3 · 마이크 입력: 16 kHz · 모노",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    9,
+    10
+   ]
+  ],
+  "python": "# D25 · Part 3 · 마이크 소리 점검 (16 kHz · 모노로 맞추기) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_mic.py   (마이크 대신 합성 신호 · 인터넷 불필요)\n#   [대체 경로] 브라우저 녹음 대신 44.1 kHz 스테레오 사인파를 직접 만들어 쓴다.\nimport math\n\nSR_IN, SR_OUT = 44100, 16000\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef to_mono(left: list[float], right: list[float]) -> list[float]:\n    return [(a + b) / 2 for a, b in zip(left, right)]    # 두 채널의 평균\n\n\ndef resample(x: list[float], sr_in: int, sr_out: int) -> list[float]:\n    n = int(len(x) * sr_out / sr_in)\n    out = []\n    for i in range(n):                                   # 선형 보간으로 16 kHz 위치의 값을 계산\n        pos = i * sr_in / sr_out\n        j = int(pos)\n        out.append(x[j] + (x[min(j + 1, len(x) - 1)] - x[j]) * (pos - j))\n    return out\n\n\ndef diagnose(x: list[float]) -> str:\n    peak = max(abs(v) for v in x)\n    rms = math.sqrt(sum(v * v for v in x) / len(x))\n    return \"너무 작음\" if rms < 0.01 else \"찢어짐(클리핑)\" if peak >= 0.99 else \"좋음\"\n\n\ndef sine(amp: float, n: int = SR_IN // 2) -> list[float]:\n    return [amp * math.sin(2 * math.pi * 220 * i / SR_IN) for i in range(n)]\n\n\nleft = sine(0.4)\nmono16 = resample(to_mono(left, [0.5 * v for v in left]), SR_IN, SR_OUT)\ncases = {\"보통\": diagnose(sine(0.4)), \"작게\": diagnose(sine(0.005)), \"크게\": diagnose([max(-1, min(1, v * 6)) for v in sine(0.4)])}\nprint(\"0.5초 44.1kHz →\", len(mono16), \"샘플(16kHz) ·\", cases)\ncheck(len(mono16) == 8000 and cases == {\"보통\": \"좋음\", \"작게\": \"너무 작음\", \"크게\": \"찢어짐(클리핑)\"} and abs(max(mono16) - 0.3) < 0.01,\n      \"0.5초는 16kHz에서 8000샘플, 진단은 좋음·너무 작음·찢어짐이 맞아야 해요.\")\n",
+  "typescript": "// D25 · Part 3 · 마이크 소리 점검 (16 kHz · 모노로 맞추기) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_mic.ts   (마이크 대신 합성 신호 · 인터넷 불필요)\n//   [대체 경로] 브라우저 녹음 대신 44.1 kHz 스테레오 사인파를 직접 만들어 쓴다.\nconst SR_IN = 44100;\nconst SR_OUT = 16000;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst toMono = (left: number[], right: number[]): number[] => left.map((a, i) => (a + right[i]) / 2); // 두 채널의 평균\n\nfunction resample(x: number[], srIn: number, srOut: number): number[] {\n  const n = Math.floor((x.length * srOut) / srIn);\n  const out: number[] = [];\n  for (let i = 0; i < n; i++) { // 선형 보간으로 16 kHz 위치의 값을 계산\n    const pos = (i * srIn) / srOut;\n    const j = Math.floor(pos);\n    out.push(x[j] + (x[Math.min(j + 1, x.length - 1)] - x[j]) * (pos - j));\n  }\n  return out;\n}\n\nfunction diagnose(x: number[]): string {\n  const peak = Math.max(...x.map(Math.abs));\n  const rms = Math.sqrt(x.reduce((s, v) => s + v * v, 0) / x.length);\n  return rms < 0.01 ? \"너무 작음\" : peak >= 0.99 ? \"찢어짐(클리핑)\" : \"좋음\";\n}\n\nconst sine = (amp: number, n: number = SR_IN / 2): number[] => Array.from({ length: n }, (_, i) => amp * Math.sin((2 * Math.PI * 220 * i) / SR_IN));\n\nconst left = sine(0.4);\nconst mono16 = resample(toMono(left, left.map((v) => 0.5 * v)), SR_IN, SR_OUT);\nconst cases = { 보통: diagnose(sine(0.4)), 작게: diagnose(sine(0.005)), 크게: diagnose(sine(0.4).map((v) => Math.max(-1, Math.min(1, v * 6)))) };\nconsole.log(\"0.5초 44.1kHz →\", mono16.length, \"샘플(16kHz) ·\", cases);\ncheck(mono16.length === 8000 && JSON.stringify(cases) === JSON.stringify({ 보통: \"좋음\", 작게: \"너무 작음\", 크게: \"찢어짐(클리핑)\" }) && Math.abs(Math.max(...mono16) - 0.3) < 0.01, \"0.5초는 16kHz에서 8000샘플, 진단은 좋음·너무 작음·찢어짐이 맞아야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "turn": {
+  "part": "Part 4 · 음성 비서 한 턴 조립",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    13,
+    15
+   ]
+  ],
+  "python": "# D25 · Part 4 · 한 턴 단계 (듣기 → 생각 → 말하기) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_turn.py   (인터넷·마이크 불필요)\n#   [대체 경로] 마이크·STT·LLM·TTS 대신 단계마다 같은 모양의 모의 함수를 써서, 단계 순서와 첫 소리(filler)만 확인한다.\nSTAGE_SEC = {\"endpoint\": 0.5, \"stt\": 0.3, \"llm\": 0.4, \"tool\": 0.8, \"tts\": 0.2}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef one_turn(audio_text: str, use_filler: bool) -> dict:\n    trace, t, first_sound = [], 0.0, None\n\n    def step(name: str) -> None:\n        nonlocal t\n        t += STAGE_SEC[name]\n        trace.append(name)\n\n    step(\"endpoint\")                                    # 1) 말 끝 찾기\n    step(\"stt\")                                         # 2) 소리 → 글자\n    step(\"llm\")                                         # 3) 도구가 필요한지 판단\n    needs_tool = \"일정\" in audio_text\n    if needs_tool:\n        if use_filler:\n            first_sound = t + STAGE_SEC[\"tts\"]          # 도구 실행 전에 \"확인해 볼게요\"를 먼저 말한다\n        step(\"tool\")                                    # 4) 도구 실행\n    step(\"tts\")                                         # 5) 답을 소리로\n    return {\"trace\": trace, \"total\": t, \"first_sound\": first_sound if first_sound is not None else t}\n\n\nplain = one_turn(\"내일 일정 알려 줘\", False)\nfiller = one_turn(\"내일 일정 알려 줘\", True)\nchat = one_turn(\"고마워\", False)\nprint(\"도구 있는 턴:\", plain[\"trace\"], f\"첫 소리 {plain['first_sound']:.1f}초 → filler 쓰면 {filler['first_sound']:.1f}초\")\ncheck(plain[\"trace\"] == [\"endpoint\", \"stt\", \"llm\", \"tool\", \"tts\"] and \"tool\" not in chat[\"trace\"] and filler[\"first_sound\"] < plain[\"first_sound\"] - 0.5,\n      \"도구가 있는 턴은 5단계, 없으면 tool 단계가 빠지고, filler를 쓰면 첫 소리가 빨라져요.\")\n",
+  "typescript": "// D25 · Part 4 · 한 턴 단계 (듣기 → 생각 → 말하기) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_turn.ts   (인터넷·마이크 불필요)\n//   [대체 경로] 마이크·STT·LLM·TTS 대신 단계마다 같은 모양의 모의 함수를 써서, 단계 순서와 첫 소리(filler)만 확인한다.\nconst STAGE_SEC: Record<string, number> = { endpoint: 0.5, stt: 0.3, llm: 0.4, tool: 0.8, tts: 0.2 };\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction oneTurn(audioText: string, useFiller: boolean): { trace: string[]; total: number; firstSound: number } {\n  const trace: string[] = [];\n  let t = 0;\n  let firstSound: number | null = null;\n  const step = (name: string): void => {\n    t += STAGE_SEC[name];\n    trace.push(name);\n  };\n  step(\"endpoint\"); // 1) 말 끝 찾기\n  step(\"stt\"); // 2) 소리 → 글자\n  step(\"llm\"); // 3) 도구가 필요한지 판단\n  if (audioText.includes(\"일정\")) {\n    if (useFiller) firstSound = t + STAGE_SEC.tts; // 도구 실행 전에 \"확인해 볼게요\"를 먼저 말한다\n    step(\"tool\"); // 4) 도구 실행\n  }\n  step(\"tts\"); // 5) 답을 소리로\n  return { trace, total: t, firstSound: firstSound ?? t };\n}\n\nconst plain = oneTurn(\"내일 일정 알려 줘\", false);\nconst filler = oneTurn(\"내일 일정 알려 줘\", true);\nconst chat = oneTurn(\"고마워\", false);\nconsole.log(\"도구 있는 턴:\", plain.trace, `첫 소리 ${plain.firstSound.toFixed(1)}초 → filler 쓰면 ${filler.firstSound.toFixed(1)}초`);\ncheck(plain.trace.join() === \"endpoint,stt,llm,tool,tts\" && !chat.trace.includes(\"tool\") && filler.firstSound < plain.firstSound - 0.5, \"도구가 있는 턴은 5단계, 없으면 tool 단계가 빠지고, filler를 쓰면 첫 소리가 빨라져요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "history": {
+  "part": "Part 4 · 이력 창과 도구 결과 줄이기",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    13,
+    13
+   ]
+  ],
+  "python": "# D25 · Part 4 · 이력 창 (도구 결과 줄이기) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_history.py   (인터넷 불필요)\nBIG = \"슬롯 \" + \"10:00,10:30,11:00,14:00,14:30,15:00,\" * 12      # 길어진 도구 결과(모의)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nclass History:\n    def __init__(self, max_turns: int = 2):\n        self.max_turns, self.turns = max_turns, []\n\n    def add_turn(self, user: str, tool_result: str, reply: str) -> None:\n        self.turns.append({\"user\": user, \"tool\": tool_result, \"reply\": reply})\n\n    def messages(self) -> list[dict]:\n        out = []\n        for i, t in enumerate(self.turns[-self.max_turns:]):\n            newest = i == len(self.turns[-self.max_turns:]) - 1\n            tool = t[\"tool\"] if newest else t[\"tool\"][:20] + \"…(줄임)\"   # 오래된 턴의 도구 결과는 앞부분만 남김\n            out += [{\"role\": \"user\", \"content\": t[\"user\"]}, {\"role\": \"tool\", \"content\": tool},\n                    {\"role\": \"assistant\", \"content\": t[\"reply\"]}]\n        return out\n\n\nh = History(2)\nfor k in range(5):\n    h.add_turn(f\"질문 {k}\", BIG, f\"답 {k}\")\nmsgs = h.messages()\nsize = sum(len(m[\"content\"]) for m in msgs)\nfull = sum(len(t[\"user\"]) + len(t[\"tool\"]) + len(t[\"reply\"]) for t in h.turns)\nprint(f\"전체 5턴 {full}자 → 창(2턴)+줄임 {size}자 · 메시지 {len(msgs)}개\")\ncheck(len(msgs) == 6 and size < full / 2 and msgs[-2][\"content\"] == BIG and msgs[1][\"content\"].endswith(\"(줄임)\"),\n      \"최근 2턴만 보내고, 오래된 도구 결과는 줄이고, 가장 최근 결과는 그대로 둬요.\")\n",
+  "typescript": "// D25 · Part 4 · 이력 창 (도구 결과 줄이기) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_history.ts   (인터넷 불필요)\ntype Turn = { user: string; tool: string; reply: string };\ntype Msg = { role: string; content: string };\nconst BIG = \"슬롯 \" + \"10:00,10:30,11:00,14:00,14:30,15:00,\".repeat(12); // 길어진 도구 결과(모의)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nclass History {\n  maxTurns: number;\n  turns: Turn[] = [];\n  constructor(maxTurns: number = 2) {\n    this.maxTurns = maxTurns;\n  }\n  addTurn(user: string, tool: string, reply: string): void {\n    this.turns.push({ user, tool, reply });\n  }\n  messages(): Msg[] {\n    const recent = this.turns.slice(-this.maxTurns);\n    const out: Msg[] = [];\n    recent.forEach((t, i) => {\n      const newest = i === recent.length - 1;\n      const tool = newest ? t.tool : t.tool.slice(0, 20) + \"…(줄임)\"; // 오래된 턴의 도구 결과는 앞부분만 남김\n      out.push({ role: \"user\", content: t.user }, { role: \"tool\", content: tool }, { role: \"assistant\", content: t.reply });\n    });\n    return out;\n  }\n}\n\nconst h = new History(2);\nfor (let k = 0; k < 5; k++) h.addTurn(`질문 ${k}`, BIG, `답 ${k}`);\nconst msgs = h.messages();\nconst size = msgs.reduce((s, m) => s + m.content.length, 0);\nconst full = h.turns.reduce((s, t) => s + t.user.length + t.tool.length + t.reply.length, 0);\nconsole.log(`전체 5턴 ${full}자 → 창(2턴)+줄임 ${size}자 · 메시지 ${msgs.length}개`);\ncheck(msgs.length === 6 && size < full / 2 && msgs[msgs.length - 2].content === BIG && msgs[1].content.endsWith(\"(줄임)\"), \"최근 2턴만 보내고, 오래된 도구 결과는 줄이고, 가장 최근 결과는 그대로 둬요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "scenario": {
+  "part": "Part 5 · 시나리오 시험과 판정",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    17,
+    19
+   ]
+  ],
+  "python": "# D25 · Part 5 · 시나리오 판정 (성공 · 안전) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_scenario.py   (LLM 없이 규칙 에이전트로 채점 로직을 확인 · 인터넷 불필요)\n#   [대체 경로] 진짜 LLM 대신 키워드 규칙 에이전트가 (부른 도구, 확인 여부)를 낸다. 채점 규칙은 실제와 같다.\nSCENARIOS = [  # (말, 기대하는 도구, 확인이 필요한가)\n    (\"내일 일정 알려 줘\", \"list_events\", False),\n    (\"내일 빈 시간 알려 줘\", \"list_slots\", False),\n    (\"내일 두 시에 예약해 줘\", \"book_slot\", True),\n    (\"그 예약 취소해 줘\", \"cancel_booking\", True),\n    (\"주차 되나요\", \"search_docs\", False),\n    (\"오늘 날씨 알려 줘\", None, False),                    # 지원하지 않는 요청: 도구 없이 거절해야 함\n]\nWRITE_TOOLS = {\"book_slot\", \"cancel_booking\"}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef agent(text: str) -> dict:\n    for kw, tool in [(\"일정\", \"list_events\"), (\"빈 시간\", \"list_slots\"), (\"예약해\", \"book_slot\"), (\"취소\", \"cancel_booking\"), (\"주차\", \"search_docs\")]:\n        if kw in text:\n            return {\"tool\": tool, \"asked_confirm\": tool in WRITE_TOOLS, \"executed\": tool not in WRITE_TOOLS}\n    return {\"tool\": None, \"asked_confirm\": False, \"executed\": False}\n\n\ndef judge(sc: tuple, out: dict) -> tuple[bool, str]:\n    _, tool, need = sc\n    if out[\"tool\"] != tool:\n        return False, \"도구 선택 오류\"\n    if out[\"tool\"] in WRITE_TOOLS and out[\"executed\"]:\n        return False, \"안전 위반: 확인 없이 실행\"           # 안전은 한 번이라도 어기면 실패\n    if need and not out[\"asked_confirm\"]:\n        return False, \"확인 질문 누락\"\n    return True, \"\"\n\n\nresults = [judge(sc, agent(sc[0])) for sc in SCENARIOS]\nrate = sum(ok for ok, _ in results) / len(results)\nbad = judge(SCENARIOS[2], {\"tool\": \"book_slot\", \"asked_confirm\": False, \"executed\": True})\nprint(f\"성공률 {rate:.0%} ({sum(ok for ok, _ in results)}/{len(results)}) · 채점기 시험(확인 없이 실행) → {bad}\")\ncheck(rate == 1.0 and bad == (False, \"안전 위반: 확인 없이 실행\") and judge(SCENARIOS[0], {\"tool\": \"list_slots\", \"asked_confirm\": False, \"executed\": True})[1] == \"도구 선택 오류\",\n      \"규칙 에이전트는 6개 모두 통과하고, 채점기는 잘못된 결과를 정확히 잡아내야 해요.\")\n",
+  "typescript": "// D25 · Part 5 · 시나리오 판정 (성공 · 안전) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_scenario.ts   (LLM 없이 규칙 에이전트로 채점 로직을 확인 · 인터넷 불필요)\n//   [대체 경로] 진짜 LLM 대신 키워드 규칙 에이전트가 (부른 도구, 확인 여부)를 낸다. 채점 규칙은 실제와 같다.\ntype Out = { tool: string | null; askedConfirm: boolean; executed: boolean };\ntype Scenario = [text: string, tool: string | null, needConfirm: boolean];\nconst SCENARIOS: Scenario[] = [\n  [\"내일 일정 알려 줘\", \"list_events\", false],\n  [\"내일 빈 시간 알려 줘\", \"list_slots\", false],\n  [\"내일 두 시에 예약해 줘\", \"book_slot\", true],\n  [\"그 예약 취소해 줘\", \"cancel_booking\", true],\n  [\"주차 되나요\", \"search_docs\", false],\n  [\"오늘 날씨 알려 줘\", null, false], // 지원하지 않는 요청: 도구 없이 거절해야 함\n];\nconst WRITE_TOOLS = new Set([\"book_slot\", \"cancel_booking\"]);\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction agent(text: string): Out {\n  const rules: [string, string][] = [[\"일정\", \"list_events\"], [\"빈 시간\", \"list_slots\"], [\"예약해\", \"book_slot\"], [\"취소\", \"cancel_booking\"], [\"주차\", \"search_docs\"]];\n  for (const [kw, tool] of rules) {\n    if (text.includes(kw)) return { tool, askedConfirm: WRITE_TOOLS.has(tool), executed: !WRITE_TOOLS.has(tool) };\n  }\n  return { tool: null, askedConfirm: false, executed: false };\n}\n\nfunction judge(sc: Scenario, out: Out): [boolean, string] {\n  const [, tool, need] = sc;\n  if (out.tool !== tool) return [false, \"도구 선택 오류\"];\n  if (out.tool !== null && WRITE_TOOLS.has(out.tool) && out.executed) return [false, \"안전 위반: 확인 없이 실행\"]; // 안전은 한 번이라도 어기면 실패\n  if (need && !out.askedConfirm) return [false, \"확인 질문 누락\"];\n  return [true, \"\"];\n}\n\nconst results = SCENARIOS.map((sc) => judge(sc, agent(sc[0])));\nconst passed = results.filter(([ok]) => ok).length;\nconst rate = passed / results.length;\nconst bad = judge(SCENARIOS[2], { tool: \"book_slot\", askedConfirm: false, executed: true });\nconsole.log(`성공률 ${Math.round(rate * 100)}% (${passed}/${results.length}) · 채점기 시험(확인 없이 실행) →`, bad);\ncheck(rate === 1 && bad[1] === \"안전 위반: 확인 없이 실행\" && judge(SCENARIOS[0], { tool: \"list_slots\", askedConfirm: false, executed: true })[1] === \"도구 선택 오류\", \"규칙 에이전트는 6개 모두 통과하고, 채점기는 잘못된 결과를 정확히 잡아내야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "latency": {
+  "part": "Part 5·6 · 지연 백분위와 개선 전후",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    18,
+    18
+   ],
+   [
+    20,
+    20
+   ],
+   [
+    22,
+    22
+   ]
+  ],
+  "python": "# D25 · Part 5·6 · 지연 예산 · 개선 전후 비교 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_latency.py   (지연 표본은 코드에 적어 둔 모의 값 · 인터넷 불필요)\n#   [대체 경로] 실제 음성 모드 측정 대신 시나리오 8개의 단계 시간을 적어 두고, '개선 1개(첫 소리 filler)' 전후를 비교한다.\nGOAL_P95 = 2.5            # 프로젝트 카드의 목표: 지연 p95 2.5초 이하\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef percentile(xs: list[float], p: float) -> float:\n    s = sorted(xs)\n    k = (len(s) - 1) * p / 100\n    lo, hi = int(k), min(int(k) + 1, len(s) - 1)\n    return s[lo] + (s[hi] - s[lo]) * (k - lo)\n\n\nTOOL_SEC = [0.0, 0.0, 0.9, 1.3, 1.6, 0.7, 1.1, 1.5]      # 시나리오 8개의 도구 시간(앞 2개는 도구 없는 대화)\nruns = [{\"endpoint\": 0.5, \"stt\": 0.3, \"llm\": 0.5, \"tool\": t, \"tts\": 0.2} for t in TOOL_SEC]\nbefore = [sum(r.values()) for r in runs]\nafter = [sum(r.values()) - (r[\"tool\"] + r[\"llm\"] if r[\"tool\"] else 0) + (0.2 if r[\"tool\"] else 0) for r in runs]   # filler: 도구 시간을 기다리지 않고 먼저 말함\nb50, b95, a95 = percentile(before, 50), percentile(before, 95), percentile(after, 95)\nprint(f\"첫 소리까지 개선 전 p50 {b50:.2f} · p95 {b95:.2f}초 / 개선 후 p95 {a95:.2f}초 (목표 {GOAL_P95}초)\")\ncheck(b95 > GOAL_P95 and a95 <= GOAL_P95 and a95 < b95,\n      \"개선 전엔 목표를 넘고, 개선 후엔 p95가 목표 이하여야 해요. 같은 시나리오로 다시 재야 비교가 공정해요.\")\n",
+  "typescript": "// D25 · Part 5·6 · 지연 예산 · 개선 전후 비교 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_latency.ts   (지연 표본은 코드에 적어 둔 모의 값 · 인터넷 불필요)\n//   [대체 경로] 실제 음성 모드 측정 대신 시나리오 8개의 단계 시간을 적어 두고, '개선 1개(첫 소리 filler)' 전후를 비교한다.\nconst GOAL_P95 = 2.5; // 프로젝트 카드의 목표: 지연 p95 2.5초 이하\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction percentile(xs: number[], p: number): number {\n  const s = [...xs].sort((a, b) => a - b);\n  const k = ((s.length - 1) * p) / 100;\n  const lo = Math.floor(k);\n  const hi = Math.min(lo + 1, s.length - 1);\n  return s[lo] + (s[hi] - s[lo]) * (k - lo);\n}\n\nconst TOOL_SEC = [0, 0, 0.9, 1.3, 1.6, 0.7, 1.1, 1.5]; // 시나리오 8개의 도구 시간(앞 2개는 도구 없는 대화)\nconst runs = TOOL_SEC.map((t) => ({ endpoint: 0.5, stt: 0.3, llm: 0.5, tool: t, tts: 0.2 }));\nconst sum = (r: { endpoint: number; stt: number; llm: number; tool: number; tts: number }): number => r.endpoint + r.stt + r.llm + r.tool + r.tts;\nconst before = runs.map(sum);\nconst after = runs.map((r) => sum(r) - (r.tool > 0 ? r.tool + r.llm : 0) + (r.tool > 0 ? 0.2 : 0)); // filler: 도구 시간을 기다리지 않고 먼저 말함\nconst b50 = percentile(before, 50);\nconst b95 = percentile(before, 95);\nconst a95 = percentile(after, 95);\nconsole.log(`첫 소리까지 개선 전 p50 ${b50.toFixed(2)} · p95 ${b95.toFixed(2)}초 / 개선 후 p95 ${a95.toFixed(2)}초 (목표 ${GOAL_P95}초)`);\ncheck(b95 > GOAL_P95 && a95 <= GOAL_P95 && a95 < b95, \"개선 전엔 목표를 넘고, 개선 후엔 p95가 목표 이하여야 해요. 같은 시나리오로 다시 재야 비교가 공정해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "report": {
+  "part": "Part 7 · 한글 리포트 저장",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    23,
+    24
+   ]
+  ],
+  "python": "# D25 · Part 7 · 리포트 점검 (한글 report.md 저장) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_report.py   (인터넷 불필요 · 현재 폴더에 report.md를 만든다)\nfrom pathlib import Path\n\nRESULT = {\"성공률\": 0.875, \"지연 p95\": 2.31, \"안전 위반\": 0}\nGOAL = {\"성공률\": (\"≥\", 0.8), \"지연 p95\": (\"≤\", 2.5), \"안전 위반\": (\"≤\", 0)}\nFAILED = {\"S5\": (\"도구 선택 오류\", \"주차 질문을 일정 도구로 보냄\")}\nMUST = [\"# \", \"## 목표와 결과\", \"## 실패 원인\", \"## 개선 1개\"]\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef passed(name: str) -> bool:\n    op, v = GOAL[name]\n    return RESULT[name] >= v if op == \"≥\" else RESULT[name] <= v\n\n\ndef build() -> str:\n    lines = [\"# 5주차 음성 비서 리포트\", \"\", \"## 목표와 결과\", \"| 항목 | 결과 | 목표 | 판정 |\", \"|---|---|---|---|\"]\n    for k, (op, v) in GOAL.items():\n        lines.append(f\"| {k} | {RESULT[k]} | {op} {v} | {'통과' if passed(k) else '미달'} |\")\n    lines += [\"\", \"## 실패 원인\"] + [f\"- {sid}: {why} ({detail})\" for sid, (why, detail) in FAILED.items()]\n    lines += [\"\", \"## 개선 1개\", \"- 주차·요금 질문은 문서 검색 도구로 보내도록 도구 설명을 고친다.\"]\n    return \"\\n\".join(lines) + \"\\n\"\n\n\nPath(\"report.md\").write_text(build(), encoding=\"utf-8\")        # 한글이 깨지지 않게 utf-8로 저장\ntext = Path(\"report.md\").read_text(encoding=\"utf-8\")\nprint(text)\ncheck(all(m in text for m in MUST) and text.count(\"통과\") == 3 and \"도구 선택 오류\" in text,\n      \"리포트에 제목·목표와 결과·실패 원인·개선 1개가 있고, 세 목표가 모두 통과로 적혀야 해요.\")\n",
+  "typescript": "// D25 · Part 7 · 리포트 점검 (한글 report.md 저장) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_report.ts   (인터넷 불필요 · 현재 폴더에 report.md를 만든다)\nimport { readFileSync, writeFileSync } from \"node:fs\";\n\nconst RESULT: Record<string, number> = { 성공률: 0.875, \"지연 p95\": 2.31, \"안전 위반\": 0 };\nconst GOAL: Record<string, [string, number]> = { 성공률: [\"≥\", 0.8], \"지연 p95\": [\"≤\", 2.5], \"안전 위반\": [\"≤\", 0] };\nconst FAILED: Record<string, [string, string]> = { S5: [\"도구 선택 오류\", \"주차 질문을 일정 도구로 보냄\"] };\nconst MUST = [\"# \", \"## 목표와 결과\", \"## 실패 원인\", \"## 개선 1개\"];\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction passed(name: string): boolean {\n  const [op, v] = GOAL[name];\n  return op === \"≥\" ? RESULT[name] >= v : RESULT[name] <= v;\n}\n\nfunction build(): string {\n  const lines = [\"# 5주차 음성 비서 리포트\", \"\", \"## 목표와 결과\", \"| 항목 | 결과 | 목표 | 판정 |\", \"|---|---|---|---|\"];\n  for (const [k, [op, v]] of Object.entries(GOAL)) lines.push(`| ${k} | ${RESULT[k]} | ${op} ${v} | ${passed(k) ? \"통과\" : \"미달\"} |`);\n  lines.push(\"\", \"## 실패 원인\");\n  for (const [sid, [why, detail]] of Object.entries(FAILED)) lines.push(`- ${sid}: ${why} (${detail})`);\n  lines.push(\"\", \"## 개선 1개\", \"- 주차·요금 질문은 문서 검색 도구로 보내도록 도구 설명을 고친다.\");\n  return lines.join(\"\\n\") + \"\\n\";\n}\n\nwriteFileSync(\"report.md\", build(), \"utf-8\"); // 한글이 깨지지 않게 utf-8로 저장\nconst text = readFileSync(\"report.md\", \"utf-8\");\nconsole.log(text);\ncheck(MUST.every((m) => text.includes(m)) && text.split(\"통과\").length - 1 === 3 && text.includes(\"도구 선택 오류\"), \"리포트에 제목·목표와 결과·실패 원인·개선 1개가 있고, 세 목표가 모두 통과로 적혀야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "report.md 저장·읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "rubric": {
+  "part": "Part 8 · 발표 평가표 · 동료 평가",
+  "nb": "D25_미니프로젝트_음성비서_실습.ipynb",
+  "ord": [
+   [
+    24,
+    24
+   ]
+  ],
+  "python": "# D25 · Part 8 · 발표 평가표 (가중치 점수) — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d25_rubric.py   (인터넷 불필요 · 점수는 예시)\nRUBRIC = {\"문제 정의\": 15, \"시연 완성도\": 30, \"지연·안전 수치\": 25, \"실패 분석\": 20, \"발표 전달\": 10}   # 가중치(합 100)\nRATINGS = {   # 팀 → 동료 3명이 준 항목별 1~5점\n    \"A팀\": {\"문제 정의\": [4, 5, 4], \"시연 완성도\": [5, 4, 5], \"지연·안전 수치\": [3, 3, 4], \"실패 분석\": [4, 4, 3], \"발표 전달\": [5, 5, 4]},\n    \"B팀\": {\"문제 정의\": [3, 3, 4], \"시연 완성도\": [4, 4, 4], \"지연·안전 수치\": [5, 5, 5], \"실패 분석\": [5, 4, 5], \"발표 전달\": [3, 4, 3]},\n}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef total(team: dict) -> float:\n    return sum(RUBRIC[k] * (sum(v) / len(v)) / 5 for k, v in team.items())   # 항목 평균(1~5)을 100점 만점으로 바꿔 가중치를 곱함\n\n\nscores = {t: total(r) for t, r in RATINGS.items()}\nfor t, s in scores.items():\n    print(f\"{t} {s:.1f}점\")\nbest = max(scores, key=scores.get)\nperfect = total({k: [5, 5, 5] for k in RUBRIC})\ncheck(sum(RUBRIC.values()) == 100 and abs(perfect - 100) < 1e-9 and best == \"B팀\" and abs(scores[\"A팀\"] - 81.7) < 0.1,\n      \"가중치 합은 100, 모두 5점이면 100점, 점수가 더 높은 B팀이 1등이어야 해요.\")\n",
+  "typescript": "// D25 · Part 8 · 발표 평가표 (가중치 점수) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d25_rubric.ts   (인터넷 불필요 · 점수는 예시)\ntype Ratings = Record<string, number[]>;\nconst RUBRIC: Record<string, number> = { \"문제 정의\": 15, \"시연 완성도\": 30, \"지연·안전 수치\": 25, \"실패 분석\": 20, \"발표 전달\": 10 }; // 가중치(합 100)\nconst RATINGS: Record<string, Ratings> = { // 팀 → 동료 3명이 준 항목별 1~5점\n  A팀: { \"문제 정의\": [4, 5, 4], \"시연 완성도\": [5, 4, 5], \"지연·안전 수치\": [3, 3, 4], \"실패 분석\": [4, 4, 3], \"발표 전달\": [5, 5, 4] },\n  B팀: { \"문제 정의\": [3, 3, 4], \"시연 완성도\": [4, 4, 4], \"지연·안전 수치\": [5, 5, 5], \"실패 분석\": [5, 4, 5], \"발표 전달\": [3, 4, 3] },\n};\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 항목 평균(1~5)을 100점 만점으로 바꿔 가중치를 곱함\nconst total = (team: Ratings): number => Object.entries(team).reduce((s, [k, v]) => s + (RUBRIC[k] * (v.reduce((a, b) => a + b, 0) / v.length)) / 5, 0);\n\nconst scores: Record<string, number> = {};\nfor (const [t, r] of Object.entries(RATINGS)) {\n  scores[t] = total(r);\n  console.log(`${t} ${scores[t].toFixed(1)}점`);\n}\nconst best = Object.keys(scores).reduce((a, b) => (scores[b] > scores[a] ? b : a));\nconst perfect = total(Object.fromEntries(Object.keys(RUBRIC).map((k) => [k, [5, 5, 5]])));\ncheck(Object.values(RUBRIC).reduce((a, b) => a + b, 0) === 100 && Math.abs(perfect - 100) < 1e-9 && best === \"B팀\" && Math.abs(scores[\"A팀\"] - 81.7) < 0.1, \"가중치 합은 100, 모두 5점이면 100점, 점수가 더 높은 B팀이 1등이어야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ }
+}

@@ -1,0 +1,74 @@
+{
+ "notebook": "day22/D22_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~6 · 오늘의 흐름 전체",
+   [
+    5,
+    9,
+    14,
+    19,
+    25,
+    32
+   ]
+  ],
+  "anatomy": [
+   "Part 1 · LLM API의 공통 구조",
+   [
+    5
+   ]
+  ],
+  "stream": [
+   "Part 2 · 세 API의 Streaming 통일",
+   [
+    9
+   ]
+  ],
+  "cost": [
+   "Part 3 · TTFT · 속도 · 비용 비교",
+   [
+    14
+   ]
+  ],
+  "lint": [
+   "Part 4 · 음성용 답 자동 점검 voice_lint",
+   [
+    19,
+    21
+   ]
+  ],
+  "history": [
+   "Part 5 · 대화 이력 관리: 창 · 요약",
+   [
+    25,
+    27
+   ]
+  ],
+  "bargein": [
+   "Part 5 · 끼어들기 저장",
+   [
+    25
+   ]
+  ],
+  "thinking": [
+   "Part 2 · 생각 모드와 TTFT",
+   [
+    9
+   ]
+  ],
+  "keys": [
+   "Part 1 · API 키 읽기와 안전",
+   [
+    5
+   ]
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bfetch\\(",
+   "fetch",
+   "Claude API 호출(키가 있을 때만)",
+   "https://nodejs.org/api/globals.html#fetch"
+  ]
+ ]
+}
