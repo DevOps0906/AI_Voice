@@ -21,13 +21,23 @@
 | task-017 | D1·D10 코드 단독 실행 보장 + 사용 라이브러리 정리 | W12 | 015 | 보통(난이도↑) | builder(opus) | 완료 |
 | task-018 | 과정 지도 하위 메뉴 + 개념 정리 보강(슬라이드 PDF·실습 노트북) | W13 | 017 | 보통 | builder(sonnet) | 완료 |
 | task-019 | 애니메이션 페이지 항목별 코드 상자(Python·TS, 44일 적용) | W13 | 017 | 보통 | builder(sonnet) | 완료 |
+| task-020 | 정리 퀴즈 탭 fill·bucket·lab 문항 정답 보기 카드 | W14 | — | 보통 | 팀장(opus) | 완료 |
+| task-021 | 코드 탭 1주차 D2~D5 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 진행 |
+| task-022 | 코드 탭 2주차 D6~D9 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
+| task-023 | 코드 탭 3주차 D11~D15 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
+| task-024 | 코드 탭 4주차 D16~D20 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
+| task-025 | 코드 탭 5주차 D21~D25 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
+| task-026 | 코드 탭 6주차 D26~D30 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
+| task-027 | 코드 탭 7주차 D31~D35 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
+| task-028 | 코드 탭 8주차 D36~D40 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
+| task-029 | 코드 탭 9주차 D41~D44 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 대기 |
 
 상태: 대기 / 진행 / 완료 / 보류 · 위험도 → 워커 model: 낮음 haiku · 보통 sonnet · 높음 opus
 
 ## 발견한 문제 (범위 밖 — 나중 작업 후보)
 | 날짜 | 위치 | 내용 | 제안 |
 |---|---|---|---|
-| 2026-11-20 | dashboard/index.html renderQuiz | 정리 퀴즈 탭이 fill(40)·bucket(20)·lab(10) 문항을 처리하지 않아 본문이 비어 보임 (자료실 문제 풀이는 "정답 보기"로 처리됨) | 정리 퀴즈 탭도 buildQ의 정답 보기 방식 적용 |
+| 2026-11-20 | (task-020에서 해결) dashboard/index.html renderQuiz | 정리 퀴즈 탭이 fill(40)·bucket(20)·lab(10) 문항을 처리하지 않아 본문이 비어 보임 (자료실 문제 풀이는 "정답 보기"로 처리됨) | 정리 퀴즈 탭도 buildQ의 정답 보기 방식 적용 |
 
 ## 교훈 (다음 작업에 그대로 적용할 것만, 20줄 이내 유지)
 - 

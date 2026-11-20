@@ -738,18 +738,27 @@ function buildQ(q,id,n,fin){
       body.querySelector('.btn').onclick=chk;inp.onkeydown=e=>{if(e.key==='Enter')chk();};
     }
     return card;}
+/* 채점하지 않는 문항(fill·bucket·lab 등): 정답 보기 카드 */
+const GRADED=['mc','ox','multi','match','order','num'];
+function buildReveal(q,n){
+    const card=mk('div','scen');
+    card.innerHTML=`<div class="q"><span class="qn">${n}.</span>${esc(q.p)}</div>${q.c?`<pre><code>${esc(q.c)}</code></pre>`:''}${q.items?`<ul class="lib-it">${q.items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}<div class="acts"><button type="button" class="btn" aria-expanded="false">정답 보기</button></div><div class="fb" aria-live="polite"></div>`;
+    const bt=card.querySelector('button'),fb=card.querySelector('.fb');
+    const ans=q.ty==='fill'&&q.a?'정답: '+q.a.map(esc).join(' / ')+'. ':q.ty==='bucket'&&q.items&&q.cats?'정답: '+q.items.map((t,i)=>esc(t)+' → '+esc(q.cats[q.a[i]])).join(' / ')+'. ':'';
+    bt.onclick=()=>{const on=!card.classList.contains('done');card.classList.toggle('done',on);bt.setAttribute('aria-expanded',on);bt.textContent=on?'정답 닫기':'정답 보기';if(on)fb.innerHTML=ans+esc(q.w||'');};
+    return card;}
 function renderQuiz(){
   const d=DATA[S.day],gs=(d.worksheet&&d.worksheet.groups)||[],res={};let gcur=0;
-  const total=gs.reduce((a,g)=>a+g.qs.length,0);
+  const total=gs.reduce((a,g)=>a+g.qs.filter(q=>GRADED.includes(q.ty)).length,0);
   $('p-quiz').innerHTML=head('S7','정리 퀴즈',d.title)+`<div class="bar"><span id="qN"></span><div class="track"><i id="qB"></i></div></div><div class="qchips" id="qChips"></div><div id="qBody"></div>
   <p class="note">문제는 원본 워크시트(${esc((d.worksheet&&d.worksheet.source)||'')})에서 가져왔어요. 푼 기록은 저장되지 않아요.</p>`;
   const upd=()=>{const ans=Object.keys(res).length,ok=Object.values(res).filter(Boolean).length;$('qN').textContent=`${ans} / ${total} 풀이 · 정답 ${ok}`;$('qB').style.width=(total?ans/total*100:0)+'%';
-    $('qChips').querySelectorAll('[data-g]').forEach((b,i)=>{const n=Object.keys(res).filter(k=>k.startsWith(i+'-')).length;b.textContent=`${gs[i].title} (${n}/${gs[i].qs.length})`;});};
+    $('qChips').querySelectorAll('[data-g]').forEach((b,i)=>{const n=Object.keys(res).filter(k=>k.startsWith(i+'-')).length;b.textContent=`${gs[i].title} (${n}/${gs[i].qs.filter(q=>GRADED.includes(q.ty)).length})`;});};
   const fin=(card,id,q,ok,extra)=>{res[id]=ok;card.classList.add('done',ok?'ok':'bad');
     if(!ok){card.classList.add('shk');setTimeout(()=>card.classList.remove('shk'),400);}
     card.querySelector('.fb').innerHTML=`<b>${ok?'정답':'오답'}</b> ${extra||''}${esc(q.w||'')}`;
     card.querySelectorAll('button,select,input').forEach(x=>x.disabled=true);upd();};
-  const build=(q,gi,qi)=>buildQ(q,gi+'-'+qi,qi+1,fin);
+  const build=(q,gi,qi)=>GRADED.includes(q.ty)?buildQ(q,gi+'-'+qi,qi+1,fin):buildReveal(q,qi+1);
   function showG(g){gcur=g;const b=$('qBody');b.innerHTML='';
     Object.keys(res).forEach(k=>{if(k.startsWith(g+'-'))delete res[k];});
     gs[g].qs.forEach((q,qi)=>b.appendChild(build(q,g,qi)));
@@ -859,12 +868,7 @@ function renderLib(page,week,day){
   const hit=t=>!term||t.includes(term);
   const buildL=(q,id,n)=>{
     if(['mc','ox','multi','match','order','num'].includes(q.ty))return buildQ(q,id,n,fin);
-    const card=mk('div','scen');
-    card.innerHTML=`<div class="q"><span class="qn">${n}.</span>${esc(q.p)}</div>${q.c?`<pre><code>${esc(q.c)}</code></pre>`:''}${q.items?`<ul class="lib-it">${q.items.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>`:''}<div class="acts"><button type="button" class="btn" aria-expanded="false">정답 보기</button></div><div class="fb" aria-live="polite"></div>`;
-    const bt=card.querySelector('button'),fb=card.querySelector('.fb');
-    const ans=q.ty==='fill'&&q.a?'정답: '+q.a.map(esc).join(' / ')+'. ':q.ty==='bucket'&&q.items&&q.cats?'정답: '+q.items.map((t,i)=>esc(t)+' → '+esc(q.cats[q.a[i]])).join(' / ')+'. ':'';
-    bt.onclick=()=>{const on=!card.classList.contains('done');card.classList.toggle('done',on);bt.setAttribute('aria-expanded',on);bt.textContent=on?'정답 닫기':'정답 보기';if(on)fb.innerHTML=ans+esc(q.w||'');};
-    return card;};
+    return buildReveal(q,n);};
   if(page==='graphs'){
     body.innerHTML=`<div class="lg-grid">${wd.map(d=>{const f=flowOf(d),col=`style="--c:var(${AC[(d.week-1)%5]})"`;
       return `<article class="lg-card" ${col} data-d="${d.day}"><h3><b>D${d.day}</b>${esc(d.title)}</h3><ol class="gn-flow" aria-label="D${d.day} 흐름">${f.st.map((x,i)=>`<li><i>${i+1}</i>${esc((x[0]+' '+x[1]).trim())}</li>`).join('')}</ol><a href="#d${d.day}-flow">오늘의 흐름에서 보기 →</a></article>`;}).join('')}</div>`;
