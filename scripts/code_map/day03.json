@@ -1,0 +1,118 @@
+{
+ "notebook": "day03/D3_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~6 · 오늘의 흐름 전체",
+   [
+    3,
+    6,
+    8,
+    11,
+    14,
+    16,
+    21,
+    24,
+    27,
+    32,
+    34,
+    38,
+    43,
+    46,
+    50,
+    54,
+    58
+   ]
+  ],
+  "sum": [
+   "Part 1 · 소리는 사인파의 합이다",
+   [
+    6,
+    8,
+    11
+   ]
+  ],
+  "dft": [
+   "Part 2 · DFT: 어떤 높이가 얼마나 들어 있는지 재는 방법",
+   [
+    14,
+    16,
+    19,
+    21
+   ]
+  ],
+  "res": [
+   "Part 3 · FFT 실습: 주파수 해상도",
+   [
+    24,
+    29
+   ]
+  ],
+  "window": [
+   "Part 3 · 창 함수와 Spectral Leakage",
+   [
+    27,
+    29
+   ]
+  ],
+  "stft": [
+   "Part 4 · STFT와 스펙트로그램",
+   [
+    32,
+    34,
+    38,
+    40
+   ]
+  ],
+  "live": [
+   "Part 4 · 시간-주파수 트레이드오프",
+   [
+    36
+   ]
+  ],
+  "mel": [
+   "Part 5 · Mel 스펙트로그램: 사람 귀에 맞춘 주파수 축",
+   [
+    43,
+    46,
+    48
+   ]
+  ],
+  "mfcc": [
+   "Part 6 · MFCC: 소리의 봉우리 모양을 13개 숫자로",
+   [
+    50,
+    52,
+    54,
+    58
+   ]
+  ]
+ },
+ "py_libs": {
+  "librosa": [
+   "librosa",
+   "STFT · Mel 필터뱅크 · Mel 스펙트로그램 · MFCC 계산",
+   "https://librosa.org/doc/latest/",
+   "ISC"
+  ],
+  "scipy": [
+   "scipy",
+   "DCT(MFCC의 마지막 단계) 직접 계산",
+   "https://docs.scipy.org/doc/scipy/",
+   "BSD-3-Clause"
+  ],
+  "numpy": [
+   "numpy",
+   "소리 배열 계산 · FFT(np.fft) · Hann 창",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float(?:32|64)Array\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플 · 스펙트럼 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ]
+ ]
+}

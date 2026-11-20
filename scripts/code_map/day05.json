@@ -1,0 +1,108 @@
+{
+ "notebook": "day05/D5_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~6 · 오늘의 흐름 전체",
+   [
+    4,
+    8,
+    11,
+    15,
+    18,
+    27,
+    37,
+    44,
+    50,
+    52,
+    56
+   ]
+  ],
+  "data": [
+   "Part 1 · 데이터셋과 분할",
+   [
+    4,
+    7,
+    8,
+    11
+   ]
+  ],
+  "feature": [
+   "Part 2 · 특징: 1초 음성 → Log-Mel 이미지",
+   [
+    15,
+    18,
+    20
+   ]
+  ],
+  "conv": [
+   "Part 3 · CNN: 합성곱",
+   [
+    27,
+    29
+   ]
+  ],
+  "net": [
+   "Part 3 · 모델 구조: KWSNet",
+   [
+    27,
+    29
+   ]
+  ],
+  "softmax": [
+   "Part 3 · softmax와 cross-entropy",
+   [
+    32
+   ]
+  ],
+  "train": [
+   "Part 4 · 학습: forward → loss → backward → step",
+   [
+    37,
+    40
+   ]
+  ],
+  "confusion": [
+   "Part 5 · 평가: 정확도와 혼동 행렬",
+   [
+    44,
+    46,
+    47
+   ]
+  ],
+  "specaug": [
+   "Part 6 · SpecAugment: 주파수 · 시간 가리기",
+   [
+    50,
+    52
+   ]
+  ]
+ },
+ "py_libs": {
+  "librosa": [
+   "librosa",
+   "1초 음성 → Log-Mel 특징(melspectrogram · power_to_db)",
+   "https://librosa.org/doc/latest/",
+   "ISC"
+  ],
+  "torch": [
+   "torch",
+   "작은 CNN 만들기 · 학습 · 평가(CPU)",
+   "https://pytorch.org/docs/stable/",
+   "BSD-3-Clause"
+  ],
+  "numpy": [
+   "numpy",
+   "합성 단어 만들기 · 혼동 행렬 계산",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\\bnew Float(?:32|64)Array\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플 · 스펙트럼 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ]
+ ]
+}

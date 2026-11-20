@@ -12,6 +12,12 @@
   python scripts/build_code.py day01 day10 --src DIR       DIR/py/dNN_<hash>.py · DIR/ts/dNN_<hash>.ts를 읽어 코드 교체
   python scripts/build_code.py day01 day10 --export DIR    JSON의 코드를 DIR/py · DIR/ts 파일로 꺼냄(고친 뒤 --src로 되돌림)
 실행 검사는 scripts/run_code.py.
+
+MAP · NOTEBOOK에 없는 일차(D2~)는 scripts/code_map/dayNN.json 에서 읽는다(일차마다 파일이 따로라 병렬 작업해도 안 겹친다):
+  {"notebook": "day02/D2_*_실습.ipynb",
+   "map": {hash: [Part 설명, [노트북 셀 번호...]]},
+   "py_libs": {import 이름: [pip 이름, 용도, 문서, 라이선스]},     그 일차에서만 PY_LIBS보다 우선
+   "ts_libs": [[코드에서 찾을 정규식, 이름, 용도, 문서]]}          그 일차에서만 적용: 이름이 TS_LIBS와 같으면 대신하고, 새 이름은 뒤에 더함
 """
 import argparse
 import glob
@@ -83,24 +89,43 @@ TS_LIBS = [
 ]
 
 
-def py_libs(code):
+def merge_ts(base, extra):
+    """이름이 같은 항목은 extra가 대신하고(자리 유지), 새 이름은 뒤에 붙인다."""
+    new = {e[1]: e for e in extra}
+    return [new.pop(b[1], b) for b in base] + list(new.values())
+
+
+def day_cfg(day):
+    """(노트북 glob, {hash: (Part, [셀])}, PY_LIBS, TS_LIBS) — D1·D10은 위 상수, 그 밖은 scripts/code_map/dayNN.json."""
+    if day in MAP:
+        return NOTEBOOK[day], MAP[day], PY_LIBS, TS_LIBS
+    f = ROOT / "scripts" / "code_map" / f"day{day:02d}.json"
+    if not f.exists():
+        sys.exit(f"day{day}: MAP에도 {f.relative_to(ROOT)}에도 없어요")
+    c = json.load(open(f, encoding="utf-8"))
+    return (c["notebook"], {h: (v[0], v[1]) for h, v in c["map"].items()},
+            {**PY_LIBS, **{k: tuple(v) for k, v in c.get("py_libs", {}).items()}},
+            merge_ts(TS_LIBS, [tuple(v) for v in c.get("ts_libs", [])]))
+
+
+def py_libs(code, libs=PY_LIBS):
     pins = dict(re.findall(r"([\w-]+)==([\w.]+)", code.split("\n", 3)[1]))  # 두 번째 줄 = pip install 줄
     out, seen = [], set()
     for m in re.finditer(r"^\s*(?:import ([\w.]+)|from ([\w.]+) import)", code, re.M):
         top = (m.group(1) or m.group(2)).split(".")[0]
-        if top not in PY_LIBS or top in seen:
+        if top not in libs or top in seen:
             continue
         seen.add(top)
-        pkg, purpose, docs, lic = PY_LIBS[top]
+        pkg, purpose, docs, lic = libs[top]
         if pkg not in pins:
             sys.exit(f"pip install 줄에 {pkg} 버전이 없어요")
         out.append(dict(name=pkg, version=pins[pkg], purpose=purpose, install=f"pip install {pkg}=={pins[pkg]}", docs=docs, license=lic))
     return out
 
 
-def ts_libs(code):
+def ts_libs(code, libs=TS_LIBS):
     return [dict(name=name, version="내장", purpose=purpose, install="설치 불필요 (Node 26 내장)", docs=docs, license="MIT (Node.js)")
-            for pat, name, purpose, docs in TS_LIBS if re.search(pat, code)]
+            for pat, name, purpose, docs in libs if re.search(pat, code)]
 
 
 def check_code(day, h, lang, code):
@@ -113,7 +138,7 @@ def check_code(day, h, lang, code):
 
 
 def ordinals(day):
-    f = next(iter(glob.glob(str(ROOT / NOTEBOOK[day]))))
+    f = next(iter(glob.glob(str(ROOT / day_cfg(day)[0]))))
     nb = json.load(open(f, encoding="utf-8"))
     codes = [i for i, c in enumerate(nb["cells"]) if c["cell_type"] == "code"]
     return Path(f).name, {i: k + 1 for k, i in enumerate(codes)}  # 노트북 셀 번호 → Colab 코드 셀 순번
@@ -141,10 +166,11 @@ def build(day, src=None, export=None):
         print(f"day{day:02d}: {len(old)}개 → {export}")
         return
     nb_name, ordinal = ordinals(day)
+    _, day_map, pylibs, tslibs = day_cfg(day)
     anims = [a["hash"] for a in json.load(open(ROOT / "data" / f"day{day:02d}.json", encoding="utf-8"))["anims"]]
     res = {}
     for h in anims:
-        part, idx = MAP[day][h]
+        part, idx = day_map[h]
         missing = [i for i in idx if i not in ordinal]
         if missing:
             sys.exit(f"day{day} {h}: 셀 {missing}은 코드 셀이 아니에요")
@@ -161,7 +187,7 @@ def build(day, src=None, export=None):
             "ord": ranges([ordinal[i] for i in idx]),
             "python": code["python"],
             "typescript": code["typescript"],
-            "libs": {"python": py_libs(code["python"]), "typescript": ts_libs(code["typescript"])},
+            "libs": {"python": py_libs(code["python"], pylibs), "typescript": ts_libs(code["typescript"], tslibs)},
         }
     out_path.parent.mkdir(parents=True, exist_ok=True)
     json.dump(res, open(out_path, "w", encoding="utf-8", newline="\n"), ensure_ascii=False, indent=1)

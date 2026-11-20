@@ -10,6 +10,50 @@
   "cer",
   "agent"
  ],
+ "2": [
+  "flow",
+  "sound",
+  "sampling",
+  "quant",
+  "channel",
+  "format",
+  "libs",
+  "editor",
+  "pipeline"
+ ],
+ "3": [
+  "flow",
+  "sum",
+  "dft",
+  "res",
+  "window",
+  "stft",
+  "live",
+  "mel",
+  "mfcc"
+ ],
+ "4": [
+  "flow",
+  "snr",
+  "norm",
+  "filter",
+  "specsub",
+  "gate",
+  "vad",
+  "silero",
+  "pipe"
+ ],
+ "5": [
+  "flow",
+  "data",
+  "feature",
+  "conv",
+  "net",
+  "softmax",
+  "train",
+  "confusion",
+  "specaug"
+ ],
  "10": [
   "flow",
   "editdist",

@@ -1,0 +1,608 @@
+{
+ "flow": {
+  "part": "Part 0~6 · 오늘의 흐름 전체",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    2,
+    4
+   ],
+   [
+    6,
+    7
+   ],
+   [
+    9,
+    11
+   ],
+   [
+    13,
+    15
+   ],
+   [
+    17,
+    17
+   ],
+   [
+    19,
+    20
+   ],
+   [
+    22,
+    22
+   ],
+   [
+    24,
+    25
+   ],
+   [
+    27,
+    27
+   ]
+  ],
+  "python": "# D2 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install librosa==0.11.0 numpy==2.4.6 soundfile==0.14.0\n# 실행: python d02_flow.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   소리 → 숫자 → 샘플링 → 양자화 → 채널 → 파일 포맷 → 음성 모델용 전처리를 한 번에 확인\nimport os\n\nimport librosa\nimport numpy as np\nimport soundfile as sf\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef tone(freq: float, sec: float = 1.0, sr: int = SR, amp: float = 0.5, phase: float = 0.0) -> np.ndarray:\n    \"\"\"freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi) 를 숫자 배열로 만든다.\"\"\"\n    t = np.arange(int(sr * sec)) / sr\n    return (amp * np.sin(2 * np.pi * freq * t + phase)).astype(np.float32)\n\n\ndef synth_voice(seconds: float = 2.0, f0: float = 140.0, seed: int = 0, sr: int = SR) -> np.ndarray:\n    \"\"\"말소리 비슷한 합성 신호(mono float32): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음.\"\"\"\n    rng = np.random.default_rng(seed)\n    t = np.arange(int(seconds * sr)) / sr\n    pitch = f0 * (1 + 0.05 * np.sin(2 * np.pi * 0.7 * t))              # 억양처럼 천천히 오르내림\n    phase = 2 * np.pi * np.cumsum(pitch) / sr\n    y = sum(np.sin(k * phase) / k for k in range(1, 6))                 # 배음 5개\n    env = np.clip(np.sin(2 * np.pi * 2.5 * t), 0, None) ** 0.5           # 1초에 음절 5개쯤\n    y = y * env + 0.01 * rng.standard_normal(len(t))\n    return (0.8 * y / max(float(np.abs(y).max()), 1e-9)).astype(np.float32)\n\n\ndef size_kb(path: str) -> float:\n    return os.path.getsize(path) / 1024\n\n\n# 1) 소리 = 숫자 배열: 440 Hz 사인파의 RMS는 A / 루트2\ny = tone(440, 1.0)\nrms = float(np.sqrt(np.mean(y ** 2)))\nprint(f\"모양 {y.shape} · 자료형 {y.dtype} · RMS {rms:.4f} (이론 {0.5 / np.sqrt(2):.4f})\")\ncheck(y.shape == (SR,) and abs(rms - 0.5 / np.sqrt(2)) < 1e-3, \"RMS = 진폭 / 루트2 입니다.\")\n\n# 2) 44.1kHz stereo 고음질 원본 만들기 (오른쪽은 작고 조금 늦게)\nv44 = synth_voice(2.0, sr=44100)\nstereo = np.stack([v44, 0.7 * np.roll(v44, 200)])            # librosa 방식 모양 (2, N)\nsf.write(\"speech_hq.wav\", stereo.T, 44100, subtype=\"PCM_16\")  # soundfile은 (N, 2) 모양\ninfo = sf.info(\"speech_hq.wav\")\nprint(f\"원본 {info.samplerate} Hz · {info.channels}ch · {info.duration:.2f}초 · {size_kb('speech_hq.wav'):.0f} KB\")\n\n# 3) 샘플링 + 채널: 16kHz mono로 (resample은 나이퀴스트 위를 먼저 걸러 줌)\ny16, sr = librosa.load(\"speech_hq.wav\", sr=SR, mono=True)\nprint(f\"16kHz mono: {len(y16):,}개 (원본의 {len(y16) / v44.size:.1%})\")\ncheck(sr == 16000 and abs(len(y16) - 32000) <= 1, \"2초 x 16,000 = 32,000개여야 해요.\")\n\n# 4) 양자화: 비트가 늘 때마다 SNR이 약 6 dB 좋아진다 (6.02 b + 1.76)\ndef quantize(x: np.ndarray, bits: int) -> np.ndarray:\n    half = 2 ** (bits - 1) - 1\n    return np.round(x * half) / half\n\nx = tone(440, 1.0, amp=0.999)\nfor b in (4, 8, 16):\n    noise = quantize(x, b) - x\n    print(f\"{b:2d}bit: SNR {10 * np.log10(np.mean(x ** 2) / np.mean(noise ** 2)):5.1f} dB (이론 {6.02 * b + 1.76:5.1f} dB)\")\nsnr8 = 10 * np.log10(np.mean(x ** 2) / np.mean((quantize(x, 8) - x) ** 2))\ncheck(abs(snr8 - (6.02 * 8 + 1.76)) < 3, \"8bit SNR은 약 49.9 dB 입니다.\")\n\n# 5) 파일 포맷: FLAC은 WAV보다 작은데 숫자는 완전히 같다 (무손실)\npcm = np.round(np.clip(y16, -1, 1) * 32767).astype(np.int16)      # 16bit 정수 그대로 저장하면 FLAC과 숫자가 정확히 같다\nsf.write(\"f.wav\", pcm, SR, subtype=\"PCM_16\")\nsf.write(\"f.flac\", pcm, SR, subtype=\"PCM_16\")\nsame = np.array_equal(sf.read(\"f.wav\", dtype=\"int16\")[0], sf.read(\"f.flac\", dtype=\"int16\")[0])\nprint(f\"WAV {size_kb('f.wav'):.1f} KB · FLAC {size_kb('f.flac'):.1f} KB · 숫자 같음: {same}\")\ncheck(same and size_kb(\"f.flac\") < size_kb(\"f.wav\"), \"FLAC은 무손실 압축이라 더 작고 숫자는 같아요.\")\n\n# 6) 전처리기: 어떤 파일이든 16kHz mono 16bit WAV로\ndef make_model_ready(src: str, dst: str) -> str:\n    y, sr = librosa.load(src, sr=16000, mono=True)       # 샘플링 레이트와 채널을 한 줄에\n    y, _ = librosa.effects.trim(y, top_db=30)             # 앞뒤 묵음 자르기\n    y = y / (np.abs(y).max() + 1e-9) * 0.9                # 가장 큰 소리를 0.9로\n    sf.write(dst, y, sr, subtype=\"PCM_16\")\n    return dst\n\nout = make_model_ready(\"speech_hq.wav\", \"ready.wav\")\nr = sf.info(out)\nprint(f\"ready.wav: {r.samplerate} Hz · {r.channels}ch · {r.subtype} · {r.duration:.2f}초\")\ncheck(r.samplerate == 16000 and r.channels == 1 and r.subtype == \"PCM_16\", \"16kHz · mono · PCM_16 이어야 해요.\")\n",
+  "typescript": "// D2 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_flow.ts\n//   소리 → 숫자 → 샘플링 → 양자화 → 채널 → 파일 크기 → 음성 모델용 전처리를 한 번에 확인\nimport { readFileSync, statSync, writeFileSync } from \"node:fs\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction tone(freq: number, sec: number = 1, sr: number = SR, amp: number = 0.5, phase: number = 0): Float32Array {\n  // freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi)\n  const y = new Float32Array(Math.floor(sr * sec));\n  for (let i = 0; i < y.length; i++) y[i] = amp * Math.sin(2 * Math.PI * freq * (i / sr) + phase);\n  return y;\n}\n\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗(seed)이 같으면 늘 같은 난수 순서 (0 이상 1 미만)\n  let a = seed >>> 0;\n  return (): number => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\n\nfunction gauss(rnd: () => number): number {\n  // 표준 정규분포 난수 (Box-Muller)\n  return Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());\n}\n\n\nfunction synthVoice(seconds: number = 2, f0: number = 140, seed: number = 0, sr: number = SR): Float32Array {\n  // 말소리 비슷한 합성 신호(mono): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음\n  const n = Math.floor(seconds * sr);\n  const y = new Float32Array(n);\n  const rnd = mulberry32(seed);\n  let phase = 0;\n  let peak = 1e-9;\n  for (let i = 0; i < n; i++) {\n    const t = i / sr;\n    phase += (2 * Math.PI * f0 * (1 + 0.05 * Math.sin(2 * Math.PI * 0.7 * t))) / sr;\n    let v = 0;\n    for (let k = 1; k <= 5; k++) v += Math.sin(k * phase) / k;\n    y[i] = v * Math.sqrt(Math.max(0, Math.sin(2 * Math.PI * 2.5 * t))) + 0.01 * (rnd() * 2 - 1);\n    peak = Math.max(peak, Math.abs(y[i]));\n  }\n  for (let i = 0; i < n; i++) y[i] = (0.8 * y[i]) / peak;\n  return y;\n}\n\n\nfunction writeWav(path: string, chans: Float32Array[], sr: number = SR, float32: boolean = false): void {\n  // WAV 저장: 16비트 PCM(기본) 또는 32비트 float. chans[채널][시간] -> 샘플이 채널마다 번갈아 들어감\n  const ch = chans.length;\n  const n = chans[0].length;\n  const bytes = float32 ? 4 : 2;\n  const buf = Buffer.alloc(44 + n * ch * bytes);\n  buf.write(\"RIFF\", 0, \"ascii\");\n  buf.writeUInt32LE(36 + n * ch * bytes, 4);\n  buf.write(\"WAVEfmt \", 8, \"ascii\");\n  buf.writeUInt32LE(16, 16); // fmt 덩어리 크기\n  buf.writeUInt16LE(float32 ? 3 : 1, 20); // 1 = PCM, 3 = float\n  buf.writeUInt16LE(ch, 22); // 채널 수\n  buf.writeUInt32LE(sr, 24);\n  buf.writeUInt32LE(sr * ch * bytes, 28); // 1초 바이트 수\n  buf.writeUInt16LE(ch * bytes, 32); // 시간 한 칸 바이트 수\n  buf.writeUInt16LE(bytes * 8, 34); // 비트 깊이\n  buf.write(\"data\", 36, \"ascii\");\n  buf.writeUInt32LE(n * ch * bytes, 40);\n  for (let i = 0; i < n; i++) {\n    for (let c = 0; c < ch; c++) {\n      const v = Math.max(-1, Math.min(1, chans[c][i])); // -1~1 밖은 잘라 냄\n      const at = 44 + (i * ch + c) * bytes;\n      if (float32) buf.writeFloatLE(v, at);\n      else buf.writeInt16LE(Math.round(v * 32767), at);\n    }\n  }\n  writeFileSync(path, buf);\n}\n\nfunction readWav(path: string): { chans: Float32Array[]; sr: number; bits: number } {\n  // 16비트 PCM · 32비트 float WAV 읽기 -> chans[채널][시간]\n  const b = readFileSync(path);\n  if (b.toString(\"ascii\", 0, 4) !== \"RIFF\" || b.toString(\"ascii\", 8, 12) !== \"WAVE\") throw new Error(`${path}: WAV 파일이 아니에요`);\n  let fmt = 1;\n  let ch = 1;\n  let sr = 0;\n  let bits = 16;\n  for (let pos = 12; pos + 8 <= b.length; ) {\n    const id = b.toString(\"ascii\", pos, pos + 4);\n    const size = b.readUInt32LE(pos + 4);\n    const body = pos + 8;\n    if (id === \"fmt \") {\n      fmt = b.readUInt16LE(body);\n      ch = b.readUInt16LE(body + 2);\n      sr = b.readUInt32LE(body + 4);\n      bits = b.readUInt16LE(body + 14);\n    } else if (id === \"data\") {\n      const step = (bits / 8) * ch;\n      const n = Math.floor(Math.min(size, b.length - body) / step);\n      const chans = Array.from({ length: ch }, () => new Float32Array(n));\n      for (let i = 0; i < n; i++) {\n        for (let c = 0; c < ch; c++) {\n          const at = body + i * step + c * (bits / 8);\n          chans[c][i] = fmt === 3 ? b.readFloatLE(at) : b.readInt16LE(at) / 32768;\n        }\n      }\n      return { chans, sr, bits };\n    }\n    pos = body + size + (size % 2); // 덩어리는 짝수 바이트로 맞춰 있음\n  }\n  throw new Error(`${path}: data 덩어리가 없어요`);\n}\n\n\nfunction resample(y: Float32Array, from: number, to: number): Float32Array {\n  // 창 씌운 sinc 보간: 줄일 때는 새 나이퀴스트(to / 2) 위의 소리를 먼저 걸러 내서 겹침(aliasing)을 막는다\n  const ratio = from / to;\n  const cut = Math.min(1, to / from); // 줄일 때만 컷오프를 낮춤\n  const w = 16 / cut; // 한쪽으로 보는 원본 샘플 수\n  const out = new Float32Array(Math.floor(y.length / ratio));\n  for (let i = 0; i < out.length; i++) {\n    const x = i * ratio;\n    let s = 0;\n    for (let k = Math.max(0, Math.ceil(x - w)); k <= Math.min(y.length - 1, Math.floor(x + w)); k++) {\n      const d = k - x;\n      const a = d * cut;\n      const sinc = a === 0 ? 1 : Math.sin(Math.PI * a) / (Math.PI * a);\n      s += y[k] * cut * sinc * (0.5 + 0.5 * Math.cos((Math.PI * d) / w));\n    }\n    out[i] = s;\n  }\n  return out;\n}\n\n\nconst rms = (x: ArrayLike<number>): number => Math.sqrt(Array.from(x).reduce((a, v) => a + v * v, 0) / x.length);\n\n// 1) 소리 = 숫자 배열: 440 Hz 사인파의 RMS는 A / 루트2\nconst y = tone(440, 1);\nconsole.log(`길이 ${y.length} · RMS ${rms(y).toFixed(4)} (이론 ${(0.5 / Math.sqrt(2)).toFixed(4)})`);\ncheck(y.length === SR && Math.abs(rms(y) - 0.5 / Math.SQRT2) < 1e-3, \"RMS = 진폭 / 루트2 입니다.\");\n\n// 2) 44.1kHz stereo 고음질 원본 만들기 (오른쪽은 작고 조금 늦게)\nconst v44 = synthVoice(2, 140, 0, 44100);\nconst right = new Float32Array(v44.length);\nfor (let i = 0; i < v44.length; i++) right[i] = 0.7 * v44[(i - 200 + v44.length) % v44.length];\nwriteWav(\"speech_hq.wav\", [v44, right], 44100);\nconst hq = readWav(\"speech_hq.wav\");\nconsole.log(`원본 ${hq.sr} Hz · ${hq.chans.length}ch · ${(hq.chans[0].length / hq.sr).toFixed(2)}초 · ${(statSync(\"speech_hq.wav\").size / 1024).toFixed(0)} KB`);\n\n// 3) 샘플링 + 채널: 16kHz mono로 (두 채널 평균 → 나이퀴스트 위 걸러 내며 줄이기)\nconst mono = Float32Array.from(hq.chans[0], (v, i) => (v + hq.chans[1][i]) / 2);\nconst y16 = resample(mono, hq.sr, SR);\nconsole.log(`16kHz mono: ${y16.length.toLocaleString()}개 (원본의 ${((y16.length / v44.length) * 100).toFixed(1)}%)`);\ncheck(Math.abs(y16.length - 32000) <= 1, \"2초 x 16,000 = 32,000개여야 해요.\");\n\n// 4) 양자화: 비트가 늘 때마다 SNR이 약 6 dB 좋아진다 (6.02 b + 1.76)\nfunction quantize(x: Float32Array, bits: number): Float32Array {\n  const half = 2 ** (bits - 1) - 1;\n  return x.map((v) => Math.round(v * half) / half);\n}\nconst x = tone(440, 1, SR, 0.999);\nconst snr = (b: number): number => 10 * Math.log10(rms(x) ** 2 / rms(quantize(x, b).map((v, i) => v - x[i])) ** 2);\nfor (const b of [4, 8, 16]) console.log(`${String(b).padStart(2)}bit: SNR ${snr(b).toFixed(1)} dB (이론 ${(6.02 * b + 1.76).toFixed(1)} dB)`);\ncheck(Math.abs(snr(8) - (6.02 * 8 + 1.76)) < 3, \"8bit SNR은 약 49.9 dB 입니다.\");\n\n// 5) 파일 크기: 16bit mono WAV = 초당 샘플 수 x 2바이트 x 채널 + 머리말 44바이트\nwriteWav(\"f.wav\", [y16], SR);\nconst actual = statSync(\"f.wav\").size;\nconst predict = y16.length * 2 * 1;\nconsole.log(`예측 ${predict.toLocaleString()} 바이트 + 머리말 44 = ${(predict + 44).toLocaleString()} | 실제 ${actual.toLocaleString()} 바이트`);\ncheck(actual - predict === 44, \"WAV 크기 = 샘플 수 x 2바이트 + 44 입니다.\");\n\n// 6) 전처리기: 어떤 WAV든 16kHz mono 16bit WAV로 (앞뒤 묵음 자르고 가장 큰 소리를 0.9로)\nfunction makeModelReady(src: string, dst: string): string {\n  const w = readWav(src);\n  const m = Float32Array.from(w.chans[0], (_, i) => w.chans.reduce((a, c) => a + c[i], 0) / w.chans.length);\n  let r = resample(m, w.sr, SR);\n  const loud = r.reduce((a, v) => Math.max(a, Math.abs(v)), 0);\n  const thr = loud * 10 ** (-30 / 20);\n  let s = 0;\n  let e = r.length - 1;\n  while (s < e && Math.abs(r[s]) < thr) s++;\n  while (e > s && Math.abs(r[e]) < thr) e--;\n  r = r.slice(s, e + 1);\n  const peak = r.reduce((a, v) => Math.max(a, Math.abs(v)), 1e-9);\n  writeWav(dst, [r.map((v) => (v / peak) * 0.9)], SR);\n  return dst;\n}\nconst ready = readWav(makeModelReady(\"speech_hq.wav\", \"ready.wav\"));\nconsole.log(`ready.wav: ${ready.sr} Hz · ${ready.chans.length}ch · ${ready.bits}bit · ${(ready.chans[0].length / ready.sr).toFixed(2)}초`);\ncheck(ready.sr === 16000 && ready.chans.length === 1 && ready.bits === 16, \"16kHz · mono · 16bit 이어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "librosa",
+     "version": "0.11.0",
+     "purpose": "오디오 읽기 · 샘플링 레이트 변환(resample) · 묵음 자르기",
+     "install": "pip install librosa==0.11.0",
+     "docs": "https://librosa.org/doc/latest/",
+     "license": "ISC"
+    },
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV 머리말 · 샘플 바이트 직접 쓰기 · 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "sound": {
+  "part": "Part 1 · 소리의 정체",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    4,
+    8
+   ]
+  ],
+  "python": "# D2 · Part 1 · 소리의 정체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 soundfile==0.14.0\n# 실행: python d02_sound.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   주파수 · 진폭 · 주기 · dB · RMS를 숫자로 확인하고 880 Hz 소리를 FFT로 검사\nimport numpy as np\nimport soundfile as sf\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef tone(freq: float, sec: float = 1.0, sr: int = SR, amp: float = 0.5, phase: float = 0.0) -> np.ndarray:\n    \"\"\"freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi) 를 숫자 배열로 만든다.\"\"\"\n    t = np.arange(int(sr * sec)) / sr\n    return (amp * np.sin(2 * np.pi * freq * t + phase)).astype(np.float32)\n\n\n# 숫자 배열의 정체: 220 Hz를 20ms만\ny = tone(220, sec=0.02)\nprint(\"모양:\", y.shape, \"| 자료형:\", y.dtype)\nprint(\"처음 8개 숫자:\", np.round(y[:8], 3))\n\n# 주기 T = 1/f, 1주기당 샘플 수 = fs/f\nfor f in (220, 440, 880):\n    print(f\"{f:4d} Hz → 주기 {1000 / f:.3f} ms, 1주기당 샘플 {SR / f:.1f}개\")\n\n# 같은 440 Hz, 진폭만 다르게: 20 log10(A1/A0) dB\nfor a1, a0 in ((0.2, 0.05), (0.8, 0.2), (0.8, 0.05)):\n    print(f\"진폭 {a1} vs {a0}: {20 * np.log10(a1 / a0):+.2f} dB\")\n\n# RMS는 이론값 A / 루트2\ny = tone(440, amp=0.8)\nrms = float(np.sqrt(np.mean(y ** 2)))\nprint(f\"RMS 측정 {rms:.4f} | 이론 {0.8 / np.sqrt(2):.4f}\")\ncheck(abs(rms - 0.8 / np.sqrt(2)) < 1e-3, \"RMS = A / 루트2 입니다.\")\n\n# 빈칸 실습 1의 답: 880 Hz 소리를 만들어 FFT로 주파수를 잰다\nmy_tone = tone(880)\npeak_hz = np.argmax(np.abs(np.fft.rfft(my_tone))) * SR / len(my_tone)\nprint(f\"측정된 주파수: {peak_hz:.0f} Hz\")\nsf.write(\"tone_880.wav\", my_tone, SR)\ncheck(abs(peak_hz - 880) < 2, \"tone() 안에 주파수 숫자 880을 넣으세요.\")\n",
+  "typescript": "// D2 · Part 1 · 소리의 정체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_sound.ts\n//   주파수 · 진폭 · 주기 · dB · RMS를 숫자로 확인하고 880 Hz 소리를 FFT로 검사\nimport { writeFileSync } from \"node:fs\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction tone(freq: number, sec: number = 1, sr: number = SR, amp: number = 0.5, phase: number = 0): Float32Array {\n  // freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi)\n  const y = new Float32Array(Math.floor(sr * sec));\n  for (let i = 0; i < y.length; i++) y[i] = amp * Math.sin(2 * Math.PI * freq * (i / sr) + phase);\n  return y;\n}\n\n\nfunction fft(re: Float64Array, im: Float64Array): void {\n  // 제자리 FFT (쿨리-튜키, 길이는 2의 거듭제곱)\n  const n = re.length;\n  for (let i = 1, j = 0; i < n; i++) {\n    let bit = n >> 1;\n    for (; j & bit; bit >>= 1) j ^= bit;\n    j ^= bit;\n    if (i < j) {\n      [re[i], re[j]] = [re[j], re[i]];\n      [im[i], im[j]] = [im[j], im[i]];\n    }\n  }\n  for (let len = 2; len <= n; len <<= 1) {\n    const ang = (-2 * Math.PI) / len;\n    for (let i = 0; i < n; i += len) {\n      for (let k = 0; k < len / 2; k++) {\n        const wr = Math.cos(ang * k);\n        const wi = Math.sin(ang * k);\n        const a = i + k;\n        const b = a + len / 2;\n        const xr = re[b] * wr - im[b] * wi;\n        const xi = re[b] * wi + im[b] * wr;\n        re[b] = re[a] - xr;\n        im[b] = im[a] - xi;\n        re[a] += xr;\n        im[a] += xi;\n      }\n    }\n  }\n}\n\nfunction hann(n: number): Float64Array {\n  // Hann 창 (대칭형, np.hanning 과 같음): 0.5 - 0.5 cos(2 pi i / (n-1))\n  return Float64Array.from({ length: n }, (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n - 1)));\n}\n\nfunction magnitude(x: ArrayLike<number>, n: number, window?: ArrayLike<number>): Float64Array {\n  // x 앞쪽 n개(창 곱하기, 모자라면 0으로 채움)의 FFT 크기 |X[k]|, k = 0 ~ n/2\n  const re = new Float64Array(n);\n  const im = new Float64Array(n);\n  for (let i = 0; i < n && i < x.length; i++) re[i] = x[i] * (window ? window[i] : 1);\n  fft(re, im);\n  return Float64Array.from({ length: n / 2 + 1 }, (_, k) => Math.hypot(re[k], im[k]));\n}\n\nfunction peakHz(x: ArrayLike<number>, sr: number, n: number): number {\n  // 가장 센 주파수(Hz): 가장 큰 FFT 칸 번호 k 와 칸 간격 sr / n 으로\n  const m = magnitude(x, n, hann(n));\n  let k = 1;\n  for (let i = 1; i < m.length; i++) if (m[i] > m[k]) k = i;\n  return (k * sr) / n;\n}\n\n\nconst rms = (x: ArrayLike<number>): number => Math.sqrt(Array.from(x).reduce((a, v) => a + v * v, 0) / x.length);\n\n// 숫자 배열의 정체: 220 Hz를 20ms만\nconst y = tone(220, 0.02);\nconsole.log(\"길이:\", y.length, \"| 자료형: Float32Array\");\nconsole.log(\"처음 8개 숫자:\", Array.from(y.slice(0, 8), (v) => v.toFixed(3)).join(\", \"));\n\n// 주기 T = 1/f, 1주기당 샘플 수 = fs/f\nfor (const f of [220, 440, 880]) console.log(`${String(f).padStart(4)} Hz → 주기 ${(1000 / f).toFixed(3)} ms, 1주기당 샘플 ${(SR / f).toFixed(1)}개`);\n\n// 같은 440 Hz, 진폭만 다르게: 20 log10(A1/A0) dB\nfor (const [a1, a0] of [[0.2, 0.05], [0.8, 0.2], [0.8, 0.05]]) console.log(`진폭 ${a1} vs ${a0}: ${(20 * Math.log10(a1 / a0)).toFixed(2)} dB`);\n\n// RMS는 이론값 A / 루트2\nconst loud = tone(440, 1, SR, 0.8);\nconsole.log(`RMS 측정 ${rms(loud).toFixed(4)} | 이론 ${(0.8 / Math.SQRT2).toFixed(4)}`);\ncheck(Math.abs(rms(loud) - 0.8 / Math.SQRT2) < 1e-3, \"RMS = A / 루트2 입니다.\");\n\n// 빈칸 실습 1의 답: 880 Hz 소리를 만들어 FFT로 주파수를 잰다 (FFT 길이는 2의 거듭제곱 → 앞 8192개)\nconst myTone = tone(880);\nconst hz = peakHz(myTone, SR, 8192);\nconsole.log(`측정된 주파수: ${hz.toFixed(0)} Hz`);\nwriteFileSync(\"tone_880.txt\", Array.from(myTone.slice(0, 16), (v) => v.toFixed(4)).join(\"\\n\"));\ncheck(Math.abs(hz - 880) < 2.5, \"tone() 안에 주파수 숫자 880을 넣으세요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "sampling": {
+  "part": "Part 2 · 샘플링: 1초에 몇 번 측정할까",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    9,
+    12
+   ]
+  ],
+  "python": "# D2 · Part 2 · 샘플링: 1초에 몇 번 측정할까 — 단독 실행 완성 코드 (Python 3.11)\n# pip install librosa==0.11.0 numpy==2.4.6\n# 실행: python d02_sampling.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   건너뛰기(aliasing) vs 제대로 줄이기(resample): 접힌 주파수를 예측값과 비교하고 16kHz 변환 길이 확인\nimport librosa\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef peak_freq(y: np.ndarray, sr: int) -> float:\n    \"\"\"가장 센 주파수(Hz): Hann 창을 곱한 FFT에서 가장 큰 칸.\"\"\"\n    spec = np.abs(np.fft.rfft(y * np.hanning(len(y))))\n    return float(np.argmax(spec) * sr / len(y))\n\n\ndef alias_freq(f: float, fs: float) -> float:\n    \"\"\"fs로 샘플링했을 때 f가 접혀 보이는 주파수.\"\"\"\n    return abs(f - round(f / fs) * fs)\n\n\nfs_old, fs_new = 44100, 11025\nprint(f\"새 나이퀴스트 주파수 = {fs_new / 2:.0f} Hz\")\nprint(f\"{'원래 f':>7s} {'예측':>6s} {'건너뛰기':>8s} {'resample 후 세기':>16s}\")\nt = np.arange(fs_old) / fs_old\nok = True\nfor f in (1000, 3000, 5000, 7000, 9000):\n    y = np.sin(2 * np.pi * f * t).astype(np.float32)\n    skip_f = peak_freq(y[::4], fs_new)                                  # 4개 중 1개만 남김\n    res = librosa.resample(y, orig_sr=fs_old, target_sr=fs_new)[200:-200]\n    keep_db = 20 * np.log10(np.sqrt(np.mean(res ** 2)) / np.sqrt(np.mean(y ** 2)) + 1e-12)\n    pred = f if f < fs_new / 2 else alias_freq(f, fs_new)\n    ok &= abs(skip_f - pred) < 3\n    if f > fs_new / 2:\n        ok &= keep_db < -40                                              # 제대로 줄이면 접힌 소리는 사라짐\n    print(f\"{f:7d} {pred:6.0f} {skip_f:8.0f} {keep_db:13.1f} dB {'(접힘)' if f > fs_new / 2 else ''}\")\ncheck(ok, \"건너뛰기는 예측한 주파수로 접히고, resample은 나이퀴스트 위를 지워야 해요.\")\n\n# 빈칸 실습 2의 답: 44.1kHz 원본을 음성 모델 표준 16kHz로\nchirp = librosa.chirp(fmin=200, fmax=7000, sr=44100, duration=3).astype(np.float32) * 0.5\ny16 = librosa.resample(chirp, orig_sr=44100, target_sr=16000)\nprint(f\"샘플 {len(chirp):,}개 → {len(y16):,}개 (예측 {len(chirp) * 16000 / 44100:.0f})\")\ncheck(abs(len(y16) / len(chirp) - 16000 / 44100) < 0.001, \"target_sr=16000 이어야 해요.\")\n",
+  "typescript": "// D2 · Part 2 · 샘플링: 1초에 몇 번 측정할까 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_sampling.ts\n//   건너뛰기(aliasing) vs 제대로 줄이기(resample): 접힌 주파수를 예측값과 비교하고 16kHz 변환 길이 확인\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction fft(re: Float64Array, im: Float64Array): void {\n  // 제자리 FFT (쿨리-튜키, 길이는 2의 거듭제곱)\n  const n = re.length;\n  for (let i = 1, j = 0; i < n; i++) {\n    let bit = n >> 1;\n    for (; j & bit; bit >>= 1) j ^= bit;\n    j ^= bit;\n    if (i < j) {\n      [re[i], re[j]] = [re[j], re[i]];\n      [im[i], im[j]] = [im[j], im[i]];\n    }\n  }\n  for (let len = 2; len <= n; len <<= 1) {\n    const ang = (-2 * Math.PI) / len;\n    for (let i = 0; i < n; i += len) {\n      for (let k = 0; k < len / 2; k++) {\n        const wr = Math.cos(ang * k);\n        const wi = Math.sin(ang * k);\n        const a = i + k;\n        const b = a + len / 2;\n        const xr = re[b] * wr - im[b] * wi;\n        const xi = re[b] * wi + im[b] * wr;\n        re[b] = re[a] - xr;\n        im[b] = im[a] - xi;\n        re[a] += xr;\n        im[a] += xi;\n      }\n    }\n  }\n}\n\nfunction hann(n: number): Float64Array {\n  // Hann 창 (대칭형, np.hanning 과 같음): 0.5 - 0.5 cos(2 pi i / (n-1))\n  return Float64Array.from({ length: n }, (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (n - 1)));\n}\n\nfunction magnitude(x: ArrayLike<number>, n: number, window?: ArrayLike<number>): Float64Array {\n  // x 앞쪽 n개(창 곱하기, 모자라면 0으로 채움)의 FFT 크기 |X[k]|, k = 0 ~ n/2\n  const re = new Float64Array(n);\n  const im = new Float64Array(n);\n  for (let i = 0; i < n && i < x.length; i++) re[i] = x[i] * (window ? window[i] : 1);\n  fft(re, im);\n  return Float64Array.from({ length: n / 2 + 1 }, (_, k) => Math.hypot(re[k], im[k]));\n}\n\nfunction peakHz(x: ArrayLike<number>, sr: number, n: number): number {\n  // 가장 센 주파수(Hz): 가장 큰 FFT 칸 번호 k 와 칸 간격 sr / n 으로\n  const m = magnitude(x, n, hann(n));\n  let k = 1;\n  for (let i = 1; i < m.length; i++) if (m[i] > m[k]) k = i;\n  return (k * sr) / n;\n}\n\n\nfunction resample(y: Float32Array, from: number, to: number): Float32Array {\n  // 창 씌운 sinc 보간: 줄일 때는 새 나이퀴스트(to / 2) 위의 소리를 먼저 걸러 내서 겹침(aliasing)을 막는다\n  const ratio = from / to;\n  const cut = Math.min(1, to / from); // 줄일 때만 컷오프를 낮춤\n  const w = 16 / cut; // 한쪽으로 보는 원본 샘플 수\n  const out = new Float32Array(Math.floor(y.length / ratio));\n  for (let i = 0; i < out.length; i++) {\n    const x = i * ratio;\n    let s = 0;\n    for (let k = Math.max(0, Math.ceil(x - w)); k <= Math.min(y.length - 1, Math.floor(x + w)); k++) {\n      const d = k - x;\n      const a = d * cut;\n      const sinc = a === 0 ? 1 : Math.sin(Math.PI * a) / (Math.PI * a);\n      s += y[k] * cut * sinc * (0.5 + 0.5 * Math.cos((Math.PI * d) / w));\n    }\n    out[i] = s;\n  }\n  return out;\n}\n\n\nconst aliasFreq = (f: number, fs: number): number => Math.abs(f - Math.round(f / fs) * fs);\nconst rms = (x: ArrayLike<number>): number => Math.sqrt(Array.from(x).reduce((a, v) => a + v * v, 0) / x.length);\n\nconst fsOld = 44100;\nconst fsNew = 11025;\nconsole.log(`새 나이퀴스트 주파수 = ${fsNew / 2} Hz`);\nconsole.log(\"원래 f   예측  건너뛰기  resample 후 세기\");\nlet ok = true;\nfor (const f of [1000, 3000, 5000, 7000, 9000]) {\n  const y = Float32Array.from({ length: fsOld }, (_, i) => Math.sin((2 * Math.PI * f * i) / fsOld));\n  const skip = y.filter((_, i) => i % 4 === 0); // 4개 중 1개만 남김\n  const skipF = peakHz(skip, fsNew, 8192);\n  const res = resample(y, fsOld, fsNew).slice(200, -200);\n  const keepDb = 20 * Math.log10(rms(res) / rms(y) + 1e-12);\n  const pred = f < fsNew / 2 ? f : aliasFreq(f, fsNew);\n  ok = ok && Math.abs(skipF - pred) < 3;\n  if (f > fsNew / 2) ok = ok && keepDb < -30; // 제대로 줄이면 접힌 소리는 사라짐\n  console.log(`${String(f).padStart(6)} ${pred.toFixed(0).padStart(6)} ${skipF.toFixed(0).padStart(8)} ${keepDb.toFixed(1).padStart(12)} dB ${f > fsNew / 2 ? \"(접힘)\" : \"\"}`);\n}\ncheck(ok, \"건너뛰기는 예측한 주파수로 접히고, resample은 나이퀴스트 위를 지워야 해요.\");\n\n// 빈칸 실습 2의 답: 44.1kHz 원본을 음성 모델 표준 16kHz로\nconst chirp = new Float32Array(3 * 44100);\nlet phase = 0;\nfor (let i = 0; i < chirp.length; i++) {\n  phase += (2 * Math.PI * 200 * (7000 / 200) ** (i / chirp.length)) / 44100; // 200 → 7,000 Hz로 기하급수적으로 올라감\n  chirp[i] = 0.5 * Math.sin(phase);\n}\nconst y16 = resample(chirp, 44100, 16000);\nconsole.log(`샘플 ${chirp.length.toLocaleString()}개 → ${y16.length.toLocaleString()}개 (예측 ${Math.floor((chirp.length * 16000) / 44100)})`);\ncheck(Math.abs(y16.length / chirp.length - 16000 / 44100) < 0.001, \"target 16000 이어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "librosa",
+     "version": "0.11.0",
+     "purpose": "오디오 읽기 · 샘플링 레이트 변환(resample) · 묵음 자르기",
+     "install": "pip install librosa==0.11.0",
+     "docs": "https://librosa.org/doc/latest/",
+     "license": "ISC"
+    },
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "quant": {
+  "part": "Part 3 · 양자화: 소리의 크기를 몇 단계로 적을까",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    13,
+    16
+   ]
+  ],
+  "python": "# D2 · Part 3 · 양자화: 소리의 크기를 몇 단계로 적을까 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 soundfile==0.14.0\n# 실행: python d02_quant.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   비트 깊이별 단계 수 · 양자화 잡음 SNR(6.02 b + 1.76 dB)을 재고 16bit PCM으로 저장\nimport os\n\nimport numpy as np\nimport soundfile as sf\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef tone(freq: float, sec: float = 1.0, sr: int = SR, amp: float = 0.5, phase: float = 0.0) -> np.ndarray:\n    \"\"\"freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi) 를 숫자 배열로 만든다.\"\"\"\n    t = np.arange(int(sr * sec)) / sr\n    return (amp * np.sin(2 * np.pi * freq * t + phase)).astype(np.float32)\n\n\ndef quantize(y: np.ndarray, bits: int) -> np.ndarray:\n    \"\"\"-1 ~ 1 사이의 소리를 bits 비트(2**bits 단계)로 거칠게 만든다.\"\"\"\n    half = 2 ** (bits - 1) - 1\n    return np.round(y * half) / half\n\n\n# 비트별 SNR 측정 vs 이론 6.02 b + 1.76 (꽉 찬 사인파 기준)\nx = tone(440, sec=1, amp=0.999)\nprint(f\"{'bits':>4s} {'단계 2^b':>9s} {'측정 SNR':>9s} {'이론 SNR':>9s}\")\nworst = 0.0\nfor b in (2, 4, 8, 12, 16):\n    noise = quantize(x, b) - x\n    snr = 10 * np.log10(np.mean(x ** 2) / np.mean(noise ** 2))\n    if b >= 4:                                   # 2bit는 너무 거칠어서 공식이 안 맞음\n        worst = max(worst, abs(snr - (6.02 * b + 1.76)))\n    print(f\"{b:4d} {2 ** b:9,d} {snr:8.1f}dB {6.02 * b + 1.76:8.1f}dB\")\ncheck(worst < 3, \"4bit 이상은 측정 SNR이 6.02 b + 1.76 dB 근처여야 해요.\")\n\n# 저장할 때 비트 깊이는 subtype으로: PCM_16 · PCM_24 · FLOAT\ny = tone(220, 1.0, amp=0.5)\nfor subtype in (\"PCM_16\", \"PCM_24\", \"FLOAT\"):\n    sf.write(f\"q_{subtype}.wav\", y, SR, subtype=subtype)\n    print(f\"{subtype:7s} → {sf.info(f'q_{subtype}.wav').subtype_info:22s} {os.path.getsize(f'q_{subtype}.wav') / 1024:7.1f} KB\")\n\n# 빈칸 실습 3의 답: 16bit WAV로 저장\nsf.write(\"my_16bit.wav\", y, SR, subtype=\"PCM_16\")\ninfo = sf.info(\"my_16bit.wav\")\nprint(info.subtype, \"|\", info.subtype_info)\ncheck(info.subtype == \"PCM_16\", \"PCM_ 뒤에 비트 수를 붙입니다.\")\n",
+  "typescript": "// D2 · Part 3 · 양자화: 소리의 크기를 몇 단계로 적을까 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_quant.ts\n//   비트 깊이별 단계 수 · 양자화 잡음 SNR(6.02 b + 1.76 dB)을 재고 16bit PCM으로 저장\nimport { readFileSync, statSync, writeFileSync } from \"node:fs\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction tone(freq: number, sec: number = 1, sr: number = SR, amp: number = 0.5, phase: number = 0): Float32Array {\n  // freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi)\n  const y = new Float32Array(Math.floor(sr * sec));\n  for (let i = 0; i < y.length; i++) y[i] = amp * Math.sin(2 * Math.PI * freq * (i / sr) + phase);\n  return y;\n}\n\n\nfunction writeWav(path: string, chans: Float32Array[], sr: number = SR, float32: boolean = false): void {\n  // WAV 저장: 16비트 PCM(기본) 또는 32비트 float. chans[채널][시간] -> 샘플이 채널마다 번갈아 들어감\n  const ch = chans.length;\n  const n = chans[0].length;\n  const bytes = float32 ? 4 : 2;\n  const buf = Buffer.alloc(44 + n * ch * bytes);\n  buf.write(\"RIFF\", 0, \"ascii\");\n  buf.writeUInt32LE(36 + n * ch * bytes, 4);\n  buf.write(\"WAVEfmt \", 8, \"ascii\");\n  buf.writeUInt32LE(16, 16); // fmt 덩어리 크기\n  buf.writeUInt16LE(float32 ? 3 : 1, 20); // 1 = PCM, 3 = float\n  buf.writeUInt16LE(ch, 22); // 채널 수\n  buf.writeUInt32LE(sr, 24);\n  buf.writeUInt32LE(sr * ch * bytes, 28); // 1초 바이트 수\n  buf.writeUInt16LE(ch * bytes, 32); // 시간 한 칸 바이트 수\n  buf.writeUInt16LE(bytes * 8, 34); // 비트 깊이\n  buf.write(\"data\", 36, \"ascii\");\n  buf.writeUInt32LE(n * ch * bytes, 40);\n  for (let i = 0; i < n; i++) {\n    for (let c = 0; c < ch; c++) {\n      const v = Math.max(-1, Math.min(1, chans[c][i])); // -1~1 밖은 잘라 냄\n      const at = 44 + (i * ch + c) * bytes;\n      if (float32) buf.writeFloatLE(v, at);\n      else buf.writeInt16LE(Math.round(v * 32767), at);\n    }\n  }\n  writeFileSync(path, buf);\n}\n\nfunction readWav(path: string): { chans: Float32Array[]; sr: number; bits: number } {\n  // 16비트 PCM · 32비트 float WAV 읽기 -> chans[채널][시간]\n  const b = readFileSync(path);\n  if (b.toString(\"ascii\", 0, 4) !== \"RIFF\" || b.toString(\"ascii\", 8, 12) !== \"WAVE\") throw new Error(`${path}: WAV 파일이 아니에요`);\n  let fmt = 1;\n  let ch = 1;\n  let sr = 0;\n  let bits = 16;\n  for (let pos = 12; pos + 8 <= b.length; ) {\n    const id = b.toString(\"ascii\", pos, pos + 4);\n    const size = b.readUInt32LE(pos + 4);\n    const body = pos + 8;\n    if (id === \"fmt \") {\n      fmt = b.readUInt16LE(body);\n      ch = b.readUInt16LE(body + 2);\n      sr = b.readUInt32LE(body + 4);\n      bits = b.readUInt16LE(body + 14);\n    } else if (id === \"data\") {\n      const step = (bits / 8) * ch;\n      const n = Math.floor(Math.min(size, b.length - body) / step);\n      const chans = Array.from({ length: ch }, () => new Float32Array(n));\n      for (let i = 0; i < n; i++) {\n        for (let c = 0; c < ch; c++) {\n          const at = body + i * step + c * (bits / 8);\n          chans[c][i] = fmt === 3 ? b.readFloatLE(at) : b.readInt16LE(at) / 32768;\n        }\n      }\n      return { chans, sr, bits };\n    }\n    pos = body + size + (size % 2); // 덩어리는 짝수 바이트로 맞춰 있음\n  }\n  throw new Error(`${path}: data 덩어리가 없어요`);\n}\n\n\nfunction quantize(y: Float32Array, bits: number): Float32Array {\n  // -1 ~ 1 사이의 소리를 bits 비트(2**bits 단계)로 거칠게 만든다\n  const half = 2 ** (bits - 1) - 1;\n  return y.map((v) => Math.round(v * half) / half);\n}\nconst power = (x: ArrayLike<number>): number => Array.from(x).reduce((a, v) => a + v * v, 0) / x.length;\n\n// 비트별 SNR 측정 vs 이론 6.02 b + 1.76 (꽉 찬 사인파 기준)\nconst x = tone(440, 1, SR, 0.999);\nconsole.log(\" bits  단계 2^b  측정 SNR  이론 SNR\");\nlet worst = 0;\nfor (const b of [2, 4, 8, 12, 16]) {\n  const noise = quantize(x, b).map((v, i) => v - x[i]);\n  const snr = 10 * Math.log10(power(x) / power(noise));\n  if (b >= 4) worst = Math.max(worst, Math.abs(snr - (6.02 * b + 1.76))); // 2bit는 너무 거칠어서 공식이 안 맞음\n  console.log(`${String(b).padStart(5)} ${(2 ** b).toLocaleString().padStart(9)} ${snr.toFixed(1).padStart(8)}dB ${(6.02 * b + 1.76).toFixed(1).padStart(8)}dB`);\n}\ncheck(worst < 3, \"4bit 이상은 측정 SNR이 6.02 b + 1.76 dB 근처여야 해요.\");\n\n// 저장할 때 비트 깊이: 16비트 PCM(샘플당 2바이트) vs 32비트 float(4바이트)\nconst y = tone(220, 1, SR, 0.5);\nwriteWav(\"q_pcm16.wav\", [y], SR);\nwriteWav(\"q_float.wav\", [y], SR, true);\nfor (const f of [\"q_pcm16.wav\", \"q_float.wav\"]) {\n  const w = readWav(f);\n  console.log(`${f.padEnd(12)} ${w.bits}bit ${(statSync(f).size / 1024).toFixed(1).padStart(6)} KB`);\n}\n\n// 빈칸 실습 3의 답: 16bit로 저장하고 다시 읽어 보기 (16bit로 줄인 오차는 1/32767 안쪽)\nconst back = readWav(\"q_pcm16.wav\");\nconst err = Math.max(...back.chans[0].map((v, i) => Math.abs(v - y[i])));\nconsole.log(`16bit 저장 후 최대 오차 ${err.toExponential(2)} (한 단계 = ${(1 / 32767).toExponential(2)})`);\ncheck(back.bits === 16 && err <= 1 / 32767 && readFileSync(\"q_pcm16.wav\").length === 44 + 2 * y.length, \"16bit PCM은 샘플당 2바이트입니다.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV 머리말 · 샘플 바이트 직접 쓰기 · 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "channel": {
+  "part": "Part 4 · 채널: mono와 stereo",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    17,
+    19
+   ]
+  ],
+  "python": "# D2 · Part 4 · 채널: mono와 stereo — 단독 실행 완성 코드 (Python 3.11)\n# pip install librosa==0.11.0 numpy==2.4.6 soundfile==0.14.0\n# 실행: python d02_channel.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   왼쪽 440 Hz · 오른쪽 660 Hz stereo의 모양 (2, N) ↔ (N, 2), mean(axis=0)으로 mono 합치기\nimport librosa\nimport numpy as np\nimport soundfile as sf\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef tone(freq: float, sec: float = 1.0, sr: int = SR, amp: float = 0.5, phase: float = 0.0) -> np.ndarray:\n    \"\"\"freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi) 를 숫자 배열로 만든다.\"\"\"\n    t = np.arange(int(sr * sec)) / sr\n    return (amp * np.sin(2 * np.pi * freq * t + phase)).astype(np.float32)\n\n\nleft = tone(440, sec=2)           # 왼쪽: 라\nright = tone(660, sec=2)          # 오른쪽: 미\nstereo = np.stack([left, right])  # librosa 방식 모양 (2, N)\nprint(\"stereo 모양:\", stereo.shape)\n\nsf.write(\"stereo.wav\", stereo.T, SR)   # soundfile은 (N, 2) 모양이 필요 -> .T\nprint(\"soundfile로 읽은 모양:\", sf.read(\"stereo.wav\")[0].shape)\nprint(\"librosa로 읽은 모양  :\", librosa.load(\"stereo.wav\", sr=None, mono=False)[0].shape)\n\n# 빈칸 실습 4의 답: 채널이 있는 0번 축으로 평균\nmono = stereo.mean(axis=0)\nprint(\"mono 모양:\", mono.shape)\ncheck(mono.shape == (stereo.shape[1],), \"채널이 있는 첫 번째 축은 0번입니다.\")\n\n# 수식 검증: (L + R) / 2 와 mean(axis=0)은 같은가? 그냥 더하면 1을 넘을 수 있다(clipping 위험)\nmono_formula = (stereo[0] + stereo[1]) / 2\nprint(\"두 방법이 같은가:\", np.allclose(mono_formula, mono))\nprint(f\"그냥 더했을 때 최대값 {np.abs(stereo[0] + stereo[1]).max():.2f} | 평균 최대값 {np.abs(mono_formula).max():.2f}\")\nprint(\"전치 확인:\", stereo.shape, \"->\", stereo.T.shape)\ncheck(np.allclose(mono_formula, mono) and np.abs(mono).max() <= 0.5 + 1e-6, \"mono = (L + R) / 2 라서 원래 크기를 넘지 않아요.\")\n",
+  "typescript": "// D2 · Part 4 · 채널: mono와 stereo — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_channel.ts\n//   왼쪽 440 Hz · 오른쪽 660 Hz stereo를 채널 번갈아 저장 · 읽기, (L + R) / 2 로 mono 합치기\nimport { readFileSync, writeFileSync } from \"node:fs\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction tone(freq: number, sec: number = 1, sr: number = SR, amp: number = 0.5, phase: number = 0): Float32Array {\n  // freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi)\n  const y = new Float32Array(Math.floor(sr * sec));\n  for (let i = 0; i < y.length; i++) y[i] = amp * Math.sin(2 * Math.PI * freq * (i / sr) + phase);\n  return y;\n}\n\n\nfunction writeWav(path: string, chans: Float32Array[], sr: number = SR, float32: boolean = false): void {\n  // WAV 저장: 16비트 PCM(기본) 또는 32비트 float. chans[채널][시간] -> 샘플이 채널마다 번갈아 들어감\n  const ch = chans.length;\n  const n = chans[0].length;\n  const bytes = float32 ? 4 : 2;\n  const buf = Buffer.alloc(44 + n * ch * bytes);\n  buf.write(\"RIFF\", 0, \"ascii\");\n  buf.writeUInt32LE(36 + n * ch * bytes, 4);\n  buf.write(\"WAVEfmt \", 8, \"ascii\");\n  buf.writeUInt32LE(16, 16); // fmt 덩어리 크기\n  buf.writeUInt16LE(float32 ? 3 : 1, 20); // 1 = PCM, 3 = float\n  buf.writeUInt16LE(ch, 22); // 채널 수\n  buf.writeUInt32LE(sr, 24);\n  buf.writeUInt32LE(sr * ch * bytes, 28); // 1초 바이트 수\n  buf.writeUInt16LE(ch * bytes, 32); // 시간 한 칸 바이트 수\n  buf.writeUInt16LE(bytes * 8, 34); // 비트 깊이\n  buf.write(\"data\", 36, \"ascii\");\n  buf.writeUInt32LE(n * ch * bytes, 40);\n  for (let i = 0; i < n; i++) {\n    for (let c = 0; c < ch; c++) {\n      const v = Math.max(-1, Math.min(1, chans[c][i])); // -1~1 밖은 잘라 냄\n      const at = 44 + (i * ch + c) * bytes;\n      if (float32) buf.writeFloatLE(v, at);\n      else buf.writeInt16LE(Math.round(v * 32767), at);\n    }\n  }\n  writeFileSync(path, buf);\n}\n\nfunction readWav(path: string): { chans: Float32Array[]; sr: number; bits: number } {\n  // 16비트 PCM · 32비트 float WAV 읽기 -> chans[채널][시간]\n  const b = readFileSync(path);\n  if (b.toString(\"ascii\", 0, 4) !== \"RIFF\" || b.toString(\"ascii\", 8, 12) !== \"WAVE\") throw new Error(`${path}: WAV 파일이 아니에요`);\n  let fmt = 1;\n  let ch = 1;\n  let sr = 0;\n  let bits = 16;\n  for (let pos = 12; pos + 8 <= b.length; ) {\n    const id = b.toString(\"ascii\", pos, pos + 4);\n    const size = b.readUInt32LE(pos + 4);\n    const body = pos + 8;\n    if (id === \"fmt \") {\n      fmt = b.readUInt16LE(body);\n      ch = b.readUInt16LE(body + 2);\n      sr = b.readUInt32LE(body + 4);\n      bits = b.readUInt16LE(body + 14);\n    } else if (id === \"data\") {\n      const step = (bits / 8) * ch;\n      const n = Math.floor(Math.min(size, b.length - body) / step);\n      const chans = Array.from({ length: ch }, () => new Float32Array(n));\n      for (let i = 0; i < n; i++) {\n        for (let c = 0; c < ch; c++) {\n          const at = body + i * step + c * (bits / 8);\n          chans[c][i] = fmt === 3 ? b.readFloatLE(at) : b.readInt16LE(at) / 32768;\n        }\n      }\n      return { chans, sr, bits };\n    }\n    pos = body + size + (size % 2); // 덩어리는 짝수 바이트로 맞춰 있음\n  }\n  throw new Error(`${path}: data 덩어리가 없어요`);\n}\n\n\nconst left = tone(440, 2); // 왼쪽: 라\nconst right = tone(660, 2); // 오른쪽: 미\nconst stereo = [left, right]; // chans[채널][시간] = Python의 (2, N)\nconsole.log(`stereo 모양: (${stereo.length}, ${left.length})`);\n\n// WAV 파일 안에서는 시간 한 칸마다 왼쪽, 오른쪽이 번갈아 저장된다 (Python의 (N, 2))\nwriteWav(\"stereo.wav\", stereo, SR);\nconst raw = readFileSync(\"stereo.wav\");\nconst l1 = raw.readInt16LE(44 + 2 * 2); // 시간 1번 칸의 왼쪽\nconst r1 = raw.readInt16LE(44 + 3 * 2); // 바로 다음 2바이트 = 같은 시간의 오른쪽\nconsole.log(`파일 안 시간 1번 칸: 왼쪽 ${l1} · 오른쪽 ${r1} (Float 값 ${left[1].toFixed(4)} · ${right[1].toFixed(4)})`);\nconst back = readWav(\"stereo.wav\");\nconsole.log(`읽은 모양: (${back.chans.length}, ${back.chans[0].length}) · ${back.sr} Hz`);\n\n// 빈칸 실습 4의 답: 채널 방향으로 평균\nconst mono = Float32Array.from(left, (_, i) => stereo.reduce((a, c) => a + c[i], 0) / stereo.length);\nconsole.log(`mono 길이: ${mono.length}`);\ncheck(mono.length === left.length && l1 === Math.round(left[1] * 32767) && r1 === Math.round(right[1] * 32767), \"채널 평균은 시간 길이를 그대로 두고, 파일에는 왼쪽 오른쪽이 번갈아 들어 있어요.\");\n\n// 수식 검증: 그냥 더하면 1을 넘을 수 있고, 평균은 원래 크기를 넘지 않는다\nconst maxAbs = (x: ArrayLike<number>): number => Array.from(x).reduce((a, v) => Math.max(a, Math.abs(v)), 0);\nconst summed = Float32Array.from(left, (v, i) => v + right[i]);\nconsole.log(`그냥 더했을 때 최대값 ${maxAbs(summed).toFixed(2)} | 평균 최대값 ${maxAbs(mono).toFixed(2)}`);\ncheck(maxAbs(mono) <= 0.5 + 1e-6 && maxAbs(summed) > 0.5 && back.chans.length === 2, \"mono = (L + R) / 2 라서 원래 크기를 넘지 않아요.\");\nwriteFileSync(\"mono.txt\", String(mono.length));\n",
+  "libs": {
+   "python": [
+    {
+     "name": "librosa",
+     "version": "0.11.0",
+     "purpose": "오디오 읽기 · 샘플링 레이트 변환(resample) · 묵음 자르기",
+     "install": "pip install librosa==0.11.0",
+     "docs": "https://librosa.org/doc/latest/",
+     "license": "ISC"
+    },
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV 머리말 · 샘플 바이트 직접 쓰기 · 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "format": {
+  "part": "Part 5 · 오디오 파일 포맷: WAV, FLAC, MP3, Opus",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    20,
+    23
+   ]
+  ],
+  "python": "# D2 · Part 5 · 오디오 파일 포맷: WAV, FLAC, MP3, Opus — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 soundfile==0.14.0\n# 실행: python d02_format.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   같은 소리를 WAV · FLAC(무손실) · MP3 · Opus(손실)로 저장해 크기와 원래 숫자와의 차이를 비교\nimport os\n\nimport numpy as np\nimport soundfile as sf\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef synth_voice(seconds: float = 2.0, f0: float = 140.0, seed: int = 0, sr: int = SR) -> np.ndarray:\n    \"\"\"말소리 비슷한 합성 신호(mono float32): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음.\"\"\"\n    rng = np.random.default_rng(seed)\n    t = np.arange(int(seconds * sr)) / sr\n    pitch = f0 * (1 + 0.05 * np.sin(2 * np.pi * 0.7 * t))              # 억양처럼 천천히 오르내림\n    phase = 2 * np.pi * np.cumsum(pitch) / sr\n    y = sum(np.sin(k * phase) / k for k in range(1, 6))                 # 배음 5개\n    env = np.clip(np.sin(2 * np.pi * 2.5 * t), 0, None) ** 0.5           # 1초에 음절 5개쯤\n    y = y * env + 0.01 * rng.standard_normal(len(t))\n    return (0.8 * y / max(float(np.abs(y).max()), 1e-9)).astype(np.float32)\n\n\ndef size_kb(path: str) -> float:\n    return os.path.getsize(path) / 1024\n\n\ny = synth_voice(3.0)\nT = len(y) / SR\npcm = np.round(np.clip(y, -1, 1) * 32767).astype(np.int16)         # 16bit 정수 그대로 저장하면 FLAC과 숫자가 정확히 같다\nsf.write(\"f.wav\", pcm, SR, subtype=\"PCM_16\")\nsf.write(\"f.flac\", pcm, SR, subtype=\"PCM_16\")\nfiles = [\"f.wav\", \"f.flac\"]\n# MP3 · Opus는 손실 압축: 라이브러리(libsndfile) 버전에 따라 안 될 수 있어서 되는 것만 비교\nfor name, kw in ((\"f.mp3\", dict(format=\"MP3\")), (\"f.opus\", dict(format=\"OGG\", subtype=\"OPUS\"))):\n    try:\n        sf.write(name, pcm, SR, **kw)\n        files.append(name)\n    except Exception as e:  # noqa: BLE001\n        print(f\"{name}: 이 환경에서는 저장할 수 없어서 건너뜁니다 ({type(e).__name__})\")\n\n\ndef decode(path: str) -> np.ndarray:\n    \"\"\"어떤 포맷이든 16kHz mono float32 배열로 되돌리기.\"\"\"\n    d, sr = sf.read(path, dtype=\"float32\")\n    assert sr == SR\n    return d\n\n\nref = decode(\"f.wav\")\nprint(f\"{'파일':8s} {'크기(KB)':>9s} {'WAV 대비':>8s}   원래 숫자와의 차이\")\nlossy = []\nfor f in files:\n    d = decode(f)\n    n = min(len(d), len(ref))\n    diff = float(np.abs(d[:n] - ref[:n]).max())\n    if f.endswith((\".mp3\", \".opus\")):\n        lossy.append((size_kb(f), diff))\n    print(f\"{f:8s} {size_kb(f):9.1f} {size_kb(f) / size_kb('f.wav'):8.0%}   {'0 (완전히 같음)' if diff == 0 else f'{diff:.4f}'}\")\n\n# 비트레이트 공식: 크기 = R x T / 8, PCM의 R = fs x 비트 x 채널\nR_pcm = SR * 16 * 1\nprint(f\"R_PCM = {SR} x 16 x 1 = {R_pcm / 1000:.0f} kbps, 길이 {T:.2f}초\")\nprint(f\"WAV 크기 예측 {R_pcm * T / 8 / 1024:.1f} KB | 실제 {size_kb('f.wav'):.1f} KB (머리말 44바이트 차이)\")\n\nsame = np.array_equal(sf.read(\"f.wav\", dtype=\"int16\")[0], sf.read(\"f.flac\", dtype=\"int16\")[0])\ncheck(same and size_kb(\"f.flac\") < size_kb(\"f.wav\"), \"FLAC은 무손실이라 숫자가 같고 더 작아요.\")\ncheck(abs(R_pcm * T / 8 / 1024 - size_kb(\"f.wav\")) < 0.1, \"크기 = R x T / 8 입니다.\")\ncheck(all(k < size_kb(\"f.wav\") and d > 0 for k, d in lossy), \"MP3 · Opus는 더 작지만 숫자가 조금씩 바뀌어요(손실).\")\n",
+  "typescript": "// D2 · Part 5 · 오디오 파일 포맷: WAV, FLAC, MP3, Opus — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_format.ts\n//   WAV 크기 공식 · 무손실(deflate) 압축은 숫자가 그대로 · 손실(8bit 로그 양자화)은 절반 크기에 숫자가 바뀜\nimport { readFileSync, writeFileSync } from \"node:fs\";\nimport { deflateSync, inflateSync } from \"node:zlib\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction synthVoice(seconds: number = 2, f0: number = 140, seed: number = 0, sr: number = SR): Float32Array {\n  // 말소리 비슷한 합성 신호(mono): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음\n  const n = Math.floor(seconds * sr);\n  const y = new Float32Array(n);\n  const rnd = mulberry32(seed);\n  let phase = 0;\n  let peak = 1e-9;\n  for (let i = 0; i < n; i++) {\n    const t = i / sr;\n    phase += (2 * Math.PI * f0 * (1 + 0.05 * Math.sin(2 * Math.PI * 0.7 * t))) / sr;\n    let v = 0;\n    for (let k = 1; k <= 5; k++) v += Math.sin(k * phase) / k;\n    y[i] = v * Math.sqrt(Math.max(0, Math.sin(2 * Math.PI * 2.5 * t))) + 0.01 * (rnd() * 2 - 1);\n    peak = Math.max(peak, Math.abs(y[i]));\n  }\n  for (let i = 0; i < n; i++) y[i] = (0.8 * y[i]) / peak;\n  return y;\n}\n\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗(seed)이 같으면 늘 같은 난수 순서 (0 이상 1 미만)\n  let a = seed >>> 0;\n  return (): number => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\n\nfunction gauss(rnd: () => number): number {\n  // 표준 정규분포 난수 (Box-Muller)\n  return Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());\n}\n\n\nfunction writeWav(path: string, chans: Float32Array[], sr: number = SR, float32: boolean = false): void {\n  // WAV 저장: 16비트 PCM(기본) 또는 32비트 float. chans[채널][시간] -> 샘플이 채널마다 번갈아 들어감\n  const ch = chans.length;\n  const n = chans[0].length;\n  const bytes = float32 ? 4 : 2;\n  const buf = Buffer.alloc(44 + n * ch * bytes);\n  buf.write(\"RIFF\", 0, \"ascii\");\n  buf.writeUInt32LE(36 + n * ch * bytes, 4);\n  buf.write(\"WAVEfmt \", 8, \"ascii\");\n  buf.writeUInt32LE(16, 16); // fmt 덩어리 크기\n  buf.writeUInt16LE(float32 ? 3 : 1, 20); // 1 = PCM, 3 = float\n  buf.writeUInt16LE(ch, 22); // 채널 수\n  buf.writeUInt32LE(sr, 24);\n  buf.writeUInt32LE(sr * ch * bytes, 28); // 1초 바이트 수\n  buf.writeUInt16LE(ch * bytes, 32); // 시간 한 칸 바이트 수\n  buf.writeUInt16LE(bytes * 8, 34); // 비트 깊이\n  buf.write(\"data\", 36, \"ascii\");\n  buf.writeUInt32LE(n * ch * bytes, 40);\n  for (let i = 0; i < n; i++) {\n    for (let c = 0; c < ch; c++) {\n      const v = Math.max(-1, Math.min(1, chans[c][i])); // -1~1 밖은 잘라 냄\n      const at = 44 + (i * ch + c) * bytes;\n      if (float32) buf.writeFloatLE(v, at);\n      else buf.writeInt16LE(Math.round(v * 32767), at);\n    }\n  }\n  writeFileSync(path, buf);\n}\n\nfunction readWav(path: string): { chans: Float32Array[]; sr: number; bits: number } {\n  // 16비트 PCM · 32비트 float WAV 읽기 -> chans[채널][시간]\n  const b = readFileSync(path);\n  if (b.toString(\"ascii\", 0, 4) !== \"RIFF\" || b.toString(\"ascii\", 8, 12) !== \"WAVE\") throw new Error(`${path}: WAV 파일이 아니에요`);\n  let fmt = 1;\n  let ch = 1;\n  let sr = 0;\n  let bits = 16;\n  for (let pos = 12; pos + 8 <= b.length; ) {\n    const id = b.toString(\"ascii\", pos, pos + 4);\n    const size = b.readUInt32LE(pos + 4);\n    const body = pos + 8;\n    if (id === \"fmt \") {\n      fmt = b.readUInt16LE(body);\n      ch = b.readUInt16LE(body + 2);\n      sr = b.readUInt32LE(body + 4);\n      bits = b.readUInt16LE(body + 14);\n    } else if (id === \"data\") {\n      const step = (bits / 8) * ch;\n      const n = Math.floor(Math.min(size, b.length - body) / step);\n      const chans = Array.from({ length: ch }, () => new Float32Array(n));\n      for (let i = 0; i < n; i++) {\n        for (let c = 0; c < ch; c++) {\n          const at = body + i * step + c * (bits / 8);\n          chans[c][i] = fmt === 3 ? b.readFloatLE(at) : b.readInt16LE(at) / 32768;\n        }\n      }\n      return { chans, sr, bits };\n    }\n    pos = body + size + (size % 2); // 덩어리는 짝수 바이트로 맞춰 있음\n  }\n  throw new Error(`${path}: data 덩어리가 없어요`);\n}\n\n\nconst y = synthVoice(3);\nconst T = y.length / SR;\nwriteWav(\"f.wav\", [y], SR);\nconst wav = readFileSync(\"f.wav\");\n\n// 무손실: deflate(zip과 같은 방식)로 줄였다 풀면 바이트가 완전히 같다 (FLAC 같은 성격)\nconst packed = deflateSync(wav);\nconst unpacked = inflateSync(packed);\nconst lossless = Buffer.compare(wav, unpacked) === 0;\n\n// 손실: 8비트 mu-law(전화 방식) — 크기는 절반, 대신 숫자가 조금 바뀐다 (MP3 · Opus 같은 성격)\nconst MU = 255;\nconst enc = Uint8Array.from(y, (v) => Math.round(((Math.sign(v) * Math.log1p(MU * Math.abs(v))) / Math.log1p(MU) + 1) * 127.5));\nconst dec = Float32Array.from(enc, (c) => {\n  const u = c / 127.5 - 1;\n  return (Math.sign(u) * ((1 + MU) ** Math.abs(u) - 1)) / MU;\n});\nconst diff = Math.max(...dec.map((v, i) => Math.abs(v - y[i])));\n\nconst kb = (n: number): string => (n / 1024).toFixed(1).padStart(6);\nconsole.log(\"파일          크기(KB)  WAV 대비  원래 숫자와의 차이\");\nconsole.log(`WAV           ${kb(wav.length)}     100%   0 (기준)`);\nconsole.log(`deflate       ${kb(packed.length)}  ${((packed.length / wav.length) * 100).toFixed(0).padStart(6)}%   0 (완전히 같음)`);\nconsole.log(`8bit mu-law   ${kb(enc.length)}  ${((enc.length / wav.length) * 100).toFixed(0).padStart(6)}%   ${diff.toFixed(4)}`);\n\n// 비트레이트 공식: 크기 = R x T / 8, PCM의 R = fs x 비트 x 채널\nconst R = SR * 16 * 1;\nconsole.log(`R_PCM = ${SR} x 16 x 1 = ${R / 1000} kbps, 길이 ${T.toFixed(2)}초 → 예측 ${((R * T) / 8 / 1024).toFixed(1)} KB (실제 ${(wav.length / 1024).toFixed(1)} KB, 머리말 44바이트 차이)`);\ncheck(lossless && packed.length < wav.length, \"무손실은 풀면 바이트가 같고 크기는 더 작아요.\");\ncheck(wav.length - (R * T) / 8 === 44, \"크기 = R x T / 8 (+ 머리말 44바이트) 입니다.\");\ncheck(enc.length < wav.length && diff > 0, \"손실은 더 작지만 숫자가 조금씩 바뀌어요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV 머리말 · 샘플 바이트 직접 쓰기 · 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "node:zlib",
+     "version": "내장",
+     "purpose": "무손실 압축(deflate)으로 크기 · 같은 바이트 확인",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/zlib.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "libs": {
+  "part": "Part 6 · 오디오 다루는 도구들",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    2,
+    2
+   ],
+   [
+    9,
+    9
+   ],
+   [
+    14,
+    14
+   ],
+   [
+    24,
+    24
+   ]
+  ],
+  "python": "# D2 · Part 6 · 오디오 다루는 도구들 — 단독 실행 완성 코드 (Python 3.11)\n# pip install librosa==0.11.0 numpy==2.4.6 scipy==1.17.1 soundfile==0.14.0\n# 실행: python d02_libs.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   같은 WAV를 wave · scipy · soundfile · librosa로 읽어 모양 · 자료형 · 샘플링 레이트 차이 비교\nimport wave\n\nimport librosa\nimport numpy as np\nimport soundfile as sf\nfrom scipy.io import wavfile\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef tone(freq: float, sec: float = 1.0, sr: int = SR, amp: float = 0.5, phase: float = 0.0) -> np.ndarray:\n    \"\"\"freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi) 를 숫자 배열로 만든다.\"\"\"\n    t = np.arange(int(sr * sec)) / sr\n    return (amp * np.sin(2 * np.pi * freq * t + phase)).astype(np.float32)\n\n\n# 44.1kHz stereo 16bit WAV 하나를 만든다 (왼쪽 440 Hz, 오른쪽 660 Hz)\nsr0 = 44100\nstereo = np.stack([tone(440, 1.0, sr0), tone(660, 1.0, sr0)])\nsf.write(\"both.wav\", stereo.T, sr0, subtype=\"PCM_16\")\n\n# 1) 표준 라이브러리 wave: 바이트 그대로 (해석은 내가)\nwith wave.open(\"both.wav\", \"rb\") as w:\n    raw = np.frombuffer(w.readframes(w.getnframes()), dtype=\"<i2\").reshape(-1, w.getnchannels())\n    print(f\"wave      : {w.getframerate()} Hz · {w.getnchannels()}ch · 모양 {raw.shape} · {raw.dtype}\")\n\n# 2) scipy.io.wavfile: 정수 그대로, 모양 (N, 채널)\nsr_s, data_s = wavfile.read(\"both.wav\")\nprint(f\"scipy     : {sr_s} Hz · 모양 {data_s.shape} · {data_s.dtype}\")\n\n# 3) soundfile: -1 ~ 1 실수(기본 float64), 모양 (N, 채널)\ndata_f, sr_f = sf.read(\"both.wav\", dtype=\"float32\")\nprint(f\"soundfile : {sr_f} Hz · 모양 {data_f.shape} · {data_f.dtype}\")\n\n# 4) librosa: 기본값은 22,050 Hz mono로 바꿔서 읽음, sr=None이면 원래 그대로, 모양 (채널, N)\ny_default, sr_default = librosa.load(\"both.wav\")\ny_keep, sr_keep = librosa.load(\"both.wav\", sr=None, mono=False)\nprint(f\"librosa 기본  : {sr_default} Hz · 모양 {y_default.shape} · {y_default.dtype}\")\nprint(f\"librosa sr=None: {sr_keep} Hz · 모양 {y_keep.shape}\")\n\ncheck(sr_default == 22050 and y_default.ndim == 1, \"librosa.load의 기본값은 22,050 Hz mono 입니다.\")\ncheck(sr_keep == sr0 and y_keep.shape == (2, sr0) and data_f.shape == (sr0, 2), \"sr=None, mono=False면 원래 그대로 읽어요.\")\ncheck(np.allclose(data_s / 32768, data_f, atol=1e-4) and np.array_equal(raw, data_s), \"정수 / 32768 = 실수 값이어야 해요.\")\n",
+  "typescript": "// D2 · Part 6 · 오디오 다루는 도구들 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_libs.ts\n//   같은 WAV를 Buffer · DataView · 타입 배열 세 방법으로 읽어 같은 숫자인지, 정수 / 32768 = 실수인지 확인\nimport { readFileSync, writeFileSync } from \"node:fs\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction tone(freq: number, sec: number = 1, sr: number = SR, amp: number = 0.5, phase: number = 0): Float32Array {\n  // freq Hz 순수한 소리(사인파) x(t) = A sin(2 pi f t + phi)\n  const y = new Float32Array(Math.floor(sr * sec));\n  for (let i = 0; i < y.length; i++) y[i] = amp * Math.sin(2 * Math.PI * freq * (i / sr) + phase);\n  return y;\n}\n\n\nfunction writeWav(path: string, chans: Float32Array[], sr: number = SR, float32: boolean = false): void {\n  // WAV 저장: 16비트 PCM(기본) 또는 32비트 float. chans[채널][시간] -> 샘플이 채널마다 번갈아 들어감\n  const ch = chans.length;\n  const n = chans[0].length;\n  const bytes = float32 ? 4 : 2;\n  const buf = Buffer.alloc(44 + n * ch * bytes);\n  buf.write(\"RIFF\", 0, \"ascii\");\n  buf.writeUInt32LE(36 + n * ch * bytes, 4);\n  buf.write(\"WAVEfmt \", 8, \"ascii\");\n  buf.writeUInt32LE(16, 16); // fmt 덩어리 크기\n  buf.writeUInt16LE(float32 ? 3 : 1, 20); // 1 = PCM, 3 = float\n  buf.writeUInt16LE(ch, 22); // 채널 수\n  buf.writeUInt32LE(sr, 24);\n  buf.writeUInt32LE(sr * ch * bytes, 28); // 1초 바이트 수\n  buf.writeUInt16LE(ch * bytes, 32); // 시간 한 칸 바이트 수\n  buf.writeUInt16LE(bytes * 8, 34); // 비트 깊이\n  buf.write(\"data\", 36, \"ascii\");\n  buf.writeUInt32LE(n * ch * bytes, 40);\n  for (let i = 0; i < n; i++) {\n    for (let c = 0; c < ch; c++) {\n      const v = Math.max(-1, Math.min(1, chans[c][i])); // -1~1 밖은 잘라 냄\n      const at = 44 + (i * ch + c) * bytes;\n      if (float32) buf.writeFloatLE(v, at);\n      else buf.writeInt16LE(Math.round(v * 32767), at);\n    }\n  }\n  writeFileSync(path, buf);\n}\n\nfunction readWav(path: string): { chans: Float32Array[]; sr: number; bits: number } {\n  // 16비트 PCM · 32비트 float WAV 읽기 -> chans[채널][시간]\n  const b = readFileSync(path);\n  if (b.toString(\"ascii\", 0, 4) !== \"RIFF\" || b.toString(\"ascii\", 8, 12) !== \"WAVE\") throw new Error(`${path}: WAV 파일이 아니에요`);\n  let fmt = 1;\n  let ch = 1;\n  let sr = 0;\n  let bits = 16;\n  for (let pos = 12; pos + 8 <= b.length; ) {\n    const id = b.toString(\"ascii\", pos, pos + 4);\n    const size = b.readUInt32LE(pos + 4);\n    const body = pos + 8;\n    if (id === \"fmt \") {\n      fmt = b.readUInt16LE(body);\n      ch = b.readUInt16LE(body + 2);\n      sr = b.readUInt32LE(body + 4);\n      bits = b.readUInt16LE(body + 14);\n    } else if (id === \"data\") {\n      const step = (bits / 8) * ch;\n      const n = Math.floor(Math.min(size, b.length - body) / step);\n      const chans = Array.from({ length: ch }, () => new Float32Array(n));\n      for (let i = 0; i < n; i++) {\n        for (let c = 0; c < ch; c++) {\n          const at = body + i * step + c * (bits / 8);\n          chans[c][i] = fmt === 3 ? b.readFloatLE(at) : b.readInt16LE(at) / 32768;\n        }\n      }\n      return { chans, sr, bits };\n    }\n    pos = body + size + (size % 2); // 덩어리는 짝수 바이트로 맞춰 있음\n  }\n  throw new Error(`${path}: data 덩어리가 없어요`);\n}\n\n\n// 44.1kHz stereo 16bit WAV 하나를 만든다 (왼쪽 440 Hz, 오른쪽 660 Hz)\nconst sr0 = 44100;\nwriteWav(\"both.wav\", [tone(440, 1, sr0), tone(660, 1, sr0)], sr0);\nconst buf = readFileSync(\"both.wav\");\nconst n = (buf.length - 44) / 4; // 시간 칸 수 (한 칸 = 2채널 x 2바이트)\n\n// 1) Buffer: 읽는 위치와 크기를 내가 정해서 읽기\nconst viaBuffer = Int16Array.from({ length: n * 2 }, (_, i) => buf.readInt16LE(44 + i * 2));\n// 2) DataView: 같은 일을 엔디안(바이트 순서)을 적어 가며\nconst dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);\nconst viaView = Int16Array.from({ length: n * 2 }, (_, i) => dv.getInt16(44 + i * 2, true));\n// 3) 타입 배열: 메모리를 그대로 16비트 정수로 보기 (바이트 정렬이 맞아야 해서 복사해서)\nconst copy = buf.buffer.slice(buf.byteOffset + 44, buf.byteOffset + buf.length);\nconst viaTyped = new Int16Array(copy);\nconsole.log(`Buffer ${viaBuffer.length}개 · DataView ${viaView.length}개 · 타입 배열 ${viaTyped.length}개 (시간 ${n}칸 x 2채널)`);\nconsole.log(`헤더: ${buf.readUInt32LE(24)} Hz · ${buf.readUInt16LE(22)}ch · ${buf.readUInt16LE(34)}bit`);\n\nconst same = viaBuffer.every((v, i) => v === viaView[i] && v === viaTyped[i]);\ncheck(same && viaBuffer.length === n * 2, \"세 방법은 같은 숫자를 읽어야 해요.\");\n\n// 정수를 -1 ~ 1 실수로: / 32768 (readWav가 하는 일)\nconst w = readWav(\"both.wav\");\ncheck(w.sr === sr0 && w.chans.length === 2 && Math.abs(w.chans[0][10] - viaBuffer[20] / 32768) < 1e-9, \"정수 / 32768 = 실수 값이어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "librosa",
+     "version": "0.11.0",
+     "purpose": "오디오 읽기 · 샘플링 레이트 변환(resample) · 묵음 자르기",
+     "install": "pip install librosa==0.11.0",
+     "docs": "https://librosa.org/doc/latest/",
+     "license": "ISC"
+    },
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "scipy",
+     "version": "1.17.1",
+     "purpose": "WAV를 정수 그대로 읽기(scipy.io.wavfile) · 도구 비교",
+     "install": "pip install scipy==1.17.1",
+     "docs": "https://docs.scipy.org/doc/scipy/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV 머리말 · 샘플 바이트 직접 쓰기 · 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "DataView",
+     "version": "내장",
+     "purpose": "바이트 순서(엔디안)를 적어 가며 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "editor": {
+  "part": "Part 6 · pydub 편집기",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    24,
+    26
+   ]
+  ],
+  "python": "# D2 · Part 6 · pydub 편집기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 pydub==0.25.1 soundfile==0.14.0\n# 실행: python d02_editor.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   pydub으로 자르기 · +6dB · 페이드 · 이어 붙이기 · 거꾸로(WAV만, ffmpeg 없이)\nimport warnings\n\nimport numpy as np\nimport soundfile as sf\n\nwarnings.filterwarnings(\"ignore\", category=RuntimeWarning)       # ffmpeg 없다는 경고: WAV만 쓰면 필요 없음\nfrom pydub import AudioSegment  # noqa: E402\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef synth_voice(seconds: float = 2.0, f0: float = 140.0, seed: int = 0, sr: int = SR) -> np.ndarray:\n    \"\"\"말소리 비슷한 합성 신호(mono float32): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음.\"\"\"\n    rng = np.random.default_rng(seed)\n    t = np.arange(int(seconds * sr)) / sr\n    pitch = f0 * (1 + 0.05 * np.sin(2 * np.pi * 0.7 * t))              # 억양처럼 천천히 오르내림\n    phase = 2 * np.pi * np.cumsum(pitch) / sr\n    y = sum(np.sin(k * phase) / k for k in range(1, 6))                 # 배음 5개\n    env = np.clip(np.sin(2 * np.pi * 2.5 * t), 0, None) ** 0.5           # 1초에 음절 5개쯤\n    y = y * env + 0.01 * rng.standard_normal(len(t))\n    return (0.8 * y / max(float(np.abs(y).max()), 1e-9)).astype(np.float32)\n\n\nsf.write(\"speech.wav\", 0.3 * synth_voice(5.0), SR, subtype=\"PCM_16\")      # 작게 만들어 +6dB 해도 안 잘리게\naudio = AudioSegment.from_file(\"speech.wav\")\nprint(f\"길이 {len(audio)} ms | {audio.frame_rate} Hz | {audio.channels}ch | {audio.sample_width * 8}bit\")\n\nclip = audio[1000:4000]                                   # 1초 ~ 4초 자르기 (단위: ms)\nloud = clip + 6                                           # 6dB 키우기 (약 2배)\nfaded = clip.fade_in(500).fade_out(1000)                  # 0.5초 페이드 인, 1초 페이드 아웃\nboth = clip + AudioSegment.silent(800, frame_rate=audio.frame_rate) + clip.reverse()   # 이어 붙이기 (중간 0.8초 쉼)\nfor name, seg in ((\"자르기\", clip), (\"+6dB\", loud), (\"페이드\", faded), (\"이어 붙이기\", both)):\n    seg.export(f\"edit_{name}.wav\", format=\"wav\")\n    print(f\"{name:6s} → {len(seg)} ms\")\n\n# 수식 검증: +6 dB는 약 2배 (10^(6/20) = 1.995)\na = np.array(clip.get_array_of_samples(), dtype=np.float32)\nb = np.array(loud.get_array_of_samples(), dtype=np.float32)\nratio = float(np.abs(b).max() / np.abs(a).max())\nprint(f\"측정 배율 = {ratio:.3f} | 이론 10^(6/20) = {10 ** (6 / 20):.3f}\")\ncheck(abs(ratio - 10 ** (6 / 20)) < 0.02, \"+6 dB는 약 1.995배입니다.\")\ncheck(len(both) == 3000 + 800 + 3000, \"이어 붙인 길이 = 3000 + 800 + 3000 ms 입니다.\")\n\n# 빈칸 실습 6의 답: 처음 2초 (pydub은 밀리초 단위)\nfirst2 = audio[:2000]\nfirst2.export(\"first2.wav\", format=\"wav\")\nprint(f\"길이 {len(first2)} ms\")\ncheck(len(first2) == 2000 and len(faded) == 3000, \"pydub은 밀리초 단위입니다. 2초 = 2000 ms\")\n",
+  "typescript": "// D2 · Part 6 · pydub 편집기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_editor.ts\n//   pydub 같은 AudioSegment로 자르기 · +6dB · 페이드 · 이어 붙이기 · 거꾸로, 길이와 배율 확인\nimport { readFileSync, writeFileSync } from \"node:fs\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction synthVoice(seconds: number = 2, f0: number = 140, seed: number = 0, sr: number = SR): Float32Array {\n  // 말소리 비슷한 합성 신호(mono): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음\n  const n = Math.floor(seconds * sr);\n  const y = new Float32Array(n);\n  const rnd = mulberry32(seed);\n  let phase = 0;\n  let peak = 1e-9;\n  for (let i = 0; i < n; i++) {\n    const t = i / sr;\n    phase += (2 * Math.PI * f0 * (1 + 0.05 * Math.sin(2 * Math.PI * 0.7 * t))) / sr;\n    let v = 0;\n    for (let k = 1; k <= 5; k++) v += Math.sin(k * phase) / k;\n    y[i] = v * Math.sqrt(Math.max(0, Math.sin(2 * Math.PI * 2.5 * t))) + 0.01 * (rnd() * 2 - 1);\n    peak = Math.max(peak, Math.abs(y[i]));\n  }\n  for (let i = 0; i < n; i++) y[i] = (0.8 * y[i]) / peak;\n  return y;\n}\n\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗(seed)이 같으면 늘 같은 난수 순서 (0 이상 1 미만)\n  let a = seed >>> 0;\n  return (): number => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\n\nfunction gauss(rnd: () => number): number {\n  // 표준 정규분포 난수 (Box-Muller)\n  return Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());\n}\n\n\nfunction writeWav(path: string, chans: Float32Array[], sr: number = SR, float32: boolean = false): void {\n  // WAV 저장: 16비트 PCM(기본) 또는 32비트 float. chans[채널][시간] -> 샘플이 채널마다 번갈아 들어감\n  const ch = chans.length;\n  const n = chans[0].length;\n  const bytes = float32 ? 4 : 2;\n  const buf = Buffer.alloc(44 + n * ch * bytes);\n  buf.write(\"RIFF\", 0, \"ascii\");\n  buf.writeUInt32LE(36 + n * ch * bytes, 4);\n  buf.write(\"WAVEfmt \", 8, \"ascii\");\n  buf.writeUInt32LE(16, 16); // fmt 덩어리 크기\n  buf.writeUInt16LE(float32 ? 3 : 1, 20); // 1 = PCM, 3 = float\n  buf.writeUInt16LE(ch, 22); // 채널 수\n  buf.writeUInt32LE(sr, 24);\n  buf.writeUInt32LE(sr * ch * bytes, 28); // 1초 바이트 수\n  buf.writeUInt16LE(ch * bytes, 32); // 시간 한 칸 바이트 수\n  buf.writeUInt16LE(bytes * 8, 34); // 비트 깊이\n  buf.write(\"data\", 36, \"ascii\");\n  buf.writeUInt32LE(n * ch * bytes, 40);\n  for (let i = 0; i < n; i++) {\n    for (let c = 0; c < ch; c++) {\n      const v = Math.max(-1, Math.min(1, chans[c][i])); // -1~1 밖은 잘라 냄\n      const at = 44 + (i * ch + c) * bytes;\n      if (float32) buf.writeFloatLE(v, at);\n      else buf.writeInt16LE(Math.round(v * 32767), at);\n    }\n  }\n  writeFileSync(path, buf);\n}\n\nfunction readWav(path: string): { chans: Float32Array[]; sr: number; bits: number } {\n  // 16비트 PCM · 32비트 float WAV 읽기 -> chans[채널][시간]\n  const b = readFileSync(path);\n  if (b.toString(\"ascii\", 0, 4) !== \"RIFF\" || b.toString(\"ascii\", 8, 12) !== \"WAVE\") throw new Error(`${path}: WAV 파일이 아니에요`);\n  let fmt = 1;\n  let ch = 1;\n  let sr = 0;\n  let bits = 16;\n  for (let pos = 12; pos + 8 <= b.length; ) {\n    const id = b.toString(\"ascii\", pos, pos + 4);\n    const size = b.readUInt32LE(pos + 4);\n    const body = pos + 8;\n    if (id === \"fmt \") {\n      fmt = b.readUInt16LE(body);\n      ch = b.readUInt16LE(body + 2);\n      sr = b.readUInt32LE(body + 4);\n      bits = b.readUInt16LE(body + 14);\n    } else if (id === \"data\") {\n      const step = (bits / 8) * ch;\n      const n = Math.floor(Math.min(size, b.length - body) / step);\n      const chans = Array.from({ length: ch }, () => new Float32Array(n));\n      for (let i = 0; i < n; i++) {\n        for (let c = 0; c < ch; c++) {\n          const at = body + i * step + c * (bits / 8);\n          chans[c][i] = fmt === 3 ? b.readFloatLE(at) : b.readInt16LE(at) / 32768;\n        }\n      }\n      return { chans, sr, bits };\n    }\n    pos = body + size + (size % 2); // 덩어리는 짝수 바이트로 맞춰 있음\n  }\n  throw new Error(`${path}: data 덩어리가 없어요`);\n}\n\n\nclass Segment {\n  // pydub의 AudioSegment 흉내: 소리 배열 + 샘플링 레이트, 시간 단위는 ms\n  y: Float32Array;\n  sr: number;\n  constructor(y: Float32Array, sr: number) {\n    this.y = y;\n    this.sr = sr;\n  }\n  get length(): number {\n    return Math.round((this.y.length / this.sr) * 1000); // ms\n  }\n  slice(from: number, to: number = this.length): Segment {\n    return new Segment(this.y.slice(Math.round((from * this.sr) / 1000), Math.round((to * this.sr) / 1000)), this.sr);\n  }\n  gain(db: number): Segment {\n    const g = 10 ** (db / 20); // 20 log10 이득 → 곱하는 배율\n    return new Segment(this.y.map((v) => v * g), this.sr);\n  }\n  fade(inMs: number, outMs: number): Segment {\n    const out = this.y.slice();\n    const a = Math.round((inMs * this.sr) / 1000);\n    const b = Math.round((outMs * this.sr) / 1000);\n    for (let i = 0; i < a; i++) out[i] *= i / a;\n    for (let i = 0; i < b; i++) out[out.length - 1 - i] *= i / b;\n    return new Segment(out, this.sr);\n  }\n  concat(o: Segment): Segment {\n    const out = new Float32Array(this.y.length + o.y.length);\n    out.set(this.y, 0);\n    out.set(o.y, this.y.length);\n    return new Segment(out, this.sr);\n  }\n  reverse(): Segment {\n    return new Segment(this.y.slice().reverse(), this.sr);\n  }\n  static silent(ms: number, sr: number): Segment {\n    return new Segment(new Float32Array(Math.round((ms * sr) / 1000)), sr);\n  }\n}\n\nwriteWav(\"speech.wav\", [synthVoice(5)], SR);\nconst audio = new Segment(readWav(\"speech.wav\").chans[0], SR);\nconsole.log(`길이 ${audio.length} ms | ${audio.sr} Hz`);\n\nconst clip = audio.slice(1000, 4000); // 1초 ~ 4초 자르기\nconst loud = clip.gain(6); // 6dB 키우기 (약 2배)\nconst faded = clip.fade(500, 1000); // 0.5초 페이드 인, 1초 페이드 아웃\nconst both = clip.concat(Segment.silent(800, SR)).concat(clip.reverse()); // 이어 붙이기 (중간 0.8초 쉼)\nfor (const [name, seg] of [[\"자르기\", clip], [\"+6dB\", loud], [\"페이드\", faded], [\"이어 붙이기\", both]] as Array<[string, Segment]>) {\n  writeWav(`edit_${name === \"+6dB\" ? \"gain\" : name === \"자르기\" ? \"clip\" : name === \"페이드\" ? \"fade\" : \"both\"}.wav`, [seg.y], SR);\n  console.log(`${name.padEnd(6)} → ${seg.length} ms`);\n}\n\n// 수식 검증: +6 dB는 약 2배 (10^(6/20) = 1.995)\nconst maxAbs = (x: Float32Array): number => x.reduce((a, v) => Math.max(a, Math.abs(v)), 0);\nconst ratio = maxAbs(loud.y) / maxAbs(clip.y);\nconsole.log(`측정 배율 = ${ratio.toFixed(3)} | 이론 10^(6/20) = ${(10 ** (6 / 20)).toFixed(3)}`);\ncheck(Math.abs(ratio - 10 ** (6 / 20)) < 0.02, \"+6 dB는 약 1.995배입니다.\");\ncheck(both.length === 3000 + 800 + 3000, \"이어 붙인 길이 = 3000 + 800 + 3000 ms 입니다.\");\n\n// 빈칸 실습 6의 답: 처음 2초 (밀리초 단위)\nconst first2 = audio.slice(0, 2000);\nwriteFileSync(\"first2.txt\", String(first2.length));\ncheck(first2.length === 2000 && faded.length === 3000 && faded.y[0] === 0, \"2초 = 2000 ms, 페이드 인은 0에서 시작해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "pydub",
+     "version": "0.25.1",
+     "purpose": "WAV 자르기 · 이어 붙이기 · 페이드 · dB 조절(ffmpeg 없이 WAV만)",
+     "install": "pip install pydub==0.25.1",
+     "docs": "https://github.com/jiaaro/pydub",
+     "license": "MIT"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV 머리말 · 샘플 바이트 직접 쓰기 · 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "pipeline": {
+  "part": "Part 6 · 미니 프로젝트: 어떤 파일이든 음성 모델용으로",
+  "nb": "D2_디지털오디오기초_실습.ipynb",
+  "ord": [
+   [
+    27,
+    27
+   ]
+  ],
+  "python": "# D2 · Part 6 · 미니 프로젝트: 어떤 파일이든 음성 모델용으로 — 단독 실행 완성 코드 (Python 3.11)\n# pip install librosa==0.11.0 numpy==2.4.6 soundfile==0.14.0\n# 실행: python d02_pipeline.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   44.1kHz stereo · 8kHz mono · FLAC 입력을 모두 16kHz mono 16bit WAV로(묵음 자르기 · 볼륨 0.9) 맞추는 전처리기\nimport os\n\nimport librosa\nimport numpy as np\nimport soundfile as sf\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef synth_voice(seconds: float = 2.0, f0: float = 140.0, seed: int = 0, sr: int = SR) -> np.ndarray:\n    \"\"\"말소리 비슷한 합성 신호(mono float32): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음.\"\"\"\n    rng = np.random.default_rng(seed)\n    t = np.arange(int(seconds * sr)) / sr\n    pitch = f0 * (1 + 0.05 * np.sin(2 * np.pi * 0.7 * t))              # 억양처럼 천천히 오르내림\n    phase = 2 * np.pi * np.cumsum(pitch) / sr\n    y = sum(np.sin(k * phase) / k for k in range(1, 6))                 # 배음 5개\n    env = np.clip(np.sin(2 * np.pi * 2.5 * t), 0, None) ** 0.5           # 1초에 음절 5개쯤\n    y = y * env + 0.01 * rng.standard_normal(len(t))\n    return (0.8 * y / max(float(np.abs(y).max()), 1e-9)).astype(np.float32)\n\n\ndef size_kb(path: str) -> float:\n    return os.path.getsize(path) / 1024\n\n\ndef make_model_ready(src: str, dst: str = \"ready.wav\") -> str:\n    \"\"\"어떤 파일이든 16kHz mono 16bit WAV로: 형식 해석 · resample · 채널 평균을 한 줄에, 묵음 자르기, 볼륨 맞추기.\"\"\"\n    y, sr = librosa.load(src, sr=16000, mono=True)       # 1) 16kHz로, 2) 채널 합치기\n    y, _ = librosa.effects.trim(y, top_db=30)             # 3) 앞뒤 묵음 자르기\n    y = y / (np.abs(y).max() + 1e-9) * 0.9                # 4) 볼륨 맞추기 (가장 큰 소리를 0.9로)\n    sf.write(dst, y, sr, subtype=\"PCM_16\")                # 5) 16bit WAV 저장\n    return dst\n\n\ndef describe(path: str) -> str:\n    i = sf.info(path)\n    return f\"{i.samplerate:>6} Hz | {i.channels}ch | {i.subtype:7s} | {i.duration:5.2f}초 | {size_kb(path):7.1f} KB\"\n\n\n# 입력 세 가지: 앞뒤에 0.3초 묵음이 붙은 말소리\ndef padded(sr: int) -> np.ndarray:\n    v = synth_voice(1.5, sr=sr)\n    z = np.zeros(int(0.3 * sr), np.float32)\n    return np.concatenate([z, 0.2 * v, z])\n\nhq = padded(44100)\nsf.write(\"in_hq.wav\", np.stack([hq, 0.6 * hq]).T, 44100, subtype=\"PCM_16\")     # 44.1kHz stereo\nsf.write(\"in_8k.wav\", padded(8000), 8000, subtype=\"PCM_16\")                    # 8kHz mono (전화)\nsf.write(\"in_16k.flac\", padded(16000), 16000, subtype=\"PCM_16\")                # FLAC\n\nok = True\nfor src in (\"in_hq.wav\", \"in_8k.wav\", \"in_16k.flac\"):\n    out = make_model_ready(src, \"ready_\" + os.path.splitext(src)[0] + \".wav\")\n    print(f\"[전] {src:12s} {describe(src)}\")\n    print(f\"[후] {out:18s} {describe(out)}\\n\")\n    i = sf.info(out)\n    peak = float(np.abs(sf.read(out)[0]).max())\n    ok &= i.samplerate == 16000 and i.channels == 1 and i.subtype == \"PCM_16\" and i.duration < sf.info(src).duration - 0.3 and abs(peak - 0.9) < 0.01\ncheck(ok, \"모두 16kHz · mono · PCM_16, 묵음이 잘려 짧아지고 가장 큰 소리가 0.9여야 해요.\")\n",
+  "typescript": "// D2 · Part 6 · 미니 프로젝트: 어떤 파일이든 음성 모델용으로 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d02_pipeline.ts\n//   44.1kHz stereo · 8kHz mono · 48kHz float WAV를 모두 16kHz mono 16bit WAV로(묵음 자르기 · 볼륨 0.9) 맞추는 전처리기\nimport { readFileSync, statSync, writeFileSync } from \"node:fs\";\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n\nfunction synthVoice(seconds: number = 2, f0: number = 140, seed: number = 0, sr: number = SR): Float32Array {\n  // 말소리 비슷한 합성 신호(mono): 기본음 + 배음 5개 + 음절 모양 세기 + 약한 잡음\n  const n = Math.floor(seconds * sr);\n  const y = new Float32Array(n);\n  const rnd = mulberry32(seed);\n  let phase = 0;\n  let peak = 1e-9;\n  for (let i = 0; i < n; i++) {\n    const t = i / sr;\n    phase += (2 * Math.PI * f0 * (1 + 0.05 * Math.sin(2 * Math.PI * 0.7 * t))) / sr;\n    let v = 0;\n    for (let k = 1; k <= 5; k++) v += Math.sin(k * phase) / k;\n    y[i] = v * Math.sqrt(Math.max(0, Math.sin(2 * Math.PI * 2.5 * t))) + 0.01 * (rnd() * 2 - 1);\n    peak = Math.max(peak, Math.abs(y[i]));\n  }\n  for (let i = 0; i < n; i++) y[i] = (0.8 * y[i]) / peak;\n  return y;\n}\n\n\nfunction mulberry32(seed: number): () => number {\n  // 씨앗(seed)이 같으면 늘 같은 난수 순서 (0 이상 1 미만)\n  let a = seed >>> 0;\n  return (): number => {\n    a = (a + 0x6d2b79f5) >>> 0;\n    let t = a;\n    t = Math.imul(t ^ (t >>> 15), t | 1);\n    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);\n    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;\n  };\n}\n\nfunction gauss(rnd: () => number): number {\n  // 표준 정규분포 난수 (Box-Muller)\n  return Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd());\n}\n\n\nfunction writeWav(path: string, chans: Float32Array[], sr: number = SR, float32: boolean = false): void {\n  // WAV 저장: 16비트 PCM(기본) 또는 32비트 float. chans[채널][시간] -> 샘플이 채널마다 번갈아 들어감\n  const ch = chans.length;\n  const n = chans[0].length;\n  const bytes = float32 ? 4 : 2;\n  const buf = Buffer.alloc(44 + n * ch * bytes);\n  buf.write(\"RIFF\", 0, \"ascii\");\n  buf.writeUInt32LE(36 + n * ch * bytes, 4);\n  buf.write(\"WAVEfmt \", 8, \"ascii\");\n  buf.writeUInt32LE(16, 16); // fmt 덩어리 크기\n  buf.writeUInt16LE(float32 ? 3 : 1, 20); // 1 = PCM, 3 = float\n  buf.writeUInt16LE(ch, 22); // 채널 수\n  buf.writeUInt32LE(sr, 24);\n  buf.writeUInt32LE(sr * ch * bytes, 28); // 1초 바이트 수\n  buf.writeUInt16LE(ch * bytes, 32); // 시간 한 칸 바이트 수\n  buf.writeUInt16LE(bytes * 8, 34); // 비트 깊이\n  buf.write(\"data\", 36, \"ascii\");\n  buf.writeUInt32LE(n * ch * bytes, 40);\n  for (let i = 0; i < n; i++) {\n    for (let c = 0; c < ch; c++) {\n      const v = Math.max(-1, Math.min(1, chans[c][i])); // -1~1 밖은 잘라 냄\n      const at = 44 + (i * ch + c) * bytes;\n      if (float32) buf.writeFloatLE(v, at);\n      else buf.writeInt16LE(Math.round(v * 32767), at);\n    }\n  }\n  writeFileSync(path, buf);\n}\n\nfunction readWav(path: string): { chans: Float32Array[]; sr: number; bits: number } {\n  // 16비트 PCM · 32비트 float WAV 읽기 -> chans[채널][시간]\n  const b = readFileSync(path);\n  if (b.toString(\"ascii\", 0, 4) !== \"RIFF\" || b.toString(\"ascii\", 8, 12) !== \"WAVE\") throw new Error(`${path}: WAV 파일이 아니에요`);\n  let fmt = 1;\n  let ch = 1;\n  let sr = 0;\n  let bits = 16;\n  for (let pos = 12; pos + 8 <= b.length; ) {\n    const id = b.toString(\"ascii\", pos, pos + 4);\n    const size = b.readUInt32LE(pos + 4);\n    const body = pos + 8;\n    if (id === \"fmt \") {\n      fmt = b.readUInt16LE(body);\n      ch = b.readUInt16LE(body + 2);\n      sr = b.readUInt32LE(body + 4);\n      bits = b.readUInt16LE(body + 14);\n    } else if (id === \"data\") {\n      const step = (bits / 8) * ch;\n      const n = Math.floor(Math.min(size, b.length - body) / step);\n      const chans = Array.from({ length: ch }, () => new Float32Array(n));\n      for (let i = 0; i < n; i++) {\n        for (let c = 0; c < ch; c++) {\n          const at = body + i * step + c * (bits / 8);\n          chans[c][i] = fmt === 3 ? b.readFloatLE(at) : b.readInt16LE(at) / 32768;\n        }\n      }\n      return { chans, sr, bits };\n    }\n    pos = body + size + (size % 2); // 덩어리는 짝수 바이트로 맞춰 있음\n  }\n  throw new Error(`${path}: data 덩어리가 없어요`);\n}\n\n\nfunction resample(y: Float32Array, from: number, to: number): Float32Array {\n  // 창 씌운 sinc 보간: 줄일 때는 새 나이퀴스트(to / 2) 위의 소리를 먼저 걸러 내서 겹침(aliasing)을 막는다\n  const ratio = from / to;\n  const cut = Math.min(1, to / from); // 줄일 때만 컷오프를 낮춤\n  const w = 16 / cut; // 한쪽으로 보는 원본 샘플 수\n  const out = new Float32Array(Math.floor(y.length / ratio));\n  for (let i = 0; i < out.length; i++) {\n    const x = i * ratio;\n    let s = 0;\n    for (let k = Math.max(0, Math.ceil(x - w)); k <= Math.min(y.length - 1, Math.floor(x + w)); k++) {\n      const d = k - x;\n      const a = d * cut;\n      const sinc = a === 0 ? 1 : Math.sin(Math.PI * a) / (Math.PI * a);\n      s += y[k] * cut * sinc * (0.5 + 0.5 * Math.cos((Math.PI * d) / w));\n    }\n    out[i] = s;\n  }\n  return out;\n}\n\n\nfunction makeModelReady(src: string, dst: string): string {\n  // 어떤 WAV든 16kHz mono 16bit WAV로: 채널 평균 → resample → 묵음 자르기 → 볼륨 맞추기\n  const w = readWav(src);\n  const mono = Float32Array.from(w.chans[0], (_, i) => w.chans.reduce((a, c) => a + c[i], 0) / w.chans.length);\n  let y = resample(mono, w.sr, SR);\n  const loud = y.reduce((a, v) => Math.max(a, Math.abs(v)), 0);\n  const thr = loud * 10 ** (-30 / 20); // 가장 큰 소리보다 30dB 작으면 묵음\n  let s = 0;\n  let e = y.length - 1;\n  while (s < e && Math.abs(y[s]) < thr) s++;\n  while (e > s && Math.abs(y[e]) < thr) e--;\n  y = y.slice(s, e + 1);\n  const peak = y.reduce((a, v) => Math.max(a, Math.abs(v)), 1e-9);\n  writeWav(dst, [y.map((v) => (v / peak) * 0.9)], SR);\n  return dst;\n}\n\nconst describe = (p: string): string => {\n  const w = readWav(p);\n  return `${String(w.sr).padStart(6)} Hz | ${w.chans.length}ch | ${w.bits}bit | ${(w.chans[0].length / w.sr).toFixed(2)}초 | ${(statSync(p).size / 1024).toFixed(1)} KB`;\n};\n\n// 입력 세 가지: 앞뒤에 0.3초 묵음이 붙은 말소리\nfunction padded(sr: number): Float32Array {\n  const v = synthVoice(1.5, 140, 0, sr);\n  const z = Math.round(0.3 * sr);\n  const out = new Float32Array(v.length + 2 * z);\n  out.set(v.map((x) => 0.2 * x), z);\n  return out;\n}\nconst hq = padded(44100);\nwriteWav(\"in_hq.wav\", [hq, hq.map((v) => 0.6 * v)], 44100); // 44.1kHz stereo\nwriteWav(\"in_8k.wav\", [padded(8000)], 8000); // 8kHz mono (전화)\nwriteWav(\"in_48k.wav\", [padded(48000)], 48000, true); // 48kHz 32bit float\n\nlet ok = true;\nfor (const src of [\"in_hq.wav\", \"in_8k.wav\", \"in_48k.wav\"]) {\n  const out = makeModelReady(src, `ready_${src}`);\n  console.log(`[전] ${src.padEnd(12)} ${describe(src)}`);\n  console.log(`[후] ${out.padEnd(18)} ${describe(out)}\\n`);\n  const o = readWav(out);\n  const i = readWav(src);\n  const peak = o.chans[0].reduce((a, v) => Math.max(a, Math.abs(v)), 0);\n  ok = ok && o.sr === 16000 && o.chans.length === 1 && o.bits === 16 && o.chans[0].length / o.sr < i.chans[0].length / i.sr - 0.3 && Math.abs(peak - 0.9) < 0.01;\n}\ncheck(ok, \"모두 16kHz · mono · 16bit, 묵음이 잘려 짧아지고 가장 큰 소리가 0.9여야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "librosa",
+     "version": "0.11.0",
+     "purpose": "오디오 읽기 · 샘플링 레이트 변환(resample) · 묵음 자르기",
+     "install": "pip install librosa==0.11.0",
+     "docs": "https://librosa.org/doc/latest/",
+     "license": "ISC"
+    },
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "소리 배열 계산 · FFT",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "soundfile",
+     "version": "0.14.0",
+     "purpose": "WAV · FLAC · MP3 · Opus 저장 · 읽기, 비트 깊이(subtype)",
+     "install": "pip install soundfile==0.14.0",
+     "docs": "https://python-soundfile.readthedocs.io/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:fs",
+     "version": "내장",
+     "purpose": "WAV 파일 읽고 쓰기 · 파일 크기 재기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/fs.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Buffer",
+     "version": "내장",
+     "purpose": "WAV 머리말 · 샘플 바이트 직접 쓰기 · 읽기",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/buffer.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 스펙트럼 숫자 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ }
+}
