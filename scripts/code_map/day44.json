@@ -1,0 +1,92 @@
+{
+ "notebook": "day44/D44_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~5 · 오늘의 흐름 전체",
+   [
+    8,
+    13,
+    18,
+    26,
+    31,
+    36,
+    39
+   ]
+  ],
+  "budget": [
+   "Part 1 · 예산표: 부품마다 재기",
+   [
+    11,
+    13,
+    39
+   ]
+  ],
+  "stream": [
+   "Part 3~4 · 흘러 들어오는 소리와 말 끝",
+   [
+    29,
+    31
+   ]
+  ],
+  "quant": [
+   "Part 2 · ONNX와 양자화: 같은 모델을 작게",
+   [
+    16,
+    18,
+    21
+   ]
+  ],
+  "wake": [
+   "Part 3 · 깨움말의 구조: 얼어 있는 앞단 + 작은 분류기",
+   [
+    24,
+    26
+   ]
+  ],
+  "thresh": [
+   "Part 3 · 문턱과 연속 확인, 쉬는 시간",
+   [
+    29,
+    31
+   ]
+  ],
+  "states": [
+   "Part 4 · 조립: 비서의 상태",
+   [
+    34,
+    36
+   ]
+  ],
+  "choose": [
+   "Part 2~4 · 클라우드와 기기 고르기",
+   [
+    21,
+    13,
+    39
+   ]
+  ],
+  "recap": [
+   "Part 5 · 정리: 핵심 함수 자기 확인",
+   [
+    11,
+    16,
+    29,
+    34
+   ]
+  ]
+ },
+ "ts_libs": [
+  [
+   "\bnew Int8Array\\(|\bInt8Array\\.from\\(",
+   "Int8Array · DataView",
+   "int8 가중치 · 파일 머리(눈금) 직접 읽고 쓰기",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Int8Array"
+  ],
+  [
+   "\bperformance\\.now\\(",
+   "performance.now",
+   "처리 시간(rtf) 재기",
+   "https://nodejs.org/api/perf_hooks.html"
+  ]
+ ]
+}

@@ -1,0 +1,93 @@
+{
+ "notebook": "day41/D41_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~5 · 오늘의 흐름 전체",
+   [
+    7,
+    11,
+    17,
+    25,
+    30,
+    35
+   ]
+  ],
+  "pyramid": [
+   "Part 1~3 · 평가의 세 단계: 부품 · 턴 · 대화",
+   [
+    11,
+    17,
+    25
+   ]
+  ],
+  "wer": [
+   "Part 1 · 부품 평가: WER과 뜻",
+   [
+    9,
+    11
+   ]
+  ],
+  "tools": [
+   "Part 2 · 턴 평가: 도구 호출 맞추기",
+   [
+    15,
+    17
+   ]
+  ],
+  "sim": [
+   "Part 3 · 가상의 환자(사용자 시뮬레이터)",
+   [
+    21
+   ]
+  ],
+  "judge": [
+   "Part 3 · 루브릭 채점: 과제 성공과 규칙 준수",
+   [
+    23,
+    25
+   ]
+  ],
+  "stress": [
+   "Part 4 · 음성 고리와 잡음 스트레스 시험",
+   [
+    30
+   ]
+  ],
+  "regress": [
+   "Part 4 · 회귀 시험과 문지기",
+   [
+    33,
+    35
+   ]
+  ],
+  "recap": [
+   "Part 5 · 정리: 핵심 함수 자기 확인",
+   [
+    9,
+    15,
+    23,
+    33
+   ]
+  ]
+ },
+ "ts_libs": [
+  [
+   "from \"node:fs\"",
+   "node:fs",
+   "평가 결과(eval_baseline.json) 파일 쓰기 · 읽기",
+   "https://nodejs.org/api/fs.html"
+  ],
+  [
+   "from \"node:os\"",
+   "node:os",
+   "임시 폴더 위치(tmpdir)",
+   "https://nodejs.org/api/os.html"
+  ],
+  [
+   "from \"node:path\"",
+   "node:path",
+   "파일 경로 이어 붙이기",
+   "https://nodejs.org/api/path.html"
+  ]
+ ]
+}
