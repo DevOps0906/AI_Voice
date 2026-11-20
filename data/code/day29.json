@@ -1,0 +1,197 @@
+{
+ "flow": {
+  "part": "Part 0~5 · 오늘의 흐름 전체",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    5,
+    5
+   ],
+   [
+    9,
+    12
+   ],
+   [
+    14,
+    15
+   ],
+   [
+    17,
+    17
+   ]
+  ],
+  "python": "# D29 · Part 0~5 · 오늘의 흐름 전체: 출입증 → 방 입장 → 비서 출근 → 세션 한 턴 → 음성 트랙 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_flow.py   (LiveKit 서버·SDK 없이 · 인터넷·GPU·마이크·API 키 불필요)\n#   사용자 토큰을 확인하고 방에 들이면, 서버가 비서 일감을 만들어 세션 한 턴을 돌리고 답을 음성 트랙으로 publish\n#   (대체: 실제 LiveKit 대신 이 파일 안의 모의 방·서명·가짜 LLM)\nimport asyncio\nimport hashlib\nimport hmac\n\nSECRET = \"dev-secret-do-not-use-in-prod\"                # 개발용 가짜 키\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef token(identity: str, room: str) -> str:\n    return f\"{identity}|{room}|\" + hmac.new(SECRET.encode(), f\"{identity}|{room}\".encode(), hashlib.sha256).hexdigest()[:16]\n\n\ndef valid(tok: str) -> bool:\n    identity, room, _ = tok.split(\"|\")\n    return hmac.compare_digest(tok, token(identity, room))\n\n\nclass Room:\n    def __init__(self, name: str) -> None:\n        self.name, self.events = name, []\n\n\nasync def agent_entrypoint(room: Room, user_text: str) -> None:\n    \"\"\"비서 일감: 방에 연결 → 사용자 말을 LLM(가짜)에 → 답을 음성 트랙으로 publish.\"\"\"\n    room.events.append(\"agent: connect\")\n    reply = \"네, 예약 도와드릴게요.\" if \"예약\" in user_text else \"다시 말씀해 주세요.\"\n    room.events.append(f\"agent: publish voice '{reply}'\")\n\n\nasync def main() -> None:\n    room, user_tok = Room(\"clinic-1\"), token(\"user-1\", \"clinic-1\")\n    if not valid(user_tok):\n        return\n    room.events.append(\"user-1: join (토큰 확인 통과)\")\n    await agent_entrypoint(room, \"내일 예약하고 싶어요\")           # 서버가 방이 생긴 걸 보고 비서를 보냄\n    forged = user_tok.replace(\"user-1\", \"admin\", 1)\n    for e in room.events:\n        print(\" \", e)\n    check(room.events[0].startswith(\"user-1\") and room.events[1] == \"agent: connect\" and \"예약 도와드릴게요\" in room.events[2] and not valid(forged),\n          \"토큰 확인 → 비서 연결 → 답 publish 순서여야 하고, 위조 토큰은 거절돼야 해요.\")\n\n\nasyncio.run(main())\n",
+  "typescript": "// D29 · Part 0~5 · 오늘의 흐름 전체: 출입증 → 방 입장 → 비서 출근 → 세션 한 턴 → 음성 트랙 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_flow.ts\n//   사용자 토큰을 확인하고 방에 들이면, 서버가 비서 일감을 만들어 세션 한 턴을 돌리고 답을 음성 트랙으로 publish\n//   (대체: 실제 LiveKit 대신 이 파일 안의 모의 방·서명·가짜 LLM)\nimport { createHmac } from \"node:crypto\";\n\nconst SECRET = \"dev-secret-do-not-use-in-prod\"; // 개발용 가짜 키\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst token = (identity: string, room: string): string => `${identity}|${room}|` + createHmac(\"sha256\", SECRET).update(`${identity}|${room}`).digest(\"hex\").slice(0, 16);\n\nfunction valid(tok: string): boolean {\n  const [identity, room] = tok.split(\"|\");\n  return tok === token(identity, room);\n}\n\ninterface Room {\n  name: string;\n  events: string[];\n}\n\nasync function agentEntrypoint(room: Room, userText: string): Promise<void> {\n  // 비서 일감: 방에 연결 → 사용자 말을 LLM(가짜)에 → 답을 음성 트랙으로 publish\n  room.events.push(\"agent: connect\");\n  const reply = userText.includes(\"예약\") ? \"네, 예약 도와드릴게요.\" : \"다시 말씀해 주세요.\";\n  room.events.push(`agent: publish voice '${reply}'`);\n}\n\nconst room: Room = { name: \"clinic-1\", events: [] };\nconst userTok = token(\"user-1\", \"clinic-1\");\nif (valid(userTok)) {\n  room.events.push(\"user-1: join (토큰 확인 통과)\");\n  await agentEntrypoint(room, \"내일 예약하고 싶어요\"); // 서버가 방이 생긴 걸 보고 비서를 보냄\n}\nconst forged = userTok.replace(\"user-1\", \"admin\");\nfor (const e of room.events) console.log(\" \", e);\ncheck(room.events[0].startsWith(\"user-1\") && room.events[1] === \"agent: connect\" && room.events[2].includes(\"예약 도와드릴게요\") && !valid(forged), \"토큰 확인 → 비서 연결 → 답 publish 순서여야 하고, 위조 토큰은 거절돼야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:crypto",
+     "version": "내장",
+     "purpose": "요청마다 다른 임시 파일 이름(randomUUID)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/crypto.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "room": {
+  "part": "Part 1 · Room · Participant · Track",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    14,
+    14
+   ],
+   [
+    17,
+    17
+   ]
+  ],
+  "python": "# D29 · Part 1 · 방 · 참가자 · 트랙: 누가 무엇을 내고 누가 받나 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_room.py   (LiveKit 서버 없이 같은 파일 안의 모의 Room · 인터넷·GPU·마이크 불필요)\n#   사용자가 마이크 트랙을 publish하면 같은 방의 비서가 subscribe하고, 비서의 음성 트랙은 사용자가 받는다\n#   (대체: livekit.rtc.Room 대신 이벤트 목록을 남기는 미니 Room)\nfrom dataclasses import dataclass, field\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n@dataclass\nclass Participant:\n    identity: str\n    kind: str                                          # STANDARD(사람) · AGENT(비서)\n    published: list[str] = field(default_factory=list)\n    subscribed: list[str] = field(default_factory=list)\n\n\nclass Room:\n    def __init__(self, name: str) -> None:\n        self.name, self.people, self.events = name, {}, []\n\n    def connect(self, identity: str, kind: str) -> Participant:\n        p = Participant(identity, kind)\n        for other in self.people.values():             # 먼저 와 있던 사람의 트랙은 입장하자마자 받는다\n            for t in other.published:\n                self._subscribe(p, other, t)\n        self.people[identity] = p\n        self.events.append(f\"participant_connected {identity}\")\n        return p\n\n    def publish(self, p: Participant, track: str) -> None:\n        p.published.append(track)\n        self.events.append(f\"track_published {p.identity}/{track}\")\n        for other in self.people.values():             # 이미 방에 있는 다른 참가자가 자동 구독\n            if other is not p:\n                self._subscribe(other, p, track)\n\n    def _subscribe(self, who: Participant, owner: Participant, track: str) -> None:\n        who.subscribed.append(f\"{owner.identity}/{track}\")\n        self.events.append(f\"track_subscribed {who.identity} <- {owner.identity}/{track}\")\n\n\nroom = Room(\"clinic-1\")\nuser = room.connect(\"user-1\", \"STANDARD\")\nroom.publish(user, \"mic\")                              # 사용자가 마이크 트랙을 낸다\nagent = room.connect(\"hana-agent\", \"AGENT\")            # 비서가 늦게 입장해도 mic를 받는다\nroom.publish(agent, \"voice\")                           # 비서가 음성 트랙을 낸다\nfor e in room.events:\n    print(\" \", e)\ncheck(agent.subscribed == [\"user-1/mic\"] and user.subscribed == [\"hana-agent/voice\"] and room.events[0] == \"participant_connected user-1\",\n      \"비서는 user-1/mic를, 사용자는 hana-agent/voice를 구독해야 해요.\")\n",
+  "typescript": "// D29 · Part 1 · 방 · 참가자 · 트랙: 누가 무엇을 내고 누가 받나 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_room.ts   (LiveKit 서버 없이 같은 파일 안의 모의 Room)\n//   사용자가 마이크 트랙을 publish하면 같은 방의 비서가 subscribe하고, 비서의 음성 트랙은 사용자가 받는다\n//   (대체: livekit-client의 Room 대신 이벤트 목록을 남기는 미니 Room)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ninterface Participant {\n  identity: string;\n  kind: string; // STANDARD(사람) · AGENT(비서)\n  published: string[];\n  subscribed: string[];\n}\n\nclass Room {\n  name: string;\n  people = new Map<string, Participant>();\n  events: string[] = [];\n  constructor(name: string) {\n    this.name = name;\n  }\n  connect(identity: string, kind: string): Participant {\n    const p: Participant = { identity, kind, published: [], subscribed: [] };\n    for (const other of this.people.values()) for (const t of other.published) this.subscribe(p, other, t); // 먼저 와 있던 사람의 트랙은 입장하자마자 받는다\n    this.people.set(identity, p);\n    this.events.push(`participant_connected ${identity}`);\n    return p;\n  }\n  publish(p: Participant, track: string): void {\n    p.published.push(track);\n    this.events.push(`track_published ${p.identity}/${track}`);\n    for (const other of this.people.values()) if (other !== p) this.subscribe(other, p, track); // 이미 방에 있는 다른 참가자가 자동 구독\n  }\n  subscribe(who: Participant, owner: Participant, track: string): void {\n    who.subscribed.push(`${owner.identity}/${track}`);\n    this.events.push(`track_subscribed ${who.identity} <- ${owner.identity}/${track}`);\n  }\n}\n\nconst room = new Room(\"clinic-1\");\nconst user = room.connect(\"user-1\", \"STANDARD\");\nroom.publish(user, \"mic\"); // 사용자가 마이크 트랙을 낸다\nconst agent = room.connect(\"hana-agent\", \"AGENT\"); // 비서가 늦게 입장해도 mic를 받는다\nroom.publish(agent, \"voice\"); // 비서가 음성 트랙을 낸다\nfor (const e of room.events) console.log(\" \", e);\ncheck(agent.subscribed.join() === \"user-1/mic\" && user.subscribed.join() === \"hana-agent/voice\" && room.events[0] === \"participant_connected user-1\", \"비서는 user-1/mic를, 사용자는 hana-agent/voice를 구독해야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "token": {
+  "part": "Part 1 · 출입증(Access Token) 만들기와 열어 보기",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    5,
+    7
+   ]
+  ],
+  "python": "# D29 · Part 1 · 토큰의 세 조각: 출입증(Access Token) 만들고 · 열어 보고 · 위조 확인 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_token.py   (LiveKit 서버·SDK 없이 JWT HS256을 직접 구현 · 인터넷·GPU·마이크 불필요)\n#   헤더 · 내용(누가·어느 방·무슨 권한) · 서명 세 조각. 내용은 누구나 읽지만 서명 키(API secret)가 없으면 고칠 수 없다\n#   (대체: livekit-api의 AccessToken 대신 같은 구조를 hmac으로 직접 만든 것 · 키는 개발용 가짜 값)\nimport base64\nimport hashlib\nimport hmac\nimport json\n\nAPI_KEY, API_SECRET = \"devkey\", \"dev-secret-do-not-use-in-prod\"      # 개발용 가짜 키 (실제 키는 서버 환경 변수에만)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef b64(b: bytes) -> str:\n    return base64.urlsafe_b64encode(b).rstrip(b\"=\").decode()\n\n\ndef unb64(s: str) -> bytes:\n    return base64.urlsafe_b64decode(s + \"=\" * (-len(s) % 4))\n\n\ndef make_token(identity: str, room: str, now: int, ttl: int = 600, agent: bool = False) -> str:\n    \"\"\"출입증 발급: 사용자는 말하고 듣기만, 비서(agent)는 방 관리 권한도 가진다.\"\"\"\n    grant = {\"room\": room, \"roomJoin\": True, \"canPublish\": True, \"canSubscribe\": True}\n    if agent:\n        grant[\"roomAdmin\"] = True\n    claims = {\"iss\": API_KEY, \"sub\": identity, \"exp\": now + ttl, \"video\": grant}\n    head = b64(json.dumps({\"alg\": \"HS256\", \"typ\": \"JWT\"}, separators=(\",\", \":\")).encode())\n    body = b64(json.dumps(claims, separators=(\",\", \":\")).encode())\n    sig = b64(hmac.new(API_SECRET.encode(), f\"{head}.{body}\".encode(), hashlib.sha256).digest())\n    return f\"{head}.{body}.{sig}\"\n\n\ndef verify(token: str, now: int) -> tuple[bool, dict]:\n    \"\"\"서명이 맞고 기한이 안 지났는지 확인. 내용은 서명과 상관없이 읽을 수 있다.\"\"\"\n    head, body, sig = token.split(\".\")\n    good = hmac.compare_digest(sig, b64(hmac.new(API_SECRET.encode(), f\"{head}.{body}\".encode(), hashlib.sha256).digest()))\n    claims = json.loads(unb64(body))\n    return good and claims[\"exp\"] > now, claims\n\n\nNOW = 1_700_000_000\nuser, agent = make_token(\"user-1\", \"clinic-1\", NOW), make_token(\"hana-agent\", \"clinic-1\", NOW, agent=True)\nok_u, cu = verify(user, NOW)\nok_a, ca = verify(agent, NOW)\nhead, body, sig = user.split(\".\")\nforged = f\"{head}.{b64(json.dumps({**cu, 'sub': 'admin'}, separators=(',', ':')).encode())}.{sig}\"     # 내용만 바꾸고 서명은 그대로\nok_f, _ = verify(forged, NOW)\nok_late, _ = verify(user, NOW + 601)\nprint(\"사용자 권한:\", cu[\"video\"], \"\\n비서 권한  :\", ca[\"video\"])\nprint(f\"정상 {ok_u} · 위조 {ok_f} · 기한 지남 {ok_late}\")\ncheck(ok_u and ok_a and not ok_f and not ok_late and \"roomAdmin\" not in cu[\"video\"] and ca[\"video\"][\"roomAdmin\"], \"위조·만료 토큰은 거절하고, 비서만 roomAdmin을 가져야 해요.\")\n",
+  "typescript": "// D29 · Part 1 · 토큰의 세 조각: 출입증(Access Token) 만들고 · 열어 보고 · 위조 확인 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_token.ts   (LiveKit 서버·SDK 없이 JWT HS256을 직접 구현)\n//   헤더 · 내용(누가·어느 방·무슨 권한) · 서명 세 조각. 내용은 누구나 읽지만 서명 키(API secret)가 없으면 고칠 수 없다\n//   (대체: livekit-server-sdk의 AccessToken 대신 같은 구조를 createHmac으로 직접 만든 것 · 키는 개발용 가짜 값)\nimport { createHmac, timingSafeEqual } from \"node:crypto\";\n\nconst API_KEY = \"devkey\";\nconst API_SECRET = \"dev-secret-do-not-use-in-prod\"; // 개발용 가짜 키 (실제 키는 서버 환경 변수에만)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ninterface Claims {\n  iss: string;\n  sub: string;\n  exp: number;\n  video: Record<string, string | boolean>;\n}\n\nconst b64 = (s: string): string => Buffer.from(s).toString(\"base64url\");\nconst sign = (head: string, body: string): string => createHmac(\"sha256\", API_SECRET).update(`${head}.${body}`).digest(\"base64url\");\n\nfunction makeToken(identity: string, room: string, now: number, ttl: number = 600, agent: boolean = false): string {\n  // 출입증 발급: 사용자는 말하고 듣기만, 비서(agent)는 방 관리 권한도 가진다\n  const grant: Record<string, string | boolean> = { room, roomJoin: true, canPublish: true, canSubscribe: true };\n  if (agent) grant.roomAdmin = true;\n  const claims: Claims = { iss: API_KEY, sub: identity, exp: now + ttl, video: grant };\n  const head = b64(JSON.stringify({ alg: \"HS256\", typ: \"JWT\" }));\n  const body = b64(JSON.stringify(claims));\n  return `${head}.${body}.${sign(head, body)}`;\n}\n\nfunction verify(token: string, now: number): { ok: boolean; claims: Claims } {\n  // 서명이 맞고 기한이 안 지났는지 확인. 내용은 서명과 상관없이 읽을 수 있다\n  const [head, body, sig] = token.split(\".\");\n  const want = Buffer.from(sign(head, body));\n  const got = Buffer.from(sig);\n  const good = want.length === got.length && timingSafeEqual(want, got);\n  const claims: Claims = JSON.parse(Buffer.from(body, \"base64url\").toString());\n  return { ok: good && claims.exp > now, claims };\n}\n\nconst NOW = 1_700_000_000;\nconst user = makeToken(\"user-1\", \"clinic-1\", NOW);\nconst agent = makeToken(\"hana-agent\", \"clinic-1\", NOW, 600, true);\nconst u = verify(user, NOW);\nconst a = verify(agent, NOW);\nconst [head, , sig] = user.split(\".\");\nconst forged = `${head}.${b64(JSON.stringify({ ...u.claims, sub: \"admin\" }))}.${sig}`; // 내용만 바꾸고 서명은 그대로\nconst f = verify(forged, NOW);\nconst late = verify(user, NOW + 601);\nconsole.log(\"사용자 권한:\", JSON.stringify(u.claims.video), \"\\n비서 권한  :\", JSON.stringify(a.claims.video));\nconsole.log(`정상 ${u.ok} · 위조 ${f.ok} · 기한 지남 ${late.ok}`);\ncheck(u.ok && a.ok && !f.ok && !late.ok && !(\"roomAdmin\" in u.claims.video) && a.claims.video.roomAdmin === true, \"위조·만료 토큰은 거절하고, 비서만 roomAdmin을 가져야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:crypto",
+     "version": "내장",
+     "purpose": "요청마다 다른 임시 파일 이름(randomUUID)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/crypto.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "session": {
+  "part": "Part 2 · Agent와 AgentSession: 글자로 먼저",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    8,
+    10
+   ]
+  ],
+  "python": "# D29 · Part 2 · Agent와 Session: 대본(instructions)을 쓰고 글자로 먼저 한 턴 돌려 보기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_session.py   (LiveKit Agents 없이 같은 모양의 미니 클래스 · 인터넷·GPU·마이크·API 키 불필요)\n#   Agent = 성격과 대본, AgentSession = 대화를 실제로 돌리는 엔진. session.run(user_input=...)은 음성 없이 LLM만 시험한다\n#   (대체: livekit.agents의 Agent·AgentSession과 실제 LLM 대신, 규칙으로 답하는 가짜 LLM)\nimport asyncio\nfrom dataclasses import dataclass\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nclass Agent:\n    def __init__(self, instructions: str) -> None:\n        self.instructions = instructions               # 시스템 프롬프트가 곧 비서의 성격\n\n\nclass Hana(Agent):\n    def __init__(self) -> None:\n        super().__init__(\"당신은 한빛치과 예약 비서 하나입니다. 한 번에 한두 문장으로 짧게 답하세요.\")\n\n\nclass FakeLLM:\n    async def chat(self, instructions: str, history: list[dict]) -> str:\n        last = history[-1][\"content\"]\n        return \"네, 예약 도와드릴게요. 언제가 좋으세요?\" if \"예약\" in last else \"죄송해요, 잘 못 들었어요.\"\n\n\n@dataclass\nclass Event:\n    type: str\n    role: str\n    text: str\n\n\nclass AgentSession:\n    def __init__(self, llm: FakeLLM) -> None:\n        self.llm, self.agent, self.history = llm, None, []\n\n    async def start(self, agent: Agent) -> None:\n        self.agent = agent\n\n    async def run(self, user_input: str) -> list[Event]:\n        \"\"\"글자로 한 턴: 사용자 메시지 → LLM → 비서 메시지. 음성(STT·TTS·VAD)은 쓰지 않는다.\"\"\"\n        self.history.append({\"role\": \"user\", \"content\": user_input})\n        reply = await self.llm.chat(self.agent.instructions, self.history)\n        self.history.append({\"role\": \"assistant\", \"content\": reply})\n        return [Event(\"message\", \"user\", user_input), Event(\"message\", \"assistant\", reply)]\n\n\nasync def main() -> None:\n    session = AgentSession(FakeLLM())\n    await session.start(Hana())\n    events = await session.run(\"내일 예약하고 싶어요\")\n    for e in events:\n        print(f\"{e.role:>9}: {e.text}\")\n    check([(e.type, e.role) for e in events] == [(\"message\", \"user\"), (\"message\", \"assistant\")]\n          and \"예약\" in events[1].text and len(session.history) == 2 and \"한빛치과\" in session.agent.instructions,\n          \"사용자 메시지 다음에 비서 메시지가 와야 하고, 대본에 한빛치과가 있어야 해요.\")\n\n\nasyncio.run(main())\n",
+  "typescript": "// D29 · Part 2 · Agent와 Session: 대본(instructions)을 쓰고 글자로 먼저 한 턴 돌려 보기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_session.ts\n//   Agent = 성격과 대본, AgentSession = 대화를 실제로 돌리는 엔진. session.run({ userInput })은 음성 없이 LLM만 시험한다\n//   (대체: @livekit/agents의 Agent·AgentSession과 실제 LLM 대신, 규칙으로 답하는 가짜 LLM)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ninterface Message {\n  role: string;\n  content: string;\n}\n\nclass Agent {\n  instructions: string; // 시스템 프롬프트가 곧 비서의 성격\n  constructor(instructions: string) {\n    this.instructions = instructions;\n  }\n}\n\nclass Hana extends Agent {\n  constructor() {\n    super(\"당신은 한빛치과 예약 비서 하나입니다. 한 번에 한두 문장으로 짧게 답하세요.\");\n  }\n}\n\nclass FakeLLM {\n  async chat(_instructions: string, history: Message[]): Promise<string> {\n    const last = history[history.length - 1].content;\n    return last.includes(\"예약\") ? \"네, 예약 도와드릴게요. 언제가 좋으세요?\" : \"죄송해요, 잘 못 들었어요.\";\n  }\n}\n\ninterface Event {\n  type: string;\n  role: string;\n  text: string;\n}\n\nclass AgentSession {\n  llm: FakeLLM;\n  agent: Agent | null = null;\n  history: Message[] = [];\n  constructor(llm: FakeLLM) {\n    this.llm = llm;\n  }\n  async start(agent: Agent): Promise<void> {\n    this.agent = agent;\n  }\n  async run(userInput: string): Promise<Event[]> {\n    // 글자로 한 턴: 사용자 메시지 → LLM → 비서 메시지. 음성(STT·TTS·VAD)은 쓰지 않는다\n    this.history.push({ role: \"user\", content: userInput });\n    const reply = await this.llm.chat(this.agent?.instructions ?? \"\", this.history);\n    this.history.push({ role: \"assistant\", content: reply });\n    return [{ type: \"message\", role: \"user\", text: userInput }, { type: \"message\", role: \"assistant\", text: reply }];\n  }\n}\n\nconst session = new AgentSession(new FakeLLM());\nawait session.start(new Hana());\nconst events = await session.run(\"내일 예약하고 싶어요\");\nfor (const e of events) console.log(`${e.role.padStart(9)}: ${e.text}`);\ncheck(\n  events.map((e) => `${e.type}/${e.role}`).join() === \"message/user,message/assistant\" && events[1].text.includes(\"예약\") && session.history.length === 2 && (session.agent?.instructions ?? \"\").includes(\"한빛치과\"),\n  \"사용자 메시지 다음에 비서 메시지가 와야 하고, 대본에 한빛치과가 있어야 해요.\",\n);\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "pipeline": {
+  "part": "Part 3 · 세션 안의 흐름과 e2e 지연",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    13,
+    14
+   ]
+  ],
+  "python": "# D29 · Part 3 · 세션 안의 흐름: 마이크 → VAD → STT → 턴 판단 → LLM → TTS → 스피커 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_pipeline.py   (LiveKit Agents 없이 가상 시계로 · 인터넷·GPU·마이크·API 키 불필요)\n#   가짜 마이크가 말을 흘려 넣고 가짜 스피커가 소리를 받는다. 통화 기록에 단계별 시각을 남기고 e2e 지연 식을 확인\n#   e2e_latency ≈ 턴 끝 판단 지연 + LLM 첫 글자 + TTS 첫 소리\n#   (대체: 실제 마이크·스피커·서비스 대신 고정 지연 STT 0.3 · 턴 0.5 · LLM 0.4 · TTS 0.2초)\nSTT_SEC, TURN_SEC, LLM_SEC, TTS_SEC = 0.3, 0.5, 0.4, 0.2\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef fake_call(speech_end: float) -> tuple[list[tuple[float, str]], float]:\n    \"\"\"사용자가 speech_end초에 말을 마쳤을 때 단계별 (시각, 이벤트) 기록과 e2e 지연을 돌려준다.\"\"\"\n    log = [(speech_end, \"mic: 사용자 말 끝\")]\n    log.append((speech_end + STT_SEC, \"stt: 글자 도착\"))\n    turn_end = speech_end + max(TURN_SEC, STT_SEC)       # 조용함 판단과 글자 도착 중 늦은 쪽\n    log.append((turn_end, \"turn: 사용자 턴 종료\"))\n    log.append((turn_end + LLM_SEC, \"llm: 첫 글자\"))\n    first_sound = turn_end + LLM_SEC + TTS_SEC\n    log.append((first_sound, \"speaker: 첫 소리\"))\n    return log, round(first_sound - speech_end, 2)\n\n\nlog, e2e = fake_call(5.0)\nfor t, e in log:\n    print(f\"  {t:5.2f}초  {e}\")\nturn_delay = log[2][0] - log[0][0]\ncheck([e.split(\":\")[0] for _, e in log] == [\"mic\", \"stt\", \"turn\", \"llm\", \"speaker\"] and e2e == 1.1\n      and round(turn_delay + LLM_SEC + TTS_SEC, 2) == e2e, \"e2e = 턴 끝 판단 0.5 + LLM 0.4 + TTS 0.2 = 1.1초예요.\")\n",
+  "typescript": "// D29 · Part 3 · 세션 안의 흐름: 마이크 → VAD → STT → 턴 판단 → LLM → TTS → 스피커 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_pipeline.ts\n//   가짜 마이크가 말을 흘려 넣고 가짜 스피커가 소리를 받는다. 통화 기록에 단계별 시각을 남기고 e2e 지연 식을 확인\n//   e2e_latency ≈ 턴 끝 판단 지연 + LLM 첫 글자 + TTS 첫 소리\n//   (대체: 실제 마이크·스피커·서비스 대신 고정 지연 STT 0.3 · 턴 0.5 · LLM 0.4 · TTS 0.2초)\nconst STT_SEC = 0.3;\nconst TURN_SEC = 0.5;\nconst LLM_SEC = 0.4;\nconst TTS_SEC = 0.2;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction fakeCall(speechEnd: number): { log: [number, string][]; e2e: number } {\n  // 사용자가 speechEnd초에 말을 마쳤을 때 단계별 (시각, 이벤트) 기록과 e2e 지연\n  const turnEnd = speechEnd + Math.max(TURN_SEC, STT_SEC); // 조용함 판단과 글자 도착 중 늦은 쪽\n  const firstSound = turnEnd + LLM_SEC + TTS_SEC;\n  const log: [number, string][] = [\n    [speechEnd, \"mic: 사용자 말 끝\"],\n    [speechEnd + STT_SEC, \"stt: 글자 도착\"],\n    [turnEnd, \"turn: 사용자 턴 종료\"],\n    [turnEnd + LLM_SEC, \"llm: 첫 글자\"],\n    [firstSound, \"speaker: 첫 소리\"],\n  ];\n  return { log, e2e: Math.round((firstSound - speechEnd) * 100) / 100 };\n}\n\nconst { log, e2e } = fakeCall(5.0);\nfor (const [t, e] of log) console.log(`  ${t.toFixed(2).padStart(5)}초  ${e}`);\nconst turnDelay = log[2][0] - log[0][0];\ncheck(log.map(([, e]) => e.split(\":\")[0]).join() === \"mic,stt,turn,llm,speaker\" && e2e === 1.1 && Math.round((turnDelay + LLM_SEC + TTS_SEC) * 100) / 100 === e2e, \"e2e = 턴 끝 판단 0.5 + LLM 0.4 + TTS 0.2 = 1.1초예요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "plugin": {
+  "part": "Part 3 · Plugin 구조: 귀(STT)와 입(TTS)",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    11,
+    12
+   ]
+  ],
+  "python": "# D29 · Part 3 · 플러그인의 콘센트: STT · TTS를 갈아 끼워도 세션 코드는 그대로 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_plugin.py   (LiveKit Agents 없이 · 인터넷·GPU·마이크·API 키 불필요)\n#   STT·TTS는 정해진 모양(추상 클래스)만 지키면 어떤 회사 것이든 꽂힌다. 두 쌍을 번갈아 꽂아 같은 통화를 돌린다\n#   (대체: Whisper·Edge TTS·클라우드 플러그인 대신 사전 표로 답하는 가짜 구현 두 쌍)\nimport asyncio\nfrom abc import ABC, abstractmethod\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nclass STT(ABC):\n    \"\"\"콘센트 모양 1: 오디오(여기선 꼬리표) → 글자.\"\"\"\n    name = \"stt\"\n\n    @abstractmethod\n    async def recognize(self, audio: str) -> str: ...\n\n\nclass TTS(ABC):\n    \"\"\"콘센트 모양 2: 글자 → 오디오(여기선 바이트 수).\"\"\"\n    name = \"tts\"\n\n    @abstractmethod\n    async def synthesize(self, text: str) -> int: ...\n\n\nclass LocalWhisperSTT(STT):\n    name = \"local-whisper\"\n\n    async def recognize(self, audio: str) -> str:\n        return {\"clip1\": \"내일 예약하고 싶어요\"}[audio]\n\n\nclass CloudSTT(STT):\n    name = \"cloud-stt\"\n\n    async def recognize(self, audio: str) -> str:\n        return {\"clip1\": \"내일 예약하고 싶어요\"}[audio].strip()\n\n\nclass EdgeTTS(TTS):\n    name = \"edge-tts\"\n\n    async def synthesize(self, text: str) -> int:\n        return len(text.encode(\"utf-8\")) * 10\n\n\nclass CloudTTS(TTS):\n    name = \"cloud-tts\"\n\n    async def synthesize(self, text: str) -> int:\n        return len(text.encode(\"utf-8\")) * 12\n\n\nasync def session_turn(stt: STT, tts: TTS, audio: str) -> dict:\n    \"\"\"세션 코드: 어떤 플러그인이 꽂혔는지 모르고 정해진 메서드만 부른다.\"\"\"\n    heard = await stt.recognize(audio)\n    reply = \"네, 언제가 좋으세요?\" if \"예약\" in heard else \"다시 말씀해 주세요.\"\n    return {\"heard\": heard, \"reply\": reply, \"audio_bytes\": await tts.synthesize(reply)}\n\n\nasync def main() -> None:\n    a = await session_turn(LocalWhisperSTT(), EdgeTTS(), \"clip1\")\n    b = await session_turn(CloudSTT(), CloudTTS(), \"clip1\")\n    print(\"로컬 한 쌍:\", a)\n    print(\"클라우드 쌍:\", b)\n    check(a[\"heard\"] == b[\"heard\"] and a[\"reply\"] == b[\"reply\"] and a[\"audio_bytes\"] != b[\"audio_bytes\"], \"플러그인을 바꿔도 대화 내용은 같고 공급자별 결과만 달라야 해요.\")\n\n\nasyncio.run(main())\n",
+  "typescript": "// D29 · Part 3 · 플러그인의 콘센트: STT · TTS를 갈아 끼워도 세션 코드는 그대로 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_plugin.ts\n//   STT·TTS는 정해진 모양(interface)만 지키면 어떤 회사 것이든 꽂힌다. 두 쌍을 번갈아 꽂아 같은 통화를 돌린다\n//   (대체: Whisper·Edge TTS·클라우드 플러그인 대신 사전 표로 답하는 가짜 구현 두 쌍)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ninterface STT {\n  // 콘센트 모양 1: 오디오(여기선 꼬리표) → 글자\n  name: string;\n  recognize(audio: string): Promise<string>;\n}\n\ninterface TTS {\n  // 콘센트 모양 2: 글자 → 오디오(여기선 바이트 수)\n  name: string;\n  synthesize(text: string): Promise<number>;\n}\n\nconst CLIPS: Record<string, string> = { clip1: \"내일 예약하고 싶어요\" };\nconst localWhisperSTT: STT = { name: \"local-whisper\", recognize: async (audio) => CLIPS[audio] };\nconst cloudSTT: STT = { name: \"cloud-stt\", recognize: async (audio) => CLIPS[audio].trim() };\nconst edgeTTS: TTS = { name: \"edge-tts\", synthesize: async (text) => Buffer.byteLength(text) * 10 };\nconst cloudTTS: TTS = { name: \"cloud-tts\", synthesize: async (text) => Buffer.byteLength(text) * 12 };\n\ninterface Turn {\n  heard: string;\n  reply: string;\n  audioBytes: number;\n}\n\nasync function sessionTurn(stt: STT, tts: TTS, audio: string): Promise<Turn> {\n  // 세션 코드: 어떤 플러그인이 꽂혔는지 모르고 정해진 메서드만 부른다\n  const heard = await stt.recognize(audio);\n  const reply = heard.includes(\"예약\") ? \"네, 언제가 좋으세요?\" : \"다시 말씀해 주세요.\";\n  return { heard, reply, audioBytes: await tts.synthesize(reply) };\n}\n\nconst a = await sessionTurn(localWhisperSTT, edgeTTS, \"clip1\");\nconst b = await sessionTurn(cloudSTT, cloudTTS, \"clip1\");\nconsole.log(\"로컬 한 쌍:\", JSON.stringify(a));\nconsole.log(\"클라우드 쌍:\", JSON.stringify(b));\ncheck(a.heard === b.heard && a.reply === b.reply && a.audioBytes !== b.audioBytes, \"플러그인을 바꿔도 대화 내용은 같고 공급자별 결과만 달라야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "worker": {
+  "part": "Part 4 · Agent Worker와 entrypoint",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    15,
+    15
+   ],
+   [
+    17,
+    17
+   ]
+  ],
+  "python": "# D29 · Part 4 · 작업자의 하루: 방이 생기면 비서가 출근해 일감(Job)을 처리한다 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_worker.py   (LiveKit 서버·Worker 없이 같은 파일 안의 모의 서버 · 인터넷·GPU·마이크 불필요)\n#   AgentServer에 entrypoint를 등록해 두면, 방이 열릴 때마다 서버가 일감을 만들어 entrypoint를 불러 준다(방마다 따로, 동시에)\n#   (대체: livekit.agents의 AgentServer·JobContext 대신 같은 흐름의 미니 클래스)\nimport asyncio\nfrom dataclasses import dataclass, field\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n@dataclass\nclass JobContext:\n    room: str\n    state: str = \"assigned\"\n    log: list[str] = field(default_factory=list)\n\n\nclass AgentServer:\n    def __init__(self) -> None:\n        self.entrypoint, self.jobs = None, []\n\n    def rtc_session(self):\n        \"\"\"데코레이터: 이 함수를 '방에 들어갔을 때 할 일'로 등록.\"\"\"\n        def register(fn):\n            self.entrypoint = fn\n            return fn\n        return register\n\n    async def on_room_created(self, room: str) -> None:\n        ctx = JobContext(room)                         # 방마다 일감 하나\n        self.jobs.append(ctx)\n        ctx.state = \"running\"\n        await self.entrypoint(ctx)\n        ctx.state = \"done\"\n\n\nserver = AgentServer()\n\n\n@server.rtc_session()\nasync def entrypoint(ctx: JobContext) -> None:\n    ctx.log.append(f\"{ctx.room}: connect\")\n    await asyncio.sleep(0.01)                          # 통화 중이라고 가정\n    ctx.log.append(f\"{ctx.room}: 인사 · 통화 · 종료\")\n\n\nasync def main() -> None:\n    await asyncio.gather(server.on_room_created(\"clinic-1\"), server.on_room_created(\"clinic-2\"))   # 두 방이 동시에\n    for j in server.jobs:\n        print(j.room, j.state, j.log)\n    check([j.state for j in server.jobs] == [\"done\", \"done\"] and {j.room for j in server.jobs} == {\"clinic-1\", \"clinic-2\"}\n          and all(len(j.log) == 2 and j.log[0].startswith(j.room) for j in server.jobs), \"방 두 개에서 일감 두 개가 각자 끝까지 처리돼야 해요.\")\n\n\nasyncio.run(main())\n",
+  "typescript": "// D29 · Part 4 · 작업자의 하루: 방이 생기면 비서가 출근해 일감(Job)을 처리한다 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_worker.ts\n//   AgentServer에 entrypoint를 등록해 두면, 방이 열릴 때마다 서버가 일감을 만들어 entrypoint를 불러 준다(방마다 따로, 동시에)\n//   (대체: @livekit/agents의 서버·JobContext 대신 같은 흐름의 미니 클래스)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ninterface JobContext {\n  room: string;\n  state: string;\n  log: string[];\n}\n\ntype Entrypoint = (ctx: JobContext) => Promise<void>;\n\nclass AgentServer {\n  entrypoint: Entrypoint | null = null;\n  jobs: JobContext[] = [];\n  register(fn: Entrypoint): void {\n    // 이 함수를 '방에 들어갔을 때 할 일'로 등록\n    this.entrypoint = fn;\n  }\n  async onRoomCreated(room: string): Promise<void> {\n    const ctx: JobContext = { room, state: \"assigned\", log: [] }; // 방마다 일감 하나\n    this.jobs.push(ctx);\n    ctx.state = \"running\";\n    await this.entrypoint?.(ctx);\n    ctx.state = \"done\";\n  }\n}\n\nconst server = new AgentServer();\nserver.register(async (ctx) => {\n  ctx.log.push(`${ctx.room}: connect`);\n  await new Promise((r) => setTimeout(r, 10)); // 통화 중이라고 가정\n  ctx.log.push(`${ctx.room}: 인사 · 통화 · 종료`);\n});\n\nawait Promise.all([server.onRoomCreated(\"clinic-1\"), server.onRoomCreated(\"clinic-2\")]); // 두 방이 동시에\nfor (const j of server.jobs) console.log(j.room, j.state, JSON.stringify(j.log));\ncheck(\n  server.jobs.map((j) => j.state).join() === \"done,done\" && new Set(server.jobs.map((j) => j.room)).size === 2 && server.jobs.every((j) => j.log.length === 2 && j.log[0].startsWith(j.room)),\n  \"방 두 개에서 일감 두 개가 각자 끝까지 처리돼야 해요.\",\n);\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "connect": {
+  "part": "Part 4 · 진짜 방과 웹 클라이언트 연결",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    17,
+    18
+   ]
+  ],
+  "python": "# D29 · Part 4~5 · 세 가지 연결: 브라우저 · 전화 · 서버 프로그램이 같은 비서에 붙는 길 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_connect.py   (LiveKit 서버 없이 · 인터넷·GPU·마이크 불필요)\n#   참가자 종류(STANDARD · SIP · 프로그램)가 달라도 비서 코드는 같은 Room 이벤트만 본다. 달라지는 건 들어오는 길(전송 방식)뿐\n#   (대체: 실제 WebRTC·SIP·WebSocket 연결 대신 길 이름과 코덱 표)\nfrom dataclasses import dataclass\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n@dataclass\nclass Route:\n    transport: str\n    codec: str\n    sample_rate: int\n\n\nROUTES = {\n    \"STANDARD\": Route(\"WebRTC(브라우저 SDK)\", \"opus\", 48000),\n    \"SIP\": Route(\"전화망 → SIP Trunk → 방\", \"pcmu(G.711)\", 8000),\n    \"PROGRAM\": Route(\"서버 SDK(WebSocket 시그널링 + RTC)\", \"opus\", 48000),\n}\n\n\ndef agent_handles(participant_kind: str) -> str:\n    \"\"\"비서 코드: 참가자 종류를 구분하지 않고, 방에 들어온 오디오 트랙을 구독해서 답한다.\"\"\"\n    route = ROUTES[participant_kind]\n    return f\"track_subscribed({route.sample_rate}Hz) → STT → LLM → TTS → publish\"\n\n\nfor kind, r in ROUTES.items():\n    print(f\"{kind:<9} {r.transport:<34} {r.codec:<12} {r.sample_rate}Hz\")\nhandled = {k: agent_handles(k) for k in ROUTES}\nsame_flow = {h.split(\"Hz) → \", 1)[1] for h in handled.values()}\ncheck(len(ROUTES) == 3 and same_flow == {\"STT → LLM → TTS → publish\"} and ROUTES[\"SIP\"].sample_rate == 8000,\n      \"들어오는 길(코덱·샘플레이트)은 달라도 비서의 처리 흐름은 하나여야 해요.\")\n",
+  "typescript": "// D29 · Part 4~5 · 세 가지 연결: 브라우저 · 전화 · 서버 프로그램이 같은 비서에 붙는 길 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_connect.ts\n//   참가자 종류(STANDARD · SIP · 프로그램)가 달라도 비서 코드는 같은 Room 이벤트만 본다. 달라지는 건 들어오는 길(전송 방식)뿐\n//   (대체: 실제 WebRTC·SIP·WebSocket 연결 대신 길 이름과 코덱 표)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ninterface Route {\n  transport: string;\n  codec: string;\n  sampleRate: number;\n}\n\nconst ROUTES: Record<string, Route> = {\n  STANDARD: { transport: \"WebRTC(브라우저 SDK)\", codec: \"opus\", sampleRate: 48000 },\n  SIP: { transport: \"전화망 → SIP Trunk → 방\", codec: \"pcmu(G.711)\", sampleRate: 8000 },\n  PROGRAM: { transport: \"서버 SDK(WebSocket 시그널링 + RTC)\", codec: \"opus\", sampleRate: 48000 },\n};\n\nfunction agentHandles(kind: string): string {\n  // 비서 코드: 참가자 종류를 구분하지 않고, 방에 들어온 오디오 트랙을 구독해서 답한다\n  return `track_subscribed(${ROUTES[kind].sampleRate}Hz) → STT → LLM → TTS → publish`;\n}\n\nfor (const [kind, r] of Object.entries(ROUTES)) console.log(`${kind.padEnd(9)} ${r.transport.padEnd(34)} ${r.codec.padEnd(12)} ${r.sampleRate}Hz`);\nconst flows = new Set(Object.keys(ROUTES).map((k) => agentHandles(k).split(\"Hz) → \")[1]));\ncheck(Object.keys(ROUTES).length === 3 && flows.size === 1 && flows.has(\"STT → LLM → TTS → publish\") && ROUTES.SIP.sampleRate === 8000, \"들어오는 길(코덱·샘플레이트)은 달라도 비서의 처리 흐름은 하나여야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "recap": {
+  "part": "Part 5 · 정리",
+  "nb": "D29_LiveKit기초_실습.ipynb",
+  "ord": [
+   [
+    14,
+    14
+   ],
+   [
+    19,
+    19
+   ]
+  ],
+  "python": "# D29 · Part 5 · 정리 퀴즈: LiveKit 핵심 다섯 문장을 작은 계산으로 확인 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d29_recap.py   (LiveKit 없이 · 인터넷·GPU·마이크 불필요)\n#   ① 토큰은 서버에서만 만든다(서명) ② 비서는 Worker가 방마다 보낸다 ③ 플러그인은 모양만 맞으면 교체 ④ 전화는 8 kHz ⑤ e2e 지연 식\n#   (대체: 개념 퀴즈의 답을 코드로 계산)\nimport hashlib\nimport hmac\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef sign(msg: str, secret: str) -> str:\n    return hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()[:12]\n\n\npayload = \"room=clinic-1;sub=user-1\"\nserver_sig = sign(payload, \"server-secret\")\nquiz = {\n    \"서명 키를 아는 서버가 만든 출입증이 유효한가\": sign(payload, \"server-secret\") == server_sig,\n    \"브라우저가 키 없이 만든 출입증이 유효한가\": sign(payload, \"guess\") == server_sig,\n    \"방 3개에 필요한 일감 수\": len({\"a\", \"b\", \"c\"}),\n    \"전화(8 kHz)의 20 ms 조각 샘플 수\": 8000 * 20 // 1000,\n    \"e2e(초) = 턴 0.5 + LLM 0.4 + TTS 0.2\": round(0.5 + 0.4 + 0.2, 2),\n}\nfor q, a in quiz.items():\n    print(f\"{q}: {a}\")\ncheck(list(quiz.values()) == [True, False, 3, 160, 1.1], \"서명 키가 없으면 출입증을 만들 수 없고, 전화 20 ms는 160샘플이에요.\")\n",
+  "typescript": "// D29 · Part 5 · 정리 퀴즈: LiveKit 핵심 다섯 문장을 작은 계산으로 확인 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d29_recap.ts\n//   ① 토큰은 서버에서만 만든다(서명) ② 비서는 Worker가 방마다 보낸다 ③ 플러그인은 모양만 맞으면 교체 ④ 전화는 8 kHz ⑤ e2e 지연 식\n//   (대체: 개념 퀴즈의 답을 코드로 계산)\nimport { createHmac } from \"node:crypto\";\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst sign = (msg: string, secret: string): string => createHmac(\"sha256\", secret).update(msg).digest(\"hex\").slice(0, 12);\n\nconst payload = \"room=clinic-1;sub=user-1\";\nconst serverSig = sign(payload, \"server-secret\");\nconst quiz: Record<string, boolean | number> = {\n  \"서명 키를 아는 서버가 만든 출입증이 유효한가\": sign(payload, \"server-secret\") === serverSig,\n  \"브라우저가 키 없이 만든 출입증이 유효한가\": sign(payload, \"guess\") === serverSig,\n  \"방 3개에 필요한 일감 수\": new Set([\"a\", \"b\", \"c\"]).size,\n  \"전화(8 kHz)의 20 ms 조각 샘플 수\": Math.floor((8000 * 20) / 1000),\n  \"e2e(초) = 턴 0.5 + LLM 0.4 + TTS 0.2\": Math.round((0.5 + 0.4 + 0.2) * 100) / 100,\n};\nfor (const [q, a] of Object.entries(quiz)) console.log(`${q}: ${a}`);\ncheck(Object.values(quiz).join() === \"true,false,3,160,1.1\", \"서명 키가 없으면 출입증을 만들 수 없고, 전화 20 ms는 160샘플이에요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:crypto",
+     "version": "내장",
+     "purpose": "요청마다 다른 임시 파일 이름(randomUUID)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/crypto.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ }
+}

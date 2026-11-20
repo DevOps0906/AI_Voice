@@ -1,0 +1,105 @@
+{
+ "notebook": "day27/D27_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~6 · 오늘의 흐름 전체",
+   [
+    7,
+    13,
+    24,
+    32,
+    36,
+    43
+   ]
+  ],
+  "frames": [
+   "Part 1 · Frame 세 종류",
+   [
+    7
+   ]
+  ],
+  "proc": [
+   "Part 2 · FrameProcessor: 받고 → 일하고 → 넘기기",
+   [
+    11,
+    13,
+    15
+   ]
+  ],
+  "dir": [
+   "Part 3 · 방향(downstream · upstream)과 Observer",
+   [
+    18,
+    21
+   ]
+  ],
+  "svc": [
+   "Part 4 · 서비스: STT · TTS · LLM도 FrameProcessor",
+   [
+    24,
+    27,
+    32
+   ]
+  ],
+  "loop": [
+   "Part 4 · 이벤트 루프 막힘 실험",
+   [
+    29
+   ]
+  ],
+  "assemble": [
+   "Part 5 · 조립: VAD → STT → 턴 → LLM → TTS",
+   [
+    36,
+    38
+   ]
+  ],
+  "transport": [
+   "Part 6 · Transport 바꿔 끼우기",
+   [
+    41,
+    43
+   ]
+  ],
+  "recap": [
+   "Part 7 · 정리 · 오늘의 숫자",
+   [
+    46
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "합성 신호 · FFT · 백분위 · 난수 계산",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\bBuffer\\.(?:alloc|from)\\(",
+   "Buffer",
+   "오디오 · 메시지 바이트 다루기",
+   "https://nodejs.org/api/buffer.html"
+  ],
+  [
+   "\bnew Float(?:32|64)Array\\(|\bFloat(?:32|64)Array\\.from\\(",
+   "Float32Array · Float64Array",
+   "오디오 샘플 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "\bsetTimeout\\(",
+   "setTimeout · Promise",
+   "기다리기 · 이벤트 루프에 양보하기",
+   "https://nodejs.org/api/timers.html"
+  ],
+  [
+   "\bperformance\\.now\\(",
+   "performance.now",
+   "경과 시간 재기",
+   "https://nodejs.org/api/perf_hooks.html"
+  ]
+ ]
+}

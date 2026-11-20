@@ -1,0 +1,221 @@
+{
+ "flow": {
+  "part": "Part 0~6 · 오늘의 흐름 전체",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    4,
+    5
+   ],
+   [
+    7,
+    10
+   ],
+   [
+    14,
+    14
+   ],
+   [
+    16,
+    17
+   ]
+  ],
+  "python": "# D26 · Part 0~6 · 오늘의 흐름 전체: 20 ms 조각 → 흔들리는 네트워크 → 지터 버퍼 → 재생 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d26_flow.py   (네트워크는 코드 안에서 흉내 내요 · 인터넷·GPU·마이크 불필요)\n#   프레임 계산 → 지연·지터 흉내 → 지터 버퍼 → 늦은 조각 비율 → 종단 지연을 한 번에 확인\nimport numpy as np\n\nSR = 16000\nFRAME_MS = 20\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef network(n: int, base_ms: float = 40, jitter_ms: float = 30, seed: int = 7) -> tuple[np.ndarray, np.ndarray]:\n    \"\"\"n개 조각의 (보낸 시각, 도착 시각) ms. 지연 = 기본 + 0~jitter 사이 들쭉날쭉 (대체: 실제 인터넷 대신 난수).\"\"\"\n    rng = np.random.default_rng(seed)\n    send = np.arange(n) * FRAME_MS\n    return send, send + base_ms + rng.uniform(0, jitter_ms, n)\n\n\nframe = SR * FRAME_MS // 1000                       # 1) 한 조각 = 320 샘플\nkbps = SR * 16 / 1000                               # 2) 16bit PCM 비트레이트 = 256 kbps\nsend, arrival = network(500)\ndelay = arrival - send\nbuffer_ms = float(np.percentile(delay[:50], 95)) - float(delay.min())   # 3) 처음 50개로 정한 지터 버퍼(ms)\ndeadline = send + delay.min() + buffer_ms                               # 4) 조각마다 '여기까지 와야 재생' 시각\nlate = float(np.mean(arrival[50:] > deadline[50:]))                     # 5) 나머지 조각 중 늦은 비율\ne2e = FRAME_MS + delay.mean() + buffer_ms                               # 6) 종단 지연 ≈ 프레임 + 네트워크 + 버퍼\nprint(f\"조각 {frame}샘플 · {kbps:.0f}kbps · 버퍼 {buffer_ms:.1f}ms · 늦은 조각 {late:.1%} · 종단 지연 {e2e:.0f}ms\")\ncheck(frame == 320 and kbps == 256 and late < 0.15 and e2e < 300, \"프레임·비트레이트·늦은 비율을 확인하세요.\")\n",
+  "typescript": "// D26 · Part 0~6 · 오늘의 흐름 전체: 20 ms 조각 → 흔들리는 네트워크 → 지터 버퍼 → 재생 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_flow.ts\n//   프레임 계산 → 지연·지터 흉내 → 지터 버퍼 → 늦은 조각 비율 → 종단 지연을 한 번에 확인\nconst SR = 16000;\nconst FRAME_MS = 20;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction lcg(seed: number): () => number {\n  // 항상 같은 순서로 나오는 0~1 난수 (대체: 실제 인터넷 대신 난수)\n  let s = seed;\n  return () => {\n    s = (Math.imul(s, 1103515245) + 12345) & 0x7fffffff;\n    return s / 0x7fffffff;\n  };\n}\n\nfunction network(n: number, baseMs: number = 40, jitterMs: number = 30, seed: number = 7): { send: number[]; arrival: number[] } {\n  // n개 조각의 (보낸 시각, 도착 시각) ms. 지연 = 기본 + 0~jitter 사이 들쭉날쭉\n  const rnd = lcg(seed);\n  const send = Array.from({ length: n }, (_, i) => i * FRAME_MS);\n  return { send, arrival: send.map((s) => s + baseMs + rnd() * jitterMs) };\n}\n\nfunction percentile(xs: number[], p: number): number {\n  const a = [...xs].sort((x, y) => x - y);\n  const k = (a.length - 1) * (p / 100);\n  const lo = Math.floor(k);\n  return a[lo] + (a[Math.min(lo + 1, a.length - 1)] - a[lo]) * (k - lo);\n}\n\nconst frame = Math.floor((SR * FRAME_MS) / 1000); // 1) 한 조각 = 320 샘플\nconst kbps = (SR * 16) / 1000; // 2) 16bit PCM 비트레이트 = 256 kbps\nconst { send, arrival } = network(500);\nconst delay = arrival.map((a, i) => a - send[i]);\nconst minDelay = Math.min(...delay);\nconst bufferMs = percentile(delay.slice(0, 50), 95) - minDelay; // 3) 처음 50개로 정한 지터 버퍼(ms)\nlet lateCount = 0;\nfor (let i = 50; i < 500; i++) if (arrival[i] > send[i] + minDelay + bufferMs) lateCount++; // 4~5) 늦은 조각\nconst late = lateCount / 450;\nconst e2e = FRAME_MS + delay.reduce((a, b) => a + b, 0) / delay.length + bufferMs; // 6) 종단 지연\nconsole.log(`조각 ${frame}샘플 · ${kbps}kbps · 버퍼 ${bufferMs.toFixed(1)}ms · 늦은 조각 ${(late * 100).toFixed(1)}% · 종단 지연 ${e2e.toFixed(0)}ms`);\ncheck(frame === 320 && kbps === 256 && late < 0.15 && e2e < 300, \"프레임·비트레이트·늦은 비율을 확인하세요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "합성 신호 · FFT · 백분위 · 난수 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "frame": {
+  "part": "Part 1 · 프레임 크기와 비트레이트",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    4,
+    4
+   ]
+  ],
+  "python": "# D26 · Part 1 · 프레임 계산기: 조각 크기와 비트레이트 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d26_frame.py   (계산만 해요 · 인터넷·GPU·마이크 불필요)\n#   프레임 길이(ms) → 샘플 수 · 바이트 · 초당 조각 수 · PCM 비트레이트\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef frame_info(sr: int, frame_ms: int, bits: int = 16, channels: int = 1) -> dict:\n    \"\"\"한 조각의 크기와 비트레이트를 계산한다.\"\"\"\n    samples = sr * frame_ms // 1000                  # 빈칸 1: 샘플 수 = SR x 시간\n    nbytes = samples * bits // 8 * channels\n    return dict(samples=samples, bytes=nbytes, fps=1000 // frame_ms, kbps=sr * bits * channels / 1000)\n\n\nfor ms in (10, 20, 40, 200):\n    f = frame_info(16000, ms)\n    print(f\"{ms:>3} ms → {f['samples']:>4}샘플 {f['bytes']:>5}바이트 초당 {f['fps']:>3}조각 {f['kbps']:.0f}kbps\")\n\nf20 = frame_info(16000, 20)\nf48 = frame_info(48000, 20)                          # Opus·WebRTC 표준 48 kHz\ncheck(f20[\"samples\"] == 320 and f20[\"bytes\"] == 640 and f20[\"fps\"] == 50 and f20[\"kbps\"] == 256 and f48[\"samples\"] == 960,\n      \"16 kHz 20 ms는 320샘플·640바이트·256 kbps예요.\")\n",
+  "typescript": "// D26 · Part 1 · 프레임 계산기: 조각 크기와 비트레이트 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_frame.ts\n//   프레임 길이(ms) → 샘플 수 · 바이트 · 초당 조각 수 · PCM 비트레이트\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\ninterface FrameInfo {\n  samples: number;\n  bytes: number;\n  fps: number;\n  kbps: number;\n}\n\nfunction frameInfo(sr: number, frameMs: number, bits: number = 16, channels: number = 1): FrameInfo {\n  // 한 조각의 크기와 비트레이트를 계산한다\n  const samples = Math.floor((sr * frameMs) / 1000); // 빈칸 1: 샘플 수 = SR x 시간\n  return { samples, bytes: ((samples * bits) / 8) * channels, fps: Math.floor(1000 / frameMs), kbps: (sr * bits * channels) / 1000 };\n}\n\nfor (const ms of [10, 20, 40, 200]) {\n  const f = frameInfo(16000, ms);\n  console.log(`${String(ms).padStart(3)} ms → ${f.samples}샘플 ${f.bytes}바이트 초당 ${f.fps}조각 ${f.kbps}kbps`);\n}\n\nconst f20 = frameInfo(16000, 20);\nconst f48 = frameInfo(48000, 20); // Opus·WebRTC 표준 48 kHz\ncheck(f20.samples === 320 && f20.bytes === 640 && f20.fps === 50 && f20.kbps === 256 && f48.samples === 960, \"16 kHz 20 ms는 320샘플·640바이트·256 kbps예요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "stream": {
+  "part": "Part 1 · batch vs streaming",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    5,
+    5
+   ]
+  ],
+  "python": "# D26 · Part 1 · batch vs streaming: 같은 말에서 '말 시작'을 언제 알 수 있나 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d26_stream.py   (소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   32 ms(512샘플) 조각마다 에너지로 말 시작을 찾는 스트리밍 vs 파일이 끝나야 아는 batch\nimport numpy as np\n\nSR, CH = 16000, 512\nSTART_SEC, TOTAL_SEC = 0.8, 3.0\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n# 합성 신호: 0~0.8초 작은 잡음, 0.8~2.2초 '말'(220 Hz 사인), 이후 잡음 (대체: Silero VAD 대신 에너지 기준)\nrng = np.random.default_rng(1)\nt = np.arange(int(SR * TOTAL_SEC)) / SR\ny = 0.005 * rng.standard_normal(t.size)\nspeech = (t >= START_SEC) & (t < 2.2)\ny[speech] += 0.3 * np.sin(2 * np.pi * 220 * t[speech])\n\nstream_at = None\nfor i in range(0, y.size - CH + 1, CH):               # 32 ms씩 흘려보내기\n    if np.sqrt(np.mean(y[i:i + CH] ** 2)) > 0.05:      # 조각 에너지(RMS)가 기준을 넘으면 말 시작\n        stream_at = (i + CH) / SR                      # 그 조각이 도착한 시각\n        break\nbatch_at = TOTAL_SEC                                   # batch는 파일 끝까지 받은 뒤에야 분석 시작\nprint(f\"스트리밍은 {stream_at:.3f}초에 말 시작 감지, batch는 {batch_at:.1f}초 이후\")\ncheck(stream_at is not None and START_SEC <= stream_at <= START_SEC + 0.1 and stream_at < batch_at, \"말 시작 직후 조각에서 감지해야 해요.\")\n",
+  "typescript": "// D26 · Part 1 · batch vs streaming: 같은 말에서 '말 시작'을 언제 알 수 있나 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_stream.ts   (소리는 코드 안에서 합성해요)\n//   32 ms(512샘플) 조각마다 에너지로 말 시작을 찾는 스트리밍 vs 파일이 끝나야 아는 batch\nconst SR = 16000;\nconst CH = 512;\nconst START_SEC = 0.8;\nconst TOTAL_SEC = 3.0;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 합성 신호: 0~0.8초 작은 잡음, 0.8~2.2초 '말'(220 Hz 사인), 이후 잡음 (대체: Silero VAD 대신 에너지 기준)\nlet seed = 1;\nconst noise = (): number => {\n  seed = (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff;\n  return seed / 0x7fffffff - 0.5;\n};\nconst y = new Float32Array(Math.floor(SR * TOTAL_SEC));\nfor (let i = 0; i < y.length; i++) {\n  const t = i / SR;\n  y[i] = 0.01 * noise() + (t >= START_SEC && t < 2.2 ? 0.3 * Math.sin(2 * Math.PI * 220 * t) : 0);\n}\n\nlet streamAt: number | null = null;\nfor (let i = 0; i + CH <= y.length; i += CH) {\n  // 32 ms씩 흘려보내기\n  let e = 0;\n  for (let j = i; j < i + CH; j++) e += y[j] * y[j];\n  if (Math.sqrt(e / CH) > 0.05) {\n    // 조각 에너지(RMS)가 기준을 넘으면 말 시작\n    streamAt = (i + CH) / SR; // 그 조각이 도착한 시각\n    break;\n  }\n}\nconst batchAt = TOTAL_SEC; // batch는 파일 끝까지 받은 뒤에야 분석 시작\nconsole.log(`스트리밍은 ${streamAt?.toFixed(3)}초에 말 시작 감지, batch는 ${batchAt.toFixed(1)}초 이후`);\ncheck(streamAt !== null && streamAt >= START_SEC && streamAt <= START_SEC + 0.1 && streamAt < batchAt, \"말 시작 직후 조각에서 감지해야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "합성 신호 · FFT · 백분위 · 난수 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "jitter": {
+  "part": "Part 2 · 네트워크 흉내와 지터 버퍼",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    6,
+    8
+   ]
+  ],
+  "python": "# D26 · Part 2 · 지터 버퍼: 재생 지연을 키우면 늦은 조각이 줄어든다 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d26_jitter.py   (네트워크는 코드 안에서 흉내 내요 · 인터넷·GPU·마이크 불필요)\n#   고정 지터 버퍼별 늦은 조각 비율, 그리고 처음 50개로 정하는 적응형 버퍼(95 백분위)\nimport numpy as np\n\nFRAME_MS = 20\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef network(n: int, base_ms: float = 40, jitter_ms: float = 60, seed: int = 3) -> tuple[np.ndarray, np.ndarray]:\n    \"\"\"(보낸 시각, 도착 시각) ms. 지연 = 기본 + 0~jitter ms 난수 (대체: 실제 인터넷 대신 난수).\"\"\"\n    rng = np.random.default_rng(seed)\n    send = np.arange(n) * FRAME_MS\n    return send, send + base_ms + rng.uniform(0, jitter_ms, n)\n\n\ndef late_ratio(send: np.ndarray, arrival: np.ndarray, play_delay_ms: float) -> float:\n    \"\"\"재생 시각 = 보낸 시각 + 재생 지연. 도착이 그보다 늦으면 '늦은 조각'.\"\"\"\n    return float(np.mean(arrival > send + play_delay_ms))      # 빈칸 3\n\n\nsend, arrival = network(1000)\nratios = {}\nfor d in (45, 60, 80, 100):\n    ratios[d] = late_ratio(send, arrival, d)\n    print(f\"고정 재생 지연 {d:>3} ms → 늦은 조각 {ratios[d]:.1%}\")\n\nobs = (arrival - send)[:50]                            # 처음 50개 조각의 지연\nadapt_ms = float(np.percentile(obs, 95))               # 빈칸 5: 95 백분위로 재생 지연 정하기\nadapt_late = late_ratio(send[50:], arrival[50:], adapt_ms)\nprint(f\"적응형 재생 지연 {adapt_ms:.1f} ms → 늦은 조각 {adapt_late:.1%}\")\ncheck(ratios[45] > ratios[60] > ratios[80] >= ratios[100] and ratios[100] == 0 and adapt_late < 0.15, \"지연이 클수록 늦은 조각이 줄어야 해요.\")\n",
+  "typescript": "// D26 · Part 2 · 지터 버퍼: 재생 지연을 키우면 늦은 조각이 줄어든다 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_jitter.ts   (네트워크는 코드 안에서 흉내 내요)\n//   고정 지터 버퍼별 늦은 조각 비율, 그리고 처음 50개로 정하는 적응형 버퍼(95 백분위)\nconst FRAME_MS = 20;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction network(n: number, baseMs: number = 40, jitterMs: number = 60, seed: number = 3): { send: number[]; arrival: number[] } {\n  // (보낸 시각, 도착 시각) ms. 지연 = 기본 + 0~jitter ms 난수 (대체: 실제 인터넷 대신 난수)\n  let s = seed;\n  const rnd = (): number => {\n    s = (Math.imul(s, 1103515245) + 12345) & 0x7fffffff;\n    return s / 0x7fffffff;\n  };\n  const send = Array.from({ length: n }, (_, i) => i * FRAME_MS);\n  return { send, arrival: send.map((t) => t + baseMs + rnd() * jitterMs) };\n}\n\nfunction lateRatio(send: number[], arrival: number[], playDelayMs: number): number {\n  // 재생 시각 = 보낸 시각 + 재생 지연. 도착이 그보다 늦으면 '늦은 조각'\n  return arrival.filter((a, i) => a > send[i] + playDelayMs).length / arrival.length; // 빈칸 3\n}\n\nfunction percentile(xs: number[], p: number): number {\n  const a = [...xs].sort((x, y) => x - y);\n  const k = (a.length - 1) * (p / 100);\n  const lo = Math.floor(k);\n  return a[lo] + (a[Math.min(lo + 1, a.length - 1)] - a[lo]) * (k - lo);\n}\n\nconst { send, arrival } = network(1000);\nconst ratios: Record<number, number> = {};\nfor (const d of [45, 60, 80, 100]) {\n  ratios[d] = lateRatio(send, arrival, d);\n  console.log(`고정 재생 지연 ${String(d).padStart(3)} ms → 늦은 조각 ${(ratios[d] * 100).toFixed(1)}%`);\n}\n\nconst obs = arrival.slice(0, 50).map((a, i) => a - send[i]); // 처음 50개 조각의 지연\nconst adaptMs = percentile(obs, 95); // 빈칸 5: 95 백분위로 재생 지연 정하기\nconst adaptLate = lateRatio(send.slice(50), arrival.slice(50), adaptMs);\nconsole.log(`적응형 재생 지연 ${adaptMs.toFixed(1)} ms → 늦은 조각 ${(adaptLate * 100).toFixed(1)}%`);\ncheck(ratios[45] > ratios[60] && ratios[60] > ratios[80] && ratios[80] >= ratios[100] && ratios[100] === 0 && adaptLate < 0.15, \"지연이 클수록 늦은 조각이 줄어야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "합성 신호 · FFT · 백분위 · 난수 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "tcpudp": {
+  "part": "Part 2 · TCP vs UDP",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    9,
+    9
+   ]
+  ],
+  "python": "# D26 · Part 2 · TCP vs UDP: 조각 하나를 잃었을 때 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d26_tcpudp.py   (손실은 코드 안에서 흉내 내요 · 인터넷·GPU·마이크 불필요)\n#   TCP(WebSocket)는 잃은 조각을 다시 보낼 때까지 뒤 조각이 줄줄이 막히고(HOL blocking), UDP(WebRTC)는 그 조각만 버린다\nFRAME_MS, BASE_MS, RTO_MS, PLAY_MS = 20, 40, 200, 100\nN, LOST = 100, {30}                                  # 30번째 조각이 인터넷에서 사라졌다고 가정\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef udp_arrivals() -> list[float | None]:\n    \"\"\"UDP: 잃은 조각은 영영 안 오고, 나머지는 제시간에 온다. (대체: 실제 소켓 대신 계산)\"\"\"\n    return [None if i in LOST else i * FRAME_MS + BASE_MS for i in range(N)]\n\n\ndef tcp_arrivals() -> list[float]:\n    \"\"\"TCP: 잃은 조각은 RTO 뒤 재전송, 순서를 지키려고 뒤 조각은 그 뒤에야 앱에 전달된다.\"\"\"\n    out, blocked_until = [], 0.0\n    for i in range(N):\n        t = i * FRAME_MS + BASE_MS + (RTO_MS if i in LOST else 0)\n        blocked_until = max(blocked_until, t)\n        out.append(blocked_until)\n    return out\n\n\nudp, tcp = udp_arrivals(), tcp_arrivals()\nudp_bad = sum(1 for i, a in enumerate(udp) if a is None or a > i * FRAME_MS + PLAY_MS)   # 잃었거나 늦은 조각\ntcp_bad = sum(1 for i, a in enumerate(tcp) if a > i * FRAME_MS + PLAY_MS)\nprint(f\"UDP: 문제 조각 {udp_bad}개 (잃은 것 1개뿐) · TCP: 늦은 조각 {tcp_bad}개 (줄줄이 밀림)\")\ncheck(udp_bad == 1 and tcp_bad > udp_bad, \"TCP는 뒤 조각이 함께 늦어져야 해요.\")\n",
+  "typescript": "// D26 · Part 2 · TCP vs UDP: 조각 하나를 잃었을 때 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_tcpudp.ts   (손실은 코드 안에서 흉내 내요)\n//   TCP(WebSocket)는 잃은 조각을 다시 보낼 때까지 뒤 조각이 줄줄이 막히고(HOL blocking), UDP(WebRTC)는 그 조각만 버린다\nconst FRAME_MS = 20;\nconst BASE_MS = 40;\nconst RTO_MS = 200;\nconst PLAY_MS = 100;\nconst N = 100;\nconst LOST = new Set([30]); // 30번째 조각이 인터넷에서 사라졌다고 가정\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction udpArrivals(): (number | null)[] {\n  // UDP: 잃은 조각은 영영 안 오고, 나머지는 제시간에 온다 (대체: 실제 소켓 대신 계산)\n  return Array.from({ length: N }, (_, i) => (LOST.has(i) ? null : i * FRAME_MS + BASE_MS));\n}\n\nfunction tcpArrivals(): number[] {\n  // TCP: 잃은 조각은 RTO 뒤 재전송, 순서를 지키려고 뒤 조각은 그 뒤에야 앱에 전달된다\n  const out: number[] = [];\n  let blockedUntil = 0;\n  for (let i = 0; i < N; i++) {\n    const t = i * FRAME_MS + BASE_MS + (LOST.has(i) ? RTO_MS : 0);\n    blockedUntil = Math.max(blockedUntil, t);\n    out.push(blockedUntil);\n  }\n  return out;\n}\n\nconst udp = udpArrivals();\nconst tcp = tcpArrivals();\nconst udpBad = udp.filter((a, i) => a === null || a > i * FRAME_MS + PLAY_MS).length; // 잃었거나 늦은 조각\nconst tcpBad = tcp.filter((a, i) => a > i * FRAME_MS + PLAY_MS).length;\nconsole.log(`UDP: 문제 조각 ${udpBad}개 (잃은 것 1개뿐) · TCP: 늦은 조각 ${tcpBad}개 (줄줄이 밀림)`);\ncheck(udpBad === 1 && tcpBad > udpBad, \"TCP는 뒤 조각이 함께 늦어져야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "opus": {
+  "part": "Part 3 · Opus 코덱: 256 kbps → 24 kbps",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    10,
+    11
+   ]
+  ],
+  "python": "# D26 · Part 3 · 비트레이트와 크기: 256 kbps → 24 kbps, 그리고 전화 μ-law — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d26_opus.py   (소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   Opus 패킷 크기는 'CBR 공식(비트레이트 x 20 ms / 8)'으로 계산하고, 실제 압축 예로 μ-law(G.711)를 직접 구현해 SNR을 잰다\n#   (대체: libopus 인코더 대신 공식 · 노트북은 PyAV로 진짜 Opus를 씀)\nimport numpy as np\n\nSR, FRAME_MS = 16000, 20\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef packet_bytes(kbps: float, frame_ms: int = FRAME_MS) -> float:\n    \"\"\"CBR 인코더가 20 ms마다 내보내는 패킷 크기(바이트).\"\"\"\n    return kbps * 1000 * frame_ms / 1000 / 8\n\n\ndef mulaw(y: np.ndarray, mu: int = 255) -> np.ndarray:\n    \"\"\"μ-law 압축 후 8bit 양자화 → 복원 (전화 G.711 방식, 64 kbps @ 8 kHz).\"\"\"\n    c = np.sign(y) * np.log1p(mu * np.abs(y)) / np.log1p(mu)\n    q = np.round(c * 127) / 127\n    return np.sign(q) * np.expm1(np.abs(q) * np.log1p(mu)) / mu\n\n\npcm = SR * 16 / 1000\nfor kbps in (6, 12, 24, 32, 64):\n    print(f\"Opus {kbps:>2} kbps → 20 ms 패킷 {packet_bytes(kbps):>5.0f} B · PCM 대비 {pcm / kbps:>5.1f}배 작음\")\n\nt = np.arange(SR) / SR\ny = 0.3 * np.sin(2 * np.pi * 300 * t) + 0.1 * np.sin(2 * np.pi * 1200 * t)\nr = mulaw(y)\nsnr = 10 * np.log10(np.mean(y ** 2) / np.mean((y - r) ** 2))\nprint(f\"μ-law 복원 SNR {snr:.1f} dB\")\ncheck(packet_bytes(24) == 60 and round(pcm / 24, 1) == 10.7 and snr > 30, \"24 kbps는 20 ms에 60바이트, PCM의 약 10.7배 작아요.\")\n",
+  "typescript": "// D26 · Part 3 · 비트레이트와 크기: 256 kbps → 24 kbps, 그리고 전화 μ-law — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_opus.ts   (소리는 코드 안에서 합성해요)\n//   Opus 패킷 크기는 'CBR 공식(비트레이트 x 20 ms / 8)'으로 계산하고, 실제 압축 예로 μ-law(G.711)를 직접 구현해 SNR을 잰다\n//   (대체: libopus 인코더 대신 공식 · 노트북은 PyAV로 진짜 Opus를 씀)\nconst SR = 16000;\nconst FRAME_MS = 20;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction packetBytes(kbps: number, frameMs: number = FRAME_MS): number {\n  // CBR 인코더가 20 ms마다 내보내는 패킷 크기(바이트)\n  return (kbps * 1000 * frameMs) / 1000 / 8;\n}\n\nfunction mulaw(y: Float32Array, mu: number = 255): Float32Array {\n  // μ-law 압축 후 8bit 양자화 → 복원 (전화 G.711 방식, 64 kbps @ 8 kHz)\n  return y.map((v) => {\n    const c = (Math.sign(v) * Math.log1p(mu * Math.abs(v))) / Math.log1p(mu);\n    const q = Math.round(c * 127) / 127;\n    return (Math.sign(q) * Math.expm1(Math.abs(q) * Math.log1p(mu))) / mu;\n  });\n}\n\nconst pcm = (SR * 16) / 1000;\nfor (const kbps of [6, 12, 24, 32, 64]) {\n  console.log(`Opus ${kbps} kbps → 20 ms 패킷 ${packetBytes(kbps)} B · PCM 대비 ${(pcm / kbps).toFixed(1)}배 작음`);\n}\n\nconst y = new Float32Array(SR).map((_, i) => 0.3 * Math.sin((2 * Math.PI * 300 * i) / SR) + 0.1 * Math.sin((2 * Math.PI * 1200 * i) / SR));\nconst r = mulaw(y);\nlet sig = 0;\nlet err = 0;\nfor (let i = 0; i < y.length; i++) {\n  sig += y[i] * y[i];\n  err += (y[i] - r[i]) ** 2;\n}\nconst snr = 10 * Math.log10(sig / err);\nconsole.log(`μ-law 복원 SNR ${snr.toFixed(1)} dB`);\ncheck(packetBytes(24) === 60 && (pcm / 24).toFixed(1) === \"10.7\" && snr > 30, \"24 kbps는 20 ms에 60바이트, PCM의 약 10.7배 작아요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "합성 신호 · FFT · 백분위 · 난수 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "ws": {
+  "part": "Part 4 · WebSocket: 조각을 보내고 이벤트 받기",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    12,
+    15
+   ]
+  ],
+  "python": "# D26 · Part 4 · WebSocket 흐름: 조각을 binary 메시지로 보내고 이벤트를 받는다 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d26_ws.py   (서버는 같은 파일 안의 모의 서버예요 · 인터넷·GPU·마이크 불필요)\n#   RFC 6455 binary 프레임(마스크 포함)을 직접 만들고 풀어서, 클라이언트 → 서버 → 이벤트 흐름을 재현\n#   (대체: 실제 TCP 소켓·websockets 대신 asyncio.Queue로 메시지를 주고받음)\nimport asyncio\nimport json\nimport os\nimport struct\n\nimport numpy as np\n\nSR, CH = 16000, 320                                   # 20 ms = 320 샘플\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef ws_encode(payload: bytes, opcode: int = 2, mask: bool = True) -> bytes:\n    \"\"\"WebSocket 프레임 만들기: FIN+opcode, 길이, (클라이언트→서버는 마스크 키), 데이터.\"\"\"\n    head = bytes([0x80 | opcode])\n    n = len(payload)\n    m = 0x80 if mask else 0\n    head += bytes([m | n]) if n < 126 else bytes([m | 126]) + struct.pack(\"!H\", n)\n    if not mask:\n        return head + payload\n    key = os.urandom(4)\n    return head + key + bytes(b ^ key[i % 4] for i, b in enumerate(payload))\n\n\ndef ws_decode(frame: bytes) -> tuple[int, bytes]:\n    \"\"\"프레임 풀기 → (opcode, 데이터).\"\"\"\n    opcode, n, pos = frame[0] & 0x0F, frame[1] & 0x7F, 2\n    masked = bool(frame[1] & 0x80)\n    if n == 126:\n        n, pos = struct.unpack(\"!H\", frame[2:4])[0], 4\n    key = frame[pos:pos + 4] if masked else b\"\"\n    pos += 4 if masked else 0\n    body = frame[pos:pos + n]\n    return opcode, bytes(b ^ key[i % 4] for i, b in enumerate(body)) if masked else body\n\n\nasync def server(inbox: asyncio.Queue, outbox: asyncio.Queue) -> None:\n    \"\"\"모의 서버: binary 조각을 받아 에너지가 크면 speech_start 이벤트(text 프레임)를 돌려준다.\"\"\"\n    started, count = False, 0\n    while True:\n        frame = await inbox.get()\n        opcode, data = ws_decode(frame)\n        if opcode == 8:                                # close\n            await outbox.put(ws_encode(json.dumps({\"type\": \"bye\", \"chunks\": count}).encode(), 1, mask=False))\n            return\n        count += 1\n        pcm = np.frombuffer(data, dtype=\"<i2\").astype(np.float32) / 32768\n        if not started and np.sqrt(np.mean(pcm ** 2)) > 0.05:\n            started = True\n            await outbox.put(ws_encode(json.dumps({\"type\": \"speech_start\", \"chunk\": count}).encode(), 1, mask=False))\n\n\nasync def main() -> None:\n    inbox, outbox = asyncio.Queue(), asyncio.Queue()\n    task = asyncio.create_task(server(inbox, outbox))\n    t = np.arange(SR) / SR\n    y = np.where(t >= 0.4, 0.3 * np.sin(2 * np.pi * 220 * t), 0.0)      # 0.4초부터 '말'\n    pcm16 = (y * 32767).astype(\"<i2\")\n    for i in range(0, pcm16.size - CH + 1, CH):\n        await inbox.put(ws_encode(pcm16[i:i + CH].tobytes()))          # 20 ms마다 binary 메시지 1개\n        await asyncio.sleep(0)                                          # (실제로는 20 ms 쉬며 보냄)\n    await inbox.put(ws_encode(b\"\", 8))\n    await task\n    events = []\n    while not outbox.empty():\n        events.append(json.loads(ws_decode(outbox.get_nowait())[1]))\n    print(\"서버 이벤트:\", events)\n    ok = events[0][\"type\"] == \"speech_start\" and events[0][\"chunk\"] == 21 and events[-1] == {\"type\": \"bye\", \"chunks\": 50}\n    ok = ok and ws_decode(ws_encode(b\"abc\" * 100))[1] == b\"abc\" * 100   # 126바이트 이상(확장 길이) 왕복\n    check(ok, \"0.4초 = 21번째 조각에서 speech_start가 와야 해요.\")\n\n\nasyncio.run(main())\n",
+  "typescript": "// D26 · Part 4 · WebSocket 흐름: 조각을 binary 메시지로 보내고 이벤트를 받는다 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_ws.ts   (서버는 같은 파일 안의 모의 서버예요)\n//   RFC 6455 binary 프레임(마스크 포함)을 직접 만들고 풀어서, 클라이언트 → 서버 → 이벤트 흐름을 재현\n//   (대체: 실제 TCP 소켓·WebSocket 대신 배열 큐로 메시지를 주고받음)\nimport { randomBytes } from \"node:crypto\";\n\nconst SR = 16000;\nconst CH = 320; // 20 ms = 320 샘플\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction wsEncode(payload: Buffer, opcode: number = 2, mask: boolean = true): Buffer {\n  // WebSocket 프레임 만들기: FIN+opcode, 길이, (클라이언트→서버는 마스크 키), 데이터\n  const n = payload.length;\n  const m = mask ? 0x80 : 0;\n  const head = n < 126 ? Buffer.from([0x80 | opcode, m | n]) : Buffer.from([0x80 | opcode, m | 126, n >> 8, n & 0xff]);\n  if (!mask) return Buffer.concat([head, payload]);\n  const key = randomBytes(4);\n  return Buffer.concat([head, key, Buffer.from(payload.map((b, i) => b ^ key[i % 4]))]);\n}\n\nfunction wsDecode(frame: Buffer): { opcode: number; data: Buffer } {\n  // 프레임 풀기 → (opcode, 데이터)\n  const opcode = frame[0] & 0x0f;\n  let n = frame[1] & 0x7f;\n  const masked = (frame[1] & 0x80) !== 0;\n  let pos = 2;\n  if (n === 126) {\n    n = frame.readUInt16BE(2);\n    pos = 4;\n  }\n  const key = masked ? frame.subarray(pos, pos + 4) : Buffer.alloc(0);\n  if (masked) pos += 4;\n  const body = frame.subarray(pos, pos + n);\n  return { opcode, data: masked ? Buffer.from(body.map((b, i) => b ^ key[i % 4])) : Buffer.from(body) };\n}\n\ninterface Event {\n  type: string;\n  chunk?: number;\n  chunks?: number;\n}\n\nfunction makeServer(outbox: Buffer[]): (frame: Buffer) => void {\n  // 모의 서버: binary 조각을 받아 에너지가 크면 speech_start 이벤트(text 프레임)를 돌려준다\n  let started = false;\n  let count = 0;\n  const send = (ev: Event): void => {\n    outbox.push(wsEncode(Buffer.from(JSON.stringify(ev)), 1, false));\n  };\n  return (frame: Buffer): void => {\n    const { opcode, data } = wsDecode(frame);\n    if (opcode === 8) return send({ type: \"bye\", chunks: count }); // close\n    count++;\n    let e = 0;\n    for (let i = 0; i < data.length; i += 2) e += (data.readInt16LE(i) / 32768) ** 2;\n    if (!started && Math.sqrt(e / (data.length / 2)) > 0.05) {\n      started = true;\n      send({ type: \"speech_start\", chunk: count });\n    }\n  };\n}\n\nasync function main(): Promise<void> {\n  const outbox: Buffer[] = [];\n  const serverOnMessage = makeServer(outbox);\n  for (let i = 0; i + CH <= SR; i += CH) {\n    const chunk = Buffer.alloc(CH * 2);\n    for (let j = 0; j < CH; j++) {\n      const t = (i + j) / SR;\n      chunk.writeInt16LE(Math.round((t >= 0.4 ? 0.3 * Math.sin(2 * Math.PI * 220 * t) : 0) * 32767), j * 2); // 0.4초부터 '말'\n    }\n    serverOnMessage(wsEncode(chunk)); // 20 ms마다 binary 메시지 1개\n    await new Promise((r) => setTimeout(r, 0)); // (실제로는 20 ms 쉬며 보냄)\n  }\n  serverOnMessage(wsEncode(Buffer.alloc(0), 8));\n  const events: Event[] = outbox.map((f) => JSON.parse(wsDecode(f).data.toString()));\n  console.log(\"서버 이벤트:\", JSON.stringify(events));\n  const big = Buffer.from(\"abc\".repeat(100));\n  const ok = events[0].type === \"speech_start\" && events[0].chunk === 21 && events[events.length - 1].type === \"bye\" && events[events.length - 1].chunks === 50;\n  check(ok && wsDecode(wsEncode(big)).data.equals(big), \"0.4초 = 21번째 조각에서 speech_start가 와야 해요.\"); // 126바이트 이상(확장 길이) 왕복\n}\n\nawait main();\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "합성 신호 · FFT · 백분위 · 난수 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:crypto",
+     "version": "내장",
+     "purpose": "요청마다 다른 임시 파일 이름(randomUUID)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/crypto.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "rtc": {
+  "part": "Part 5 · WebRTC 해부: offer · answer · ICE · DTLS · RTP",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    16,
+    16
+   ]
+  ],
+  "python": "# D26 · Part 5 · WebRTC 연결: offer · answer · ICE · DTLS · RTP — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d26_rtc.py   (두 피어는 같은 파일 안의 모의 객체예요 · 인터넷·GPU·마이크 불필요)\n#   시그널링(offer/answer) → ICE 후보 짝 고르기 → DTLS 키 합의 → RTP 패킷(헤더 12바이트) 주고받기\n#   (대체: aiortc 대신 상태 기계 · 키는 sha256으로 흉내 내며 진짜 암호화 아님)\nimport hashlib\nimport struct\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nclass Peer:\n    def __init__(self, name: str, ip: str) -> None:\n        self.name, self.ip, self.state, self.seq, self.key = name, ip, \"new\", 0, b\"\"\n        self.fingerprint = hashlib.sha256(name.encode()).hexdigest()[:16]\n\n    def offer(self) -> dict:\n        self.state = \"have-local-offer\"\n        return {\"type\": \"offer\", \"codec\": \"opus/48000\", \"candidates\": [f\"host {self.ip}:5000\", \"srflx 203.0.113.9:5000\"], \"fp\": self.fingerprint}\n\n    def answer(self, offer: dict) -> dict:\n        self.state = \"have-remote-offer\"\n        return {\"type\": \"answer\", \"codec\": offer[\"codec\"], \"candidates\": [f\"host {self.ip}:6000\"], \"fp\": self.fingerprint}\n\n    def rtp(self, payload: bytes, ts: int) -> bytes:\n        \"\"\"RTP 헤더: V=2, PT=111(Opus), 순번 seq, 타임스탬프(48 kHz 기준 20 ms = 960), SSRC.\"\"\"\n        self.seq += 1\n        return struct.pack(\"!BBHII\", 0x80, 111, self.seq, ts, 0x1234ABCD) + payload\n\n\npc1, pc2 = Peer(\"pc1\", \"10.0.0.1\"), Peer(\"pc2\", \"10.0.0.2\")\noffer = pc1.offer()                                   # 1) 시그널링: 서버(여기선 변수)를 거쳐 SDP 교환\nanswer = pc2.answer(offer)\npair = (offer[\"candidates\"][0], answer[\"candidates\"][0])   # 2) ICE: 같은 망이면 host끼리 연결(가장 싼 길)\npc1.key = pc2.key = hashlib.sha256(\"\".join(sorted([offer[\"fp\"], answer[\"fp\"]])).encode()).digest()   # 3) DTLS 키 합의 흉내\npc1.state = pc2.state = \"connected\"\npkts = [pc1.rtp(bytes(60), i * 960) for i in range(5)]     # 4) 24 kbps Opus 패킷 5개 (각 60바이트)\nhdr = [struct.unpack(\"!BBHII\", p[:12]) for p in pkts]\nprint(\"선택된 ICE 짝:\", pair, \"· 상태:\", pc1.state, \"· seq:\", [h[2] for h in hdr], \"· ts 간격:\", hdr[1][3] - hdr[0][3])\ncheck(pair[0].startswith(\"host\") and pc1.key == pc2.key and [h[2] for h in hdr] == [1, 2, 3, 4, 5]\n      and hdr[1][3] - hdr[0][3] == 960 and len(pkts[0]) == 72, \"host 후보 · 같은 키 · seq 1씩 증가 · ts 960씩 증가가 맞아야 해요.\")\n",
+  "typescript": "// D26 · Part 5 · WebRTC 연결: offer · answer · ICE · DTLS · RTP — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_rtc.ts   (두 피어는 같은 파일 안의 모의 객체예요)\n//   시그널링(offer/answer) → ICE 후보 짝 고르기 → DTLS 키 합의 → RTP 패킷(헤더 12바이트) 주고받기\n//   (대체: 실제 WebRTC 대신 상태 기계 · 키는 sha256으로 흉내 내며 진짜 암호화 아님)\nimport { createHash } from \"node:crypto\";\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst sha = (s: string): string => createHash(\"sha256\").update(s).digest(\"hex\");\n\ninterface Sdp {\n  type: string;\n  codec: string;\n  candidates: string[];\n  fp: string;\n}\n\nclass Peer {\n  name: string;\n  ip: string;\n  state: string = \"new\";\n  seq: number = 0;\n  key: string = \"\";\n  fingerprint: string;\n\n  constructor(name: string, ip: string) {\n    this.name = name;\n    this.ip = ip;\n    this.fingerprint = sha(name).slice(0, 16);\n  }\n\n  offer(): Sdp {\n    this.state = \"have-local-offer\";\n    return { type: \"offer\", codec: \"opus/48000\", candidates: [`host ${this.ip}:5000`, \"srflx 203.0.113.9:5000\"], fp: this.fingerprint };\n  }\n\n  answer(offer: Sdp): Sdp {\n    this.state = \"have-remote-offer\";\n    return { type: \"answer\", codec: offer.codec, candidates: [`host ${this.ip}:6000`], fp: this.fingerprint };\n  }\n\n  rtp(payload: Buffer, ts: number): Buffer {\n    // RTP 헤더: V=2, PT=111(Opus), 순번 seq, 타임스탬프(48 kHz 기준 20 ms = 960), SSRC\n    this.seq++;\n    const h = Buffer.alloc(12);\n    h.writeUInt8(0x80, 0);\n    h.writeUInt8(111, 1);\n    h.writeUInt16BE(this.seq, 2);\n    h.writeUInt32BE(ts, 4);\n    h.writeUInt32BE(0x1234abcd, 8);\n    return Buffer.concat([h, payload]);\n  }\n}\n\nconst pc1 = new Peer(\"pc1\", \"10.0.0.1\");\nconst pc2 = new Peer(\"pc2\", \"10.0.0.2\");\nconst offer = pc1.offer(); // 1) 시그널링: 서버(여기선 변수)를 거쳐 SDP 교환\nconst answer = pc2.answer(offer);\nconst pair = [offer.candidates[0], answer.candidates[0]]; // 2) ICE: 같은 망이면 host끼리 연결(가장 싼 길)\npc1.key = pc2.key = sha([offer.fp, answer.fp].sort().join(\"\")); // 3) DTLS 키 합의 흉내\npc1.state = pc2.state = \"connected\";\nconst pkts = Array.from({ length: 5 }, (_, i) => pc1.rtp(Buffer.alloc(60), i * 960)); // 4) 24 kbps Opus 패킷 5개 (각 60바이트)\nconst seqs = pkts.map((p) => p.readUInt16BE(2));\nconst tsGap = pkts[1].readUInt32BE(4) - pkts[0].readUInt32BE(4);\nconsole.log(\"선택된 ICE 짝:\", pair.join(\" ↔ \"), \"· 상태:\", pc1.state, \"· seq:\", seqs.join(\",\"), \"· ts 간격:\", tsGap);\ncheck(pair[0].startsWith(\"host\") && pc1.key === pc2.key && seqs.join() === \"1,2,3,4,5\" && tsGap === 960 && pkts[0].length === 72, \"host 후보 · 같은 키 · seq 1씩 증가 · ts 960씩 증가가 맞아야 해요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": [
+    {
+     "name": "node:crypto",
+     "version": "내장",
+     "purpose": "요청마다 다른 임시 파일 이름(randomUUID)",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/crypto.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "choose": {
+  "part": "Part 6 · 둘 중 무엇을 쓸까 · 대역폭 계산",
+  "nb": "D26_실시간오디오_실습.ipynb",
+  "ord": [
+   [
+    17,
+    17
+   ]
+  ],
+  "python": "# D26 · Part 6 · 무엇을 쓸까: 동시 통화 N개의 대역폭과 WebSocket vs WebRTC 고르기 — 단독 실행 완성 코드 (Python 3.11)\n# pip install (없음 · 표준 라이브러리만)\n# 실행: python d26_choose.py   (계산만 해요 · 인터넷·GPU·마이크 불필요)\nHEADER_BYTES = 12 + 8 + 20                            # RTP + UDP + IP 헤더\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef call_kbps(codec_kbps: float, frame_ms: int = 20) -> float:\n    \"\"\"통화 한 방향의 실제 대역폭 = 코덱 + 패킷마다 붙는 헤더.\"\"\"\n    pps = 1000 / frame_ms\n    return codec_kbps + HEADER_BYTES * 8 * pps / 1000\n\n\ndef server_mbps(n: int, codec_kbps: float = 24) -> float:\n    \"\"\"서버가 N통을 받을 때: 올라오는 방향(사용자 말) + 내려가는 방향(비서 말).\"\"\"\n    return n * call_kbps(codec_kbps) * 2 / 1000\n\n\ndef choose(browser_client: bool, lossy_network: bool, server_to_server: bool) -> str:\n    \"\"\"상황 → 추천 전송 방식.\"\"\"\n    if server_to_server and not lossy_network:\n        return \"WebSocket\"\n    return \"WebRTC\" if browser_client or lossy_network else \"WebSocket\"\n\n\nprint(f\"한 방향 {call_kbps(24):.0f} kbps · 100통 {server_mbps(100):.1f} Mbps\")\ncheck(call_kbps(24) == 40 and server_mbps(100) == 8.0 and choose(True, True, False) == \"WebRTC\" and choose(False, False, True) == \"WebSocket\",\n      \"24 kbps + 헤더 16 kbps = 40 kbps, 100통 양방향 8 Mbps예요.\")\n",
+  "typescript": "// D26 · Part 6 · 무엇을 쓸까: 동시 통화 N개의 대역폭과 WebSocket vs WebRTC 고르기 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d26_choose.ts   (계산만 해요)\nconst HEADER_BYTES = 12 + 8 + 20; // RTP + UDP + IP 헤더\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction callKbps(codecKbps: number, frameMs: number = 20): number {\n  // 통화 한 방향의 실제 대역폭 = 코덱 + 패킷마다 붙는 헤더\n  const pps = 1000 / frameMs;\n  return codecKbps + (HEADER_BYTES * 8 * pps) / 1000;\n}\n\nfunction serverMbps(n: number, codecKbps: number = 24): number {\n  // 서버가 N통을 받을 때: 올라오는 방향(사용자 말) + 내려가는 방향(비서 말)\n  return (n * callKbps(codecKbps) * 2) / 1000;\n}\n\nfunction choose(browserClient: boolean, lossyNetwork: boolean, serverToServer: boolean): string {\n  // 상황 → 추천 전송 방식\n  if (serverToServer && !lossyNetwork) return \"WebSocket\";\n  return browserClient || lossyNetwork ? \"WebRTC\" : \"WebSocket\";\n}\n\nconsole.log(`한 방향 ${callKbps(24)} kbps · 100통 ${serverMbps(100).toFixed(1)} Mbps`);\ncheck(callKbps(24) === 40 && serverMbps(100) === 8 && choose(true, true, false) === \"WebRTC\" && choose(false, false, true) === \"WebSocket\", \"24 kbps + 헤더 16 kbps = 40 kbps, 100통 양방향 8 Mbps예요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ }
+}

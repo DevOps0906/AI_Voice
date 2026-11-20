@@ -1,0 +1,104 @@
+{
+ "notebook": "day28/D28_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~5 · 오늘의 흐름 전체",
+   [
+    8,
+    11,
+    15,
+    22,
+    29,
+    34
+   ]
+  ],
+  "vad": [
+   "Part 1 · VAD 튜닝: stop_secs",
+   [
+    8
+   ]
+  ],
+  "volume": [
+   "Part 1 · min_volume으로 배경 소리 거르기",
+   [
+    11
+   ]
+  ],
+  "turn": [
+   "Part 2 · Turn Detection: Speech Timeout vs Smart Turn",
+   [
+    15,
+    18
+   ]
+  ],
+  "barge": [
+   "Part 3 · Interruption(Barge-in) 타임라인",
+   [
+    22,
+    25
+   ]
+  ],
+  "mode": [
+   "Part 3 · 끼어들기 설정 A · B · C",
+   [
+    22,
+    25
+   ]
+  ],
+  "metrics": [
+   "Part 4 · Metrics: 서비스별 TTFB",
+   [
+    29,
+    32,
+    34
+   ]
+  ],
+  "budget": [
+   "Part 4 · 지연 예산과 설정별 비교",
+   [
+    34,
+    36
+   ]
+  ],
+  "recap": [
+   "Part 5 · 정리 · 오늘의 숫자",
+   [
+    39
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "합성 신호 · FFT · 백분위 · 난수 계산",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\bBuffer\\.(?:alloc|from)\\(",
+   "Buffer",
+   "오디오 · 메시지 바이트 다루기",
+   "https://nodejs.org/api/buffer.html"
+  ],
+  [
+   "\bnew Float(?:32|64)Array\\(|\bFloat(?:32|64)Array\\.from\\(",
+   "Float32Array · Float64Array",
+   "오디오 샘플 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "\bsetTimeout\\(",
+   "setTimeout · Promise",
+   "기다리기 · 이벤트 루프에 양보하기",
+   "https://nodejs.org/api/timers.html"
+  ],
+  [
+   "\bperformance\\.now\\(",
+   "performance.now",
+   "경과 시간 재기",
+   "https://nodejs.org/api/perf_hooks.html"
+  ]
+ ]
+}

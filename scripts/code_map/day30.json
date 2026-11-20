@@ -1,0 +1,109 @@
+{
+ "notebook": "day30/D30_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~5 · 오늘의 흐름 전체",
+   [
+    9,
+    12,
+    15,
+    19,
+    23,
+    27,
+    33,
+    37
+   ]
+  ],
+  "tools": [
+   "Part 1 · 도구 호출(@function_tool)",
+   [
+    9,
+    12,
+    15
+   ]
+  ],
+  "handoff": [
+   "Part 1 · Multi-agent Handoff와 userdata",
+   [
+    12,
+    15
+   ]
+  ],
+  "sip": [
+   "Part 2 · SIP 요청서: Trunk · Dispatch Rule",
+   [
+    23
+   ]
+  ],
+  "dispatch": [
+   "Part 2~4 · 전화 한 통의 일생(통화 기록)",
+   [
+    23,
+    33,
+    34
+   ]
+  ],
+  "phone": [
+   "Part 2 · 전화 음질 흉내(300~3,400 Hz · 8 kHz)",
+   [
+    19,
+    21
+   ]
+  ],
+  "s2s": [
+   "Part 3 · Speech-to-Speech 모델",
+   [
+    27,
+    30
+   ]
+  ],
+  "caps": [
+   "Part 3~4 · 능력 표 · Cascade vs S2S 비교",
+   [
+    27,
+    37
+   ]
+  ],
+  "recap": [
+   "Part 5 · 정리 · 비교표",
+   [
+    34,
+    37
+   ]
+  ]
+ },
+ "py_libs": {
+  "numpy": [
+   "numpy",
+   "합성 신호 · FFT · 백분위 · 난수 계산",
+   "https://numpy.org/doc/stable/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\bBuffer\\.(?:alloc|from)\\(",
+   "Buffer",
+   "오디오 · 메시지 바이트 다루기",
+   "https://nodejs.org/api/buffer.html"
+  ],
+  [
+   "\bnew Float(?:32|64)Array\\(|\bFloat(?:32|64)Array\\.from\\(",
+   "Float32Array · Float64Array",
+   "오디오 샘플 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "\bsetTimeout\\(",
+   "setTimeout · Promise",
+   "기다리기 · 이벤트 루프에 양보하기",
+   "https://nodejs.org/api/timers.html"
+  ],
+  [
+   "\bperformance\\.now\\(",
+   "performance.now",
+   "경과 시간 재기",
+   "https://nodejs.org/api/perf_hooks.html"
+  ]
+ ]
+}
