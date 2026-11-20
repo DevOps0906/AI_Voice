@@ -321,13 +321,22 @@ def build_day(day):
     }, **extra)
 
 
+# 모듈 이름: M3~M9는 각 주 첫 노트북 머리말에서 가져옴, M1·M2는 머리말에 이름이 없어 일차 제목으로 붙인 이름
+MODULE_NAMES = {
+    "M1": "오디오 기초 & 딥러닝 분류", "M2": "음성 인식(ASR) 원리와 평가", "M3": "한국어 ASR Fine-tuning",
+    "M4": "음성 합성(TTS) & Voice Cloning", "M5": "LLM 연동 Voice Agent (Cascade 구조)",
+    "M6": "실시간 음성 파이프라인 (Pipecat · LiveKit)", "M7": "서비스 배포 & 운영 · Edge AI",
+    "M8": "차세대 음성 모델 · 다국어 · 데이터 · TTS 파인튜닝", "M9": "평가 · 배포 · 운영 · 엣지",
+}
+
+
 def course_entry(day, ready):
     md = notebook_md(day)
     first = md.splitlines()[0]
     title = re.match(r"# D\d+\.\s*(.+)", first).group(1)
     title = re.split(r":| — ", title, maxsplit=1)[0].strip()
     meta = parse_notebook_meta(md)
-    return {"day": day, "week": meta[0], "module": meta[1], "title": title, "ready": ready}
+    return {"day": day, "week": meta[0], "module": meta[1], "moduleName": MODULE_NAMES.get(meta[1], ""), "title": title, "ready": ready}
 
 
 def parse_notebook_meta(md):

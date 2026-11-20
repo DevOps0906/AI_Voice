@@ -150,7 +150,9 @@ a.btn.go{color:var(--primary-fg)}
 .hm-mb span{color:var(--muted);font-size:.86rem;overflow-wrap:anywhere}
 .hm-mb em{font-style:normal;margin-top:auto;padding-top:8px;font-weight:700;font-size:.88rem;color:var(--primary)}
 .hm-wk{display:grid;gap:6px}
-.hm-wr{display:grid;grid-template-columns:64px 52px minmax(0,1fr);gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:6px 14px}
+.hm-fold>summary{cursor:pointer;min-height:var(--tap,44px);display:flex;align-items:center;padding:0 14px;margin-bottom:6px;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);font-weight:700}
+@media (min-width:768px){.hm-fold>summary{display:none}}
+.hm-wr{display:grid;grid-template-columns:64px minmax(0,260px) minmax(0,1fr);gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:6px 14px}
 .hm-wr b{font-size:.92rem}
 .hm-wr small{color:var(--muted);font-weight:700}
 .hm-pills{display:flex;gap:6px;flex-wrap:wrap}
@@ -599,9 +601,9 @@ function renderMap(week,sel){
   const cs=week?(sel&&byW[week].find(c=>c.day===sel&&c.ready))||byW[week].find(c=>c.ready)||null:null;
   sel=cs?cs.day:0;MAPSEL=sel;
   const balls=`<div class="balls" role="group" aria-label="주차 선택"><button class="wbtn" type="button" data-w="0" aria-pressed="${!week}" style="--c:var(--a5)">전체</button>`+weeks.map(w=>`<button class="wbtn" type="button" data-w="${w}" aria-pressed="${w===week}" style="--c:var(${AC[(w-1)%5]})">${w}주차</button>`).join('')+`</div>`;
-  const wkCard=()=>{const ds=byW[week];return `<div class="week" id="mapWeek"><h3>${week}주차 <small>${esc(ds[0].module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`,on=c.day===sel;
+  const wkCard=()=>{const ds=byW[week];return `<div class="week" id="mapWeek"><h3>${week}주차 <small>${esc(ds[0].module)} · ${esc(ds[0].moduleName||'')}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`,on=c.day===sel;
     return c.ready?`<a class="st${on?' sel':''}" ${col} href="#map-w${week}-d${c.day}"${on?' aria-current="true"':''}><b>D${c.day}</b><span>${esc(c.title)}</span><em>${on?'보는 중':'준비됨'}</em></a>`:`<div class="st soon" ${col} aria-disabled="true"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비 중</em></div>`;}).join('')+`</div></div>`;};
-  const list=week?wkCard()+(sel?`<div class="mapday" id="mapDay"><div class="msg" role="status">불러오는 중…</div></div>`:''):Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="week"><h3>${w}주차 <small>${esc(ds[0].module)}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`;
+  const list=week?wkCard()+(sel?`<div class="mapday" id="mapDay"><div class="msg" role="status">불러오는 중…</div></div>`:''):Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="week"><h3>${w}주차 <small>${esc(ds[0].module)} · ${esc(ds[0].moduleName||'')}</small></h3><div class="stations">`+ds.map(c=>{const col=`style="--c:var(${AC[(c.week-1)%5]})"`;
     return c.ready?`<a class="st${c.day===S.day?' cur':''}" ${col} href="#d${c.day}-flow"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비됨</em></a>`:`<div class="st soon" ${col} aria-disabled="true"><b>D${c.day}</b><span>${esc(c.title)}</span><em>준비 중</em></div>`;}).join('')+`</div></div>`;}).join('');
   p.innerHTML=`<div class="eyebrow">S0 · 과정 지도</div><h2>음성 AI 전문가 과정 지도</h2><p class="lead">${S.course.length}일 중 ${ready}일이 준비됐어요. 준비된 일차를 누르면 오늘의 흐름으로 이동해요.</p>`+libCards()+`<h3 class="sec">주차별 일차</h3>`+balls+list;
   p.querySelectorAll('.wbtn').forEach(b=>b.onclick=()=>{const n=+b.dataset.w;MAPFOCUS=1;location.hash=n?'#map-w'+n:'#map';});
@@ -953,7 +955,7 @@ function renderLib(page,week,day){
 /* 홈 대시보드 */
 const hwArr=n=>{try{const a=JSON.parse(sget('aiVoiceDash.hw.d'+n)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}};
 const hwAny=n=>hwArr(n).some(Boolean);
-const MDESC={map:['과정 지도','9주 전체 일정과 준비 상태'],flow:['오늘의 흐름','소리가 흘러가는 과정을 그림으로'],goals:['목표·교시','오늘 배울 것과 교시별 시간표'],anim:['애니메이션','수업용 애니메이션 모아 보기'],files:['수업 자료','슬라이드·노트북·워크시트 링크'],learned:['오늘 배운 것','개념을 한 줄로 정리한 표'],tasks:['과제·진도','과제 체크와 진행 막대'],quiz:['정리 퀴즈','문제를 풀며 확인하기'],motion:['모션 레퍼런스','화면 움직임 효과 모음']};
+const MDESC={map:['과정 지도','9주 44일 일정과 개념·문제·그래프·애니메이션 자료실'],flow:['오늘의 흐름','오늘 소리가 흘러가는 과정을 Part별 그림으로'],goals:['목표·교시','오늘의 목표와 교시별 시간표'],anim:['애니메이션','수업 애니메이션과 Python·TS 완성 코드'],files:['수업 자료','슬라이드·실습 노트북(Colab)·워크시트'],learned:['오늘 배운 것','오늘 배운 개념을 한 줄씩 정리한 표'],tasks:['과제·진도','과제를 체크하고 진도 막대로 확인'],quiz:['정리 퀴즈','워크시트 문제로 오늘 내용 확인'],motion:['모션 레퍼런스','화면에 쓰인 움직임 효과 모음']};
 async function pickHomeDay(n){S.day=n;S.anim=null;sset('aiVoiceDash.lastDay',String(n));$('daySel').value=String(n);
   try{await loadDay(n);}catch(e){return;}if(active==='home')renderHome();}
 function renderHome(){
@@ -979,7 +981,7 @@ function renderHome(){
   <h3 class="sec">메뉴</h3>
   <div class="hm-menu">${TABS.slice(1).map(([id],i)=>`<a class="hm-m" href="${hashOf(id,S.day)}"><span class="hm-n">${i+2}</span><span class="hm-mb"><b>${MDESC[id][0]}</b><span>${MDESC[id][1]}</span><em>${esc(stat[id])}</em></span></a>`).join('')}</div>
   <h3 class="sec">교육내용 선택하기</h3>
-  <div class="hm-wk">${Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="hm-wr"><b>${w}주차</b><small>${esc(ds[0].module)}</small><div class="hm-pills">${ds.map(c=>{const ck=hwAny(c.day)?'<i>✓</i>':'';return c.ready?`<a class="hm-p${c.day===S.day?' cur':''}" href="#d${c.day}-flow">D${c.day}${ck}</a>`:`<span class="hm-p soon" aria-disabled="true">D${c.day}</span>`;}).join('')}</div></div>`;}).join('')}</div>
+  <details class="hm-fold"${matchMedia('(max-width:767px)').matches?'':' open'}><summary>주차 한눈에 · 9주 전체 펼치기 (이번 주 ${m.week}주차)</summary><div class="hm-wk">${Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="hm-wr"><b>${w}주차</b><small>${esc(ds[0].module)} · ${esc(ds[0].moduleName||'')}</small><div class="hm-pills">${ds.map(c=>{const ck=hwAny(c.day)?'<i>✓</i>':'';return c.ready?`<a class="hm-p${c.day===S.day?' cur':''}" href="#d${c.day}-flow">D${c.day}${ck}</a>`:`<span class="hm-p soon" aria-disabled="true">D${c.day}</span>`;}).join('')}</div></div>`;}).join('')}</div></details>
   <div class="row"><a class="btn" href="#map">과정 지도 전체 보기 →</a></div>`;
   $('p-home').querySelectorAll('.hm-day').forEach(b=>b.onclick=()=>pickHomeDay(+b.dataset.d));
   document.title='학습 대시보드 · 음성 AI 전문가 과정';

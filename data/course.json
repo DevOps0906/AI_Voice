@@ -3,6 +3,7 @@
     "day": 1,
     "week": 1,
     "module": "M1",
+    "moduleName": "오디오 기초 & 딥러닝 분류",
     "title": "음성 AI 첫걸음",
     "ready": true
   },
@@ -10,6 +11,7 @@
     "day": 2,
     "week": 1,
     "module": "M1",
+    "moduleName": "오디오 기초 & 딥러닝 분류",
     "title": "디지털 오디오 기초",
     "ready": true
   },
@@ -17,6 +19,7 @@
     "day": 3,
     "week": 1,
     "module": "M1",
+    "moduleName": "오디오 기초 & 딥러닝 분류",
     "title": "주파수 분석",
     "ready": true
   },
@@ -24,6 +27,7 @@
     "day": 4,
     "week": 1,
     "module": "M1",
+    "moduleName": "오디오 기초 & 딥러닝 분류",
     "title": "오디오 전처리",
     "ready": true
   },
@@ -31,6 +35,7 @@
     "day": 5,
     "week": 1,
     "module": "M1",
+    "moduleName": "오디오 기초 & 딥러닝 분류",
     "title": "딥러닝 오디오 분류 + 미니 프로젝트",
     "ready": true
   },
@@ -38,6 +43,7 @@
     "day": 6,
     "week": 2,
     "module": "M2",
+    "moduleName": "음성 인식(ASR) 원리와 평가",
     "title": "ASR 원리",
     "ready": true
   },
@@ -45,6 +51,7 @@
     "day": 7,
     "week": 2,
     "module": "M2",
+    "moduleName": "음성 인식(ASR) 원리와 평가",
     "title": "Whisper 심층 분석",
     "ready": true
   },
@@ -52,6 +59,7 @@
     "day": 8,
     "week": 2,
     "module": "M2",
+    "moduleName": "음성 인식(ASR) 원리와 평가",
     "title": "추론 최적화 & Streaming ASR",
     "ready": true
   },
@@ -59,6 +67,7 @@
     "day": 9,
     "week": 2,
     "module": "M2",
+    "moduleName": "음성 인식(ASR) 원리와 평가",
     "title": "Timestamp & 화자 분리",
     "ready": true
   },
@@ -66,6 +75,7 @@
     "day": 10,
     "week": 2,
     "module": "M2",
+    "moduleName": "음성 인식(ASR) 원리와 평가",
     "title": "ASR 평가 + 미니 프로젝트",
     "ready": true
   },
@@ -73,6 +83,7 @@
     "day": 11,
     "week": 3,
     "module": "M3",
+    "moduleName": "한국어 ASR Fine-tuning",
     "title": "한국어 음성 데이터셋",
     "ready": true
   },
@@ -80,6 +91,7 @@
     "day": 12,
     "week": 3,
     "module": "M3",
+    "moduleName": "한국어 ASR Fine-tuning",
     "title": "Whisper Full Fine-tuning",
     "ready": true
   },
@@ -87,6 +99,7 @@
     "day": 13,
     "week": 3,
     "module": "M3",
+    "moduleName": "한국어 ASR Fine-tuning",
     "title": "PEFT · LoRA Fine-tuning",
     "ready": true
   },
@@ -94,6 +107,7 @@
     "day": 14,
     "week": 3,
     "module": "M3",
+    "moduleName": "한국어 ASR Fine-tuning",
     "title": "성능 비교 & 상용 API",
     "ready": true
   },
@@ -101,6 +115,7 @@
     "day": 15,
     "week": 3,
     "module": "M3",
+    "moduleName": "한국어 ASR Fine-tuning",
     "title": "3주차 미니 프로젝트",
     "ready": true
   },
@@ -108,6 +123,7 @@
     "day": 16,
     "week": 4,
     "module": "M4",
+    "moduleName": "음성 합성(TTS) & Voice Cloning",
     "title": "TTS 원리",
     "ready": true
   },
@@ -115,6 +131,7 @@
     "day": 17,
     "week": 4,
     "module": "M4",
+    "moduleName": "음성 합성(TTS) & Voice Cloning",
     "title": "경량 TTS",
     "ready": true
   },
@@ -122,6 +139,7 @@
     "day": 18,
     "week": 4,
     "module": "M4",
+    "moduleName": "음성 합성(TTS) & Voice Cloning",
     "title": "표현형 TTS",
     "ready": true
   },
@@ -129,6 +147,7 @@
     "day": 19,
     "week": 4,
     "module": "M4",
+    "moduleName": "음성 합성(TTS) & Voice Cloning",
     "title": "Voice Cloning & AI 윤리",
     "ready": true
   },
@@ -136,6 +155,7 @@
     "day": 20,
     "week": 4,
     "module": "M4",
+    "moduleName": "음성 합성(TTS) & Voice Cloning",
     "title": "TTS 평가 + 4주차 미니 프로젝트",
     "ready": true
   },
@@ -143,6 +163,7 @@
     "day": 21,
     "week": 5,
     "module": "M5",
+    "moduleName": "LLM 연동 Voice Agent (Cascade 구조)",
     "title": "Voice Agent 아키텍처",
     "ready": true
   },
@@ -150,6 +171,7 @@
     "day": 22,
     "week": 5,
     "module": "M5",
+    "moduleName": "LLM 연동 Voice Agent (Cascade 구조)",
     "title": "LLM API 연동",
     "ready": true
   },
@@ -157,6 +179,7 @@
     "day": 23,
     "week": 5,
     "module": "M5",
+    "moduleName": "LLM 연동 Voice Agent (Cascade 구조)",
     "title": "Tool Calling & RAG",
     "ready": true
   },
@@ -164,6 +187,7 @@
     "day": 24,
     "week": 5,
     "module": "M5",
+    "moduleName": "LLM 연동 Voice Agent (Cascade 구조)",
     "title": "MCP 연동",
     "ready": true
   },
@@ -171,6 +195,7 @@
     "day": 25,
     "week": 5,
     "module": "M5",
+    "moduleName": "LLM 연동 Voice Agent (Cascade 구조)",
     "title": "5주차 미니 프로젝트",
     "ready": true
   },
@@ -178,6 +203,7 @@
     "day": 26,
     "week": 6,
     "module": "M6",
+    "moduleName": "실시간 음성 파이프라인 (Pipecat · LiveKit)",
     "title": "실시간 오디오 기초",
     "ready": true
   },
@@ -185,6 +211,7 @@
     "day": 27,
     "week": 6,
     "module": "M6",
+    "moduleName": "실시간 음성 파이프라인 (Pipecat · LiveKit)",
     "title": "Pipecat 기초",
     "ready": true
   },
@@ -192,6 +219,7 @@
     "day": 28,
     "week": 6,
     "module": "M6",
+    "moduleName": "실시간 음성 파이프라인 (Pipecat · LiveKit)",
     "title": "Pipecat 심화",
     "ready": true
   },
@@ -199,6 +227,7 @@
     "day": 29,
     "week": 6,
     "module": "M6",
+    "moduleName": "실시간 음성 파이프라인 (Pipecat · LiveKit)",
     "title": "LiveKit Agents 기초",
     "ready": true
   },
@@ -206,6 +235,7 @@
     "day": 30,
     "week": 6,
     "module": "M6",
+    "moduleName": "실시간 음성 파이프라인 (Pipecat · LiveKit)",
     "title": "LiveKit 심화 & Speech-to-Speech",
     "ready": true
   },
@@ -213,6 +243,7 @@
     "day": 31,
     "week": 7,
     "module": "M7",
+    "moduleName": "서비스 배포 & 운영 · Edge AI",
     "title": "FastAPI 음성 API 서버",
     "ready": true
   },
@@ -220,6 +251,7 @@
     "day": 32,
     "week": 7,
     "module": "M7",
+    "moduleName": "서비스 배포 & 운영 · Edge AI",
     "title": "웹 클라이언트",
     "ready": true
   },
@@ -227,6 +259,7 @@
     "day": 33,
     "week": 7,
     "module": "M7",
+    "moduleName": "서비스 배포 & 운영 · Edge AI",
     "title": "실시간 음질",
     "ready": true
   },
@@ -234,6 +267,7 @@
     "day": 34,
     "week": 7,
     "module": "M7",
+    "moduleName": "서비스 배포 & 운영 · Edge AI",
     "title": "음성 대화 설계 (Voice UX)",
     "ready": true
   },
@@ -241,6 +275,7 @@
     "day": 35,
     "week": 7,
     "module": "M7",
+    "moduleName": "서비스 배포 & 운영 · Edge AI",
     "title": "화자 임베딩",
     "ready": true
   },
@@ -248,6 +283,7 @@
     "day": 36,
     "week": 8,
     "module": "M8",
+    "moduleName": "차세대 음성 모델 · 다국어 · 데이터 · TTS 파인튜닝",
     "title": "준언어 · 소리 이벤트 분석",
     "ready": true
   },
@@ -255,6 +291,7 @@
     "day": 37,
     "week": 8,
     "module": "M8",
+    "moduleName": "차세대 음성 모델 · 다국어 · 데이터 · TTS 파인튜닝",
     "title": "Audio LLM & Full-duplex",
     "ready": true
   },
@@ -262,6 +299,7 @@
     "day": 38,
     "week": 8,
     "module": "M8",
+    "moduleName": "차세대 음성 모델 · 다국어 · 데이터 · TTS 파인튜닝",
     "title": "음성 번역 & 다국어 에이전트",
     "ready": true
   },
@@ -269,6 +307,7 @@
     "day": 39,
     "week": 8,
     "module": "M8",
+    "moduleName": "차세대 음성 모델 · 다국어 · 데이터 · TTS 파인튜닝",
     "title": "음성 데이터 엔지니어링",
     "ready": true
   },
@@ -276,6 +315,7 @@
     "day": 40,
     "week": 8,
     "module": "M8",
+    "moduleName": "차세대 음성 모델 · 다국어 · 데이터 · TTS 파인튜닝",
     "title": "한국어 TTS 파인튜닝",
     "ready": true
   },
@@ -283,6 +323,7 @@
     "day": 41,
     "week": 9,
     "module": "M9",
+    "moduleName": "평가 · 배포 · 운영 · 엣지",
     "title": "Voice Agent 평가 자동화",
     "ready": true
   },
@@ -290,6 +331,7 @@
     "day": 42,
     "week": 9,
     "module": "M9",
+    "moduleName": "평가 · 배포 · 운영 · 엣지",
     "title": "컨테이너화 & GPU 서빙 · 부하 시험",
     "ready": true
   },
@@ -297,6 +339,7 @@
     "day": 43,
     "week": 9,
     "module": "M9",
+    "moduleName": "평가 · 배포 · 운영 · 엣지",
     "title": "운영 · 관측성 · 보안 · 개인정보",
     "ready": true
   },
@@ -304,6 +347,7 @@
     "day": 44,
     "week": 9,
     "module": "M9",
+    "moduleName": "평가 · 배포 · 운영 · 엣지",
     "title": "On-device / Edge & 깨움말",
     "ready": true
   }

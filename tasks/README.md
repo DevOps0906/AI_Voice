@@ -31,6 +31,7 @@
 | task-027 | 코드 탭 7주차 D31~D35 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 완료 |
 | task-028 | 코드 탭 8주차 D36~D40 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 완료 |
 | task-029 | 코드 탭 9주차 D41~D44 단독 실행 코드(Python·TS) | W14 | 017 | 보통 | builder(sonnet) | 완료 |
+| task-030 | 주차 줄 모듈 이름·모바일 주차 한눈에 접기·메뉴 카드 문구 9개 | W15 | — | 낮음 | 팀장(opus) | 완료 |
 
 상태: 대기 / 진행 / 완료 / 보류 · 위험도 → 워커 model: 낮음 haiku · 보통 sonnet · 높음 opus
 
