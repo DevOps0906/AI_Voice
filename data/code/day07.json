@@ -1,0 +1,278 @@
+{
+ "flow": {
+  "part": "Part 0~6 · 오늘의 흐름 전체",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    2,
+    5
+   ],
+   [
+    7,
+    12
+   ],
+   [
+    14,
+    22
+   ]
+  ],
+  "python": "# D7 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d07_flow.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   Whisper 한 번의 여정: 30초로 채우기 → 특수 토큰 주문서 → 빔 서치로 고르기 → 압축률로 환각 의심 걸러내기\n# 대체 경로: Whisper-small 모델(수백 MB)은 내려받지 않고, 합성 신호와 손으로 만든 장난감 언어 모델·문장으로 같은 계산을 한다.\nimport zlib\n\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n# 1) 30초 창: 짧으면 0으로 채우고 Log-Mel 3000칸(10 ms), Encoder 가 1500칸(20 ms)으로 줄인다\nCHUNK_SEC = 30\ny = (0.3 * np.sin(2 * np.pi * 220 * np.arange(int(4.2 * SR)) / SR)).astype(np.float32)      # 4.2초 합성 음성\npadded = np.pad(y, (0, CHUNK_SEC * SR - len(y)))\nmel_frames, enc_frames = len(padded) // 160, len(padded) // 160 // 2\nprint(f\"{len(y) / SR:.1f}초 -> 채운 뒤 {len(padded) / SR:.0f}초, Log-Mel {mel_frames}칸 -> Encoder {enc_frames}칸\")\ncheck(len(padded) == 480000 and mel_frames == 3000 and enc_frames == 1500, \"30초 x 16000 = 480000 샘플, 3000칸 -> 1500칸.\")\n\n# 2) 특수 토큰 주문서 (다국어 Whisper 의 실제 번호)\nSPECIAL = {\"<|endoftext|>\": 50257, \"<|startoftranscript|>\": 50258, \"<|ko|>\": 50264, \"<|transcribe|>\": 50359, \"<|notimestamps|>\": 50363}\nprompt = [SPECIAL[k] for k in (\"<|startoftranscript|>\", \"<|ko|>\", \"<|transcribe|>\", \"<|notimestamps|>\")]\nprint(\"디코더 시작 토큰:\", prompt)\ncheck(prompt == [50258, 50264, 50359, 50363], \"시작, 언어, 작업, 시각 여부 순서예요.\")\n\n# 3) 빔 서치: 장난감 언어 모델(다음 단어 확률표)에서 greedy 가 놓치는 더 좋은 문장\nLM = {\"<s>\": {\"a\": 0.6, \"b\": 0.4}, \"a\": {\"x\": 0.5, \"y\": 0.5}, \"b\": {\"x\": 0.9, \"y\": 0.1}, \"x\": {\"</s>\": 1.0}, \"y\": {\"</s>\": 1.0}}\n\n\ndef beam(width):\n    beams = [([\"<s>\"], 0.0)]\n    for _ in range(3):\n        nxt = []\n        for seq, lp in beams:\n            if seq[-1] == \"</s>\":\n                nxt.append((seq, lp))\n                continue\n            for w, p in LM[seq[-1]].items():\n                nxt.append((seq + [w], lp + np.log(p)))\n        beams = sorted(nxt, key=lambda b: -b[1])[:width]\n    return beams[0]\n\n\ng, b = beam(1), beam(2)\nprint(\"greedy:\", \" \".join(g[0][1:]), f\"({np.exp(g[1]):.2f}) | beam 2:\", \" \".join(b[0][1:]), f\"({np.exp(b[1]):.2f})\")\ncheck(np.exp(b[1]) > np.exp(g[1]), \"빔을 넓히면 전체 확률이 더 높은 문장을 찾아요.\")\n\n# 4) 압축률: 같은 말 반복은 zlib 이 잘 줄여서 비율이 커진다 -> 2.4 초과면 반복(환각) 의심\nratio = lambda s: len(s.encode(\"utf-8\")) / len(zlib.compress(s.encode(\"utf-8\")))\nnormal, loop = \"안녕하세요. 오늘은 음성 인식 모델 위스퍼를 자세히 알아보겠습니다.\", \"네. \" * 40\nprint(f\"보통 문장 {ratio(normal):.2f} | 반복 {ratio(loop):.2f}\")\ncheck(ratio(normal) < 2.4 < ratio(loop), \"정상 문장은 2.4 이하, 반복 고리는 2.4를 넘어요.\")\n",
+  "typescript": "// D7 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_flow.ts\n//   Whisper 한 번의 여정: 30초로 채우기 → 특수 토큰 주문서 → 빔 서치로 고르기 → 압축률로 환각 의심 걸러내기\n// 대체 경로: Whisper-small 모델은 쓰지 않고, 합성 신호와 손으로 만든 장난감 언어 모델·문장으로 같은 계산을 한다.\nimport { deflateSync } from \"node:zlib\";\n\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 1) 30초 창: 짧으면 0으로 채우고 Log-Mel 3000칸(10 ms), Encoder 가 1500칸(20 ms)으로 줄인다\nconst CHUNK_SEC = 30;\nconst y = new Float32Array(Math.floor(4.2 * SR)).map((_, i) => 0.3 * Math.sin((2 * Math.PI * 220 * i) / SR)); // 4.2초 합성 음성\nconst padded = new Float32Array(CHUNK_SEC * SR);\npadded.set(y); // 뒤는 0으로 채워짐\nconst melFrames = padded.length / 160;\nconst encFrames = melFrames / 2;\nconsole.log(`${(y.length / SR).toFixed(1)}초 -> 채운 뒤 ${padded.length / SR}초, Log-Mel ${melFrames}칸 -> Encoder ${encFrames}칸`);\ncheck(padded.length === 480000 && melFrames === 3000 && encFrames === 1500, \"30초 x 16000 = 480000 샘플, 3000칸 -> 1500칸.\");\n\n// 2) 특수 토큰 주문서 (다국어 Whisper 의 실제 번호)\nconst SPECIAL: Record<string, number> = { \"<|startoftranscript|>\": 50258, \"<|ko|>\": 50264, \"<|transcribe|>\": 50359, \"<|notimestamps|>\": 50363 };\nconst prompt = [\"<|startoftranscript|>\", \"<|ko|>\", \"<|transcribe|>\", \"<|notimestamps|>\"].map((k) => SPECIAL[k]);\nconsole.log(\"디코더 시작 토큰:\", prompt.join(\", \"));\ncheck(prompt.join() === \"50258,50264,50359,50363\", \"시작, 언어, 작업, 시각 여부 순서예요.\");\n\n// 3) 빔 서치: 장난감 언어 모델(다음 단어 확률표)에서 greedy 가 놓치는 더 좋은 문장\nconst LM: Record<string, Record<string, number>> = {\n  \"<s>\": { a: 0.6, b: 0.4 },\n  a: { x: 0.5, y: 0.5 },\n  b: { x: 0.9, y: 0.1 },\n  x: { \"</s>\": 1.0 },\n  y: { \"</s>\": 1.0 },\n};\nfunction beam(width: number): [string[], number] {\n  let beams: [string[], number][] = [[[\"<s>\"], 0]];\n  for (let step = 0; step < 3; step++) {\n    const nxt: [string[], number][] = [];\n    for (const [seq, lp] of beams) {\n      const last = seq[seq.length - 1];\n      if (last === \"</s>\") {\n        nxt.push([seq, lp]);\n        continue;\n      }\n      for (const [w, p] of Object.entries(LM[last])) nxt.push([[...seq, w], lp + Math.log(p)]);\n    }\n    beams = nxt.sort((u, v) => v[1] - u[1]).slice(0, width);\n  }\n  return beams[0];\n}\nconst g = beam(1);\nconst b = beam(2);\nconsole.log(\"greedy:\", g[0].slice(1).join(\" \"), `(${Math.exp(g[1]).toFixed(2)}) | beam 2:`, b[0].slice(1).join(\" \"), `(${Math.exp(b[1]).toFixed(2)})`);\ncheck(Math.exp(b[1]) > Math.exp(g[1]), \"빔을 넓히면 전체 확률이 더 높은 문장을 찾아요.\");\n\n// 4) 압축률: 같은 말 반복은 zlib 이 잘 줄여서 비율이 커진다 -> 2.4 초과면 반복(환각) 의심\nconst ratio = (s: string): number => Buffer.byteLength(s, \"utf-8\") / deflateSync(Buffer.from(s, \"utf-8\")).length;\nconst normal = \"안녕하세요. 오늘은 음성 인식 모델 위스퍼를 자세히 알아보겠습니다.\";\nconst loop = \"네. \".repeat(40);\nconsole.log(`보통 문장 ${ratio(normal).toFixed(2)} | 반복 ${ratio(loop).toFixed(2)}`);\ncheck(ratio(normal) < 2.4 && 2.4 < ratio(loop), \"정상 문장은 2.4 이하, 반복 고리는 2.4를 넘어요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:zlib",
+     "version": "내장",
+     "purpose": "문장 압축률(zlib) 계산: 같은 말 반복 감지",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/zlib.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플을 담는 실수 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "arch": {
+  "part": "Part 1 · Whisper 의 구조: 30초 창 · Encoder 3000칸 → 1500칸",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    5,
+    6
+   ]
+  ],
+  "python": "# D7 · Part 1 · Whisper 의 구조: 30초 창 · Encoder 3000칸 → 1500칸 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d07_arch.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   짧은 음성을 0으로 채워 30초(480,000샘플)로 만들고, Log-Mel 3000칸 → 합성곱 보폭 2 → 1500칸이 되는 것과 '짧은 음성도 같은 양을 계산' 하는 이유 확인\n# 대체 경로: Whisper 모델 대신 STFT 를 직접 계산한 Log-Mel 크기와 합성곱 출력 크기 공식만 확인한다.\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\nN_FFT, HOP = 400, 160                        # Whisper 특징 추출기: 창 25 ms, 이동 10 ms\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nCHUNK_SEC = 30                               # Whisper 창의 길이 (초)\nN_SAMPLES = CHUNK_SEC * SR\n\nrng = np.random.default_rng(0)\nfor dur in (3.5, 12.0, 25.0):\n    y = (0.2 * rng.standard_normal(int(dur * SR))).astype(np.float32)\n    padded = np.pad(y, (0, N_SAMPLES - len(y)))                            # 뒤를 0으로 채워 30초로\n    # 짧은 STFT: 프레임 수 = 샘플 / hop (reflect 패딩 포함)\n    x = np.pad(padded, (N_FFT // 2, N_FFT // 2), mode=\"reflect\")\n    frames = 1 + (len(x) - N_FFT) // HOP\n    mel_t = frames - 1                                                      # Whisper 는 마지막 프레임을 버린다 -> 3000\n    enc_t = (mel_t + 2 * 1 - 3) // 2 + 1                                    # 합성곱 k=3, stride=2, pad=1 -> 1500\n    print(f\"입력 {dur:4.1f}초 -> 채운 뒤 {len(padded) / SR:.0f}초 ({len(padded):,}샘플) | Log-Mel {mel_t}칸 -> Encoder {enc_t}칸\")\n    assert mel_t == 3000 and enc_t == 1500\n\n# 입력이 짧아도 Encoder 가 보는 칸 수는 똑같다 = 계산량이 같다\ncheck(N_SAMPLES == 480000 and mel_t == 3000 and enc_t == 1500, \"30초 x 16000 = 480000 샘플, 3000칸 -> 1500칸.\")\nreal_frames = int(3.5 * SR / HOP)\nprint(f\"3.5초 음성의 실제 소리 칸은 {real_frames}칸뿐, 나머지 {3000 - real_frames}칸은 0으로 채운 칸\")\ncheck(real_frames < 3000 // 8, \"짧은 음성도 30초만큼 일하므로 오래 걸려요.\")\n",
+  "typescript": "// D7 · Part 1 · Whisper 의 구조: 30초 창 · Encoder 3000칸 → 1500칸 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_arch.ts\n//   짧은 음성을 0으로 채워 30초(480,000샘플)로 만들고, Log-Mel 3000칸 → 합성곱 보폭 2 → 1500칸이 되는 것과 '짧은 음성도 같은 양을 계산' 하는 이유 확인\n// 대체 경로: Whisper 모델 대신 STFT 프레임 수와 합성곱 출력 크기 공식만 확인한다.\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\nconst N_FFT = 400; // 창 25 ms\nconst HOP = 160; // 이동 10 ms\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst CHUNK_SEC = 30; // Whisper 창의 길이 (초)\nconst N_SAMPLES = CHUNK_SEC * SR;\n\nlet melT = 0;\nlet encT = 0;\nfor (const dur of [3.5, 12, 25]) {\n  const y = new Float32Array(Math.floor(dur * SR)).map((_, i) => 0.2 * Math.sin(i * 0.37));\n  const padded = new Float32Array(N_SAMPLES);\n  padded.set(y); // 뒤를 0으로 채워 30초로\n  const frames = 1 + Math.floor((padded.length + N_FFT - N_FFT) / HOP); // 가운데 맞춤(reflect 패딩 N_FFT/2 양쪽) STFT 프레임 수\n  melT = frames - 1; // Whisper 는 마지막 프레임을 버린다 -> 3000\n  encT = Math.floor((melT + 2 * 1 - 3) / 2) + 1; // 합성곱 k=3, stride=2, pad=1 -> 1500\n  console.log(`입력 ${dur.toFixed(1)}초 -> 채운 뒤 ${padded.length / SR}초 (${padded.length}샘플) | Log-Mel ${melT}칸 -> Encoder ${encT}칸`);\n}\n\n// 입력이 짧아도 Encoder 가 보는 칸 수는 똑같다 = 계산량이 같다\ncheck(N_SAMPLES === 480000 && melT === 3000 && encT === 1500, \"30초 x 16000 = 480000 샘플, 3000칸 -> 1500칸.\");\nconst realFrames = Math.floor((3.5 * SR) / HOP);\nconsole.log(`3.5초 음성의 실제 소리 칸은 ${realFrames}칸뿐, 나머지 ${3000 - realFrames}칸은 0으로 채운 칸`);\ncheck(realFrames < 3000 / 8, \"짧은 음성도 30초만큼 일하므로 오래 걸려요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플을 담는 실수 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "tokens": {
+  "part": "Part 1 · 특수 토큰: 디코더에게 주는 주문서",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    7,
+    8
+   ]
+  ],
+  "python": "# D7 · Part 1 · 특수 토큰: 디코더에게 주는 주문서 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d07_tokens.py   (입력은 코드 안의 표 · 인터넷·GPU·마이크 불필요)\n#   <|startoftranscript|> <|언어|> <|작업|> <|notimestamps|> 순서로 디코더 시작 토큰을 조립하고, 언어·작업을 바꾸면 무엇이 달라지는지 확인\n# 대체 경로: transformers 토크나이저 대신, 다국어 Whisper 의 실제 특수 토큰 번호 일부를 표로 적어 둔다.\nSPECIAL = {\n    \"<|endoftext|>\": 50257, \"<|startoftranscript|>\": 50258,\n    \"<|en|>\": 50259, \"<|zh|>\": 50260, \"<|de|>\": 50261, \"<|es|>\": 50262, \"<|ru|>\": 50263, \"<|ko|>\": 50264, \"<|fr|>\": 50265, \"<|ja|>\": 50266,\n    \"<|translate|>\": 50358, \"<|transcribe|>\": 50359, \"<|nospeech|>\": 50362, \"<|notimestamps|>\": 50363,\n}\nID2TOK = {v: k for k, v in SPECIAL.items()}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef build_prompt(lang: str, task: str, timestamps: bool = False) -> list[int]:\n    toks = [\"<|startoftranscript|>\", f\"<|{lang}|>\", f\"<|{task}|>\"]\n    if not timestamps:\n        toks.append(\"<|notimestamps|>\")                   # 시각 토큰을 쓰지 않겠다는 표시\n    return [SPECIAL[t] for t in toks]\n\n\nfor lang, task, ts in [(\"ko\", \"transcribe\", False), (\"ko\", \"translate\", False), (\"en\", \"transcribe\", True)]:\n    ids = build_prompt(lang, task, ts)\n    print(f\"{lang:2s} {task:10s} 시각={ts!s:5s} -> {ids}  {[ID2TOK[i] for i in ids]}\")\n\nko = build_prompt(\"ko\", \"transcribe\")\ncheck(ko == [50258, 50264, 50359, 50363], \"빈칸: 두 번째는 언어 토큰 <|ko|> 예요.\")\ncheck(build_prompt(\"ko\", \"translate\")[2] == 50358 and build_prompt(\"en\", \"transcribe\", True)[-1] == 50359, \"번역은 <|translate|>, 시각을 쓰면 <|notimestamps|> 가 빠져요.\")\ncheck(all(i >= 50257 for i in ko) and ko[0] == SPECIAL[\"<|startoftranscript|>\"], \"특수 토큰 번호는 일반 글자 토큰(50257 미만) 뒤에 붙어요.\")\n",
+  "typescript": "// D7 · Part 1 · 특수 토큰: 디코더에게 주는 주문서 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_tokens.ts\n//   <|startoftranscript|> <|언어|> <|작업|> <|notimestamps|> 순서로 디코더 시작 토큰을 조립하고, 언어·작업을 바꾸면 무엇이 달라지는지 확인\n// 대체 경로: 토크나이저 대신, 다국어 Whisper 의 실제 특수 토큰 번호 일부를 표로 적어 둔다.\nconst SPECIAL: Record<string, number> = {\n  \"<|endoftext|>\": 50257,\n  \"<|startoftranscript|>\": 50258,\n  \"<|en|>\": 50259,\n  \"<|zh|>\": 50260,\n  \"<|de|>\": 50261,\n  \"<|es|>\": 50262,\n  \"<|ru|>\": 50263,\n  \"<|ko|>\": 50264,\n  \"<|fr|>\": 50265,\n  \"<|ja|>\": 50266,\n  \"<|translate|>\": 50358,\n  \"<|transcribe|>\": 50359,\n  \"<|nospeech|>\": 50362,\n  \"<|notimestamps|>\": 50363,\n};\nconst ID2TOK: Record<number, string> = Object.fromEntries(Object.entries(SPECIAL).map(([k, v]) => [v, k]));\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction buildPrompt(lang: string, task: string, timestamps: boolean = false): number[] {\n  const toks = [\"<|startoftranscript|>\", `<|${lang}|>`, `<|${task}|>`];\n  if (!timestamps) toks.push(\"<|notimestamps|>\"); // 시각 토큰을 쓰지 않겠다는 표시\n  return toks.map((t) => SPECIAL[t]);\n}\n\nfor (const [lang, task, ts] of [[\"ko\", \"transcribe\", false], [\"ko\", \"translate\", false], [\"en\", \"transcribe\", true]] as [string, string, boolean][]) {\n  const ids = buildPrompt(lang, task, ts);\n  console.log(`${lang} ${task.padEnd(10)} 시각=${String(ts).padEnd(5)} -> [${ids.join(\", \")}]  ${ids.map((i) => ID2TOK[i]).join(\" \")}`);\n}\n\nconst ko = buildPrompt(\"ko\", \"transcribe\");\ncheck(ko.join() === \"50258,50264,50359,50363\", \"빈칸: 두 번째는 언어 토큰 <|ko|> 예요.\");\ncheck(buildPrompt(\"ko\", \"translate\")[2] === 50358 && buildPrompt(\"en\", \"transcribe\", true).at(-1) === 50359, \"번역은 <|translate|>, 시각을 쓰면 <|notimestamps|> 가 빠져요.\");\ncheck(ko.every((i) => i >= 50257) && ko[0] === SPECIAL[\"<|startoftranscript|>\"], \"특수 토큰 번호는 일반 글자 토큰(50257 미만) 뒤에 붙어요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "sizes": {
+  "part": "Part 2 · 모델 크기: 빠르게 vs 정확하게",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    9,
+    10
+   ]
+  ],
+  "python": "# D7 · Part 2 · 모델 크기: 빠르게 vs 정확하게 (파라미터 · 메모리 · CER) — 단독 실행 완성 코드 (Python 3.11)\n# pip install jiwer==4.0.0\n# 실행: python d07_sizes.py   (입력은 코드 안의 표와 문장 · 인터넷·GPU·마이크 불필요)\n#   Whisper 크기별 파라미터로 메모리(float32 · float16 · int8)를 계산하고, jiwer 로 CER 을 매겨 '크면 정확하다' 를 표로 확인\n# 대체 경로: 크기별 모델을 돌려 얻은 받아쓰기 결과 대신, 크기가 작을수록 오류가 많은 가짜 결과 문장을 미리 적어 두었다.\nimport re\n\nimport jiwer\n\n# 파라미터 수(백만 개): Whisper 공개 표 값\nPARAMS = {\"tiny\": 39, \"base\": 74, \"small\": 244, \"medium\": 769, \"large-v3\": 1550}\nBYTES = {\"float32\": 4, \"float16\": 2, \"int8\": 1}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef norm(s: str) -> str:\n    # 비교 전에 문장 부호와 띄어쓰기를 지워 '글자' 만 비교\n    return re.sub(r\"[\\s.,!?'\\\"·~-]\", \"\", s).lower()\n\n\nprint(f\"{'모델':9s} {'파라미터':>8s} {'float32':>9s} {'float16':>9s} {'int8':>8s}\")\nfor name, m in PARAMS.items():\n    print(f\"{name:9s} {m:>7d}M \" + \" \".join(f\"{m * b:>7d}MB\" for b in BYTES.values()))\ncheck(PARAMS[\"small\"] * BYTES[\"float32\"] == 976 and BYTES[\"int8\"] * 8 == 8, \"int8 = 8비트 = 1바이트 이므로 float32 의 1/4 예요.\")\n\nref = \"안녕하세요 오늘은 음성 인식 모델 위스퍼를 자세히 알아보겠습니다\"\nhyps = {                                             # 가짜 받아쓰기 결과: 작을수록 틀린 곳이 많다\n    \"tiny\":  \"안녕하세요 오늘은 음성 이식 모델 위스퍼 자세히 알아봅니다\",\n    \"base\":  \"안녕하세요 오늘은 음성 인식 모델 위스퍼를 자세히 알아봅니다\",\n    \"small\": \"안녕하세요 오늘은 음성인식 모델 위스퍼를 자세히 알아보겠습니다.\",\n}\ncers = {k: jiwer.cer(norm(ref), norm(h)) for k, h in hyps.items()}\nfor k, c in cers.items():\n    print(f\"{k:6s} CER {c:6.1%} | {hyps[k]}\")\ncheck(cers[\"tiny\"] > cers[\"base\"] > cers[\"small\"] == 0.0, \"모델이 클수록 CER 이 낮아져요(여기서는 small 이 0%).\")\ncheck(abs(jiwer.cer(\"abc\", \"abd\") - 1 / 3) < 1e-9, \"CER = 글자 편집 거리 / 정답 글자 수.\")\n",
+  "typescript": "// D7 · Part 2 · 모델 크기: 빠르게 vs 정확하게 (파라미터 · 메모리 · CER) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_sizes.ts\n//   Whisper 크기별 파라미터로 메모리(float32 · float16 · int8)를 계산하고, 편집 거리로 CER 을 매겨 '크면 정확하다' 를 표로 확인\n// 대체 경로: 크기별 모델을 돌려 얻은 받아쓰기 결과 대신, 크기가 작을수록 오류가 많은 가짜 결과 문장을 미리 적어 두었다.\nconst PARAMS: Record<string, number> = { tiny: 39, base: 74, small: 244, medium: 769, \"large-v3\": 1550 }; // 백만 개\nconst BYTES: Record<string, number> = { float32: 4, float16: 2, int8: 1 };\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 비교 전에 문장 부호와 띄어쓰기를 지워 '글자' 만 비교\nconst norm = (s: string): string => s.replace(/[\\s.,!?'\"·~-]/g, \"\").toLowerCase();\n\nfunction editDistance(a: string[], b: string[]): number {\n  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...new Array(b.length).fill(0)]);\n  for (let j = 0; j <= b.length; j++) dp[0][j] = j;\n  for (let i = 1; i <= a.length; i++) {\n    for (let j = 1; j <= b.length; j++) {\n      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));\n    }\n  }\n  return dp[a.length][b.length];\n}\nconst cer = (ref: string, hyp: string): number => editDistance([...ref], [...hyp]) / [...ref].length;\n\nconsole.log(\"모델       파라미터   float32   float16     int8\");\nfor (const [name, m] of Object.entries(PARAMS)) {\n  console.log(`${name.padEnd(9)} ${String(m).padStart(6)}M ` + Object.values(BYTES).map((b) => `${String(m * b).padStart(7)}MB`).join(\" \"));\n}\ncheck(PARAMS.small * BYTES.float32 === 976 && BYTES.int8 * 8 === 8, \"int8 = 8비트 = 1바이트 이므로 float32 의 1/4 예요.\");\n\nconst ref = \"안녕하세요 오늘은 음성 인식 모델 위스퍼를 자세히 알아보겠습니다\";\nconst hyps: Record<string, string> = {\n  // 가짜 받아쓰기 결과: 작을수록 틀린 곳이 많다\n  tiny: \"안녕하세요 오늘은 음성 이식 모델 위스퍼 자세히 알아봅니다\",\n  base: \"안녕하세요 오늘은 음성 인식 모델 위스퍼를 자세히 알아봅니다\",\n  small: \"안녕하세요 오늘은 음성인식 모델 위스퍼를 자세히 알아보겠습니다.\",\n};\nconst cers: Record<string, number> = {};\nfor (const [k, h] of Object.entries(hyps)) {\n  cers[k] = cer(norm(ref), norm(h));\n  console.log(`${k.padEnd(6)} CER ${(cers[k] * 100).toFixed(1).padStart(5)}% | ${h}`);\n}\ncheck(cers.tiny > cers.base && cers.base > cers.small && cers.small === 0, \"모델이 클수록 CER 이 낮아져요(여기서는 small 이 0%).\");\ncheck(Math.abs(cer(\"abc\", \"abd\") - 1 / 3) < 1e-9, \"CER = 글자 편집 거리 / 정답 글자 수.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "jiwer",
+     "version": "4.0.0",
+     "purpose": "WER · CER 채점",
+     "install": "pip install jiwer==4.0.0",
+     "docs": "https://jitsi.github.io/jiwer/",
+     "license": "Apache-2.0"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "langid": {
+  "part": "Part 3 · 언어 감지",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    11,
+    11
+   ]
+  ],
+  "python": "# D7 · Part 3 · 언어 감지: 언어 토큰 점수만 골라 softmax — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d07_langid.py   (입력은 코드 안에서 만든 점수 · 인터넷·GPU·마이크 불필요)\n#   디코더 첫 걸음의 어휘 점수(약 5만 개) 중 언어 토큰 자리만 슬라이스해 softmax 로 확률 · 상위 5개 · 틀리기 쉬운 경우 확인\n# 대체 경로: Whisper 를 실제로 돌리는 대신, 언어 토큰 자리에 점수를 직접 꽂은 가짜 logits 를 쓴다.\nimport numpy as np\n\nVOCAB = 51865                                # 다국어 Whisper 어휘 수\nLANGS = [\"en\", \"zh\", \"de\", \"es\", \"ru\", \"ko\", \"fr\", \"ja\"]           # 언어 토큰 일부 (실제는 99개)\nLANG_IDS = list(range(50259, 50259 + len(LANGS)))                  # <|en|>=50259 부터 연속\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef fake_logits(boost: dict[str, float], seed: int = 0) -> np.ndarray:\n    rng = np.random.default_rng(seed)\n    z = rng.normal(0, 1, VOCAB)\n    z[:50257] += 5                                       # 일반 글자 토큰이 언어 토큰보다 점수가 높게 나오는 것을 흉내\n    z[LANG_IDS] = 0.0                                    # 언어 토큰은 잡음 없이 시작 (아래 boost 만 차이를 만든다)\n    for lang, v in boost.items():\n        z[LANG_IDS[LANGS.index(lang)]] += v\n    return z\n\n\ndef detect(z: np.ndarray):\n    lang_logits = z[LANG_IDS]                            # 언어 토큰 점수만 골라냄 (빈칸의 답)\n    p = np.exp(lang_logits - lang_logits.max())\n    p /= p.sum()\n    top = np.argsort(-p)[:5]\n    return [(LANGS[i], float(p[i])) for i in top]\n\n\ncases = {\"한국어 음성\": {\"ko\": 6.0, \"ja\": 2.0}, \"영어 음성\": {\"en\": 7.0, \"de\": 2.5}, \"한영 섞인 음성\": {\"ko\": 3.2, \"en\": 3.0}}\nres = {}\nfor name, boost in cases.items():\n    res[name] = detect(fake_logits(boost))\n    print(f\"{name:10s} ->\", \", \".join(f\"{l} {p:.0%}\" for l, p in res[name]))\n\ncheck(res[\"한국어 음성\"][0][0] == \"ko\" and res[\"영어 음성\"][0][0] == \"en\", \"가장 높은 확률의 언어가 정답이어야 해요.\")\nmixed = res[\"한영 섞인 음성\"]\nprint(f\"섞인 음성: 1등 {mixed[0][1]:.0%}, 2등 {mixed[1][1]:.0%}\")\ncheck(mixed[0][1] < 0.7 and mixed[0][1] - mixed[1][1] < 0.3, \"섞인 음성은 1등 · 2등 확률이 비슷해 언어를 고정해 주는 편이 안전해요.\")\n",
+  "typescript": "// D7 · Part 3 · 언어 감지: 언어 토큰 점수만 골라 softmax — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_langid.ts\n//   디코더 첫 걸음의 어휘 점수(약 5만 개) 중 언어 토큰 자리만 골라 softmax 로 확률 · 상위 5개 · 틀리기 쉬운 경우 확인\n// 대체 경로: Whisper 를 실제로 돌리는 대신, 언어 토큰 자리에 점수를 직접 꽂은 가짜 logits 를 쓴다.\nconst VOCAB = 51865; // 다국어 Whisper 어휘 수\nconst LANGS = [\"en\", \"zh\", \"de\", \"es\", \"ru\", \"ko\", \"fr\", \"ja\"]; // 언어 토큰 일부 (실제는 99개)\nconst LANG_IDS = LANGS.map((_, i) => 50259 + i); // <|en|>=50259 부터 연속\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction fakeLogits(boost: Record<string, number>): Float64Array {\n  const z = new Float64Array(VOCAB);\n  for (let i = 0; i < 50257; i++) z[i] = 5 + Math.sin(i); // 일반 글자 토큰이 언어 토큰보다 점수가 높게 나오는 것을 흉내\n  for (const [lang, v] of Object.entries(boost)) z[LANG_IDS[LANGS.indexOf(lang)]] += v;\n  return z;\n}\n\nfunction detect(z: Float64Array): [string, number][] {\n  const langLogits = LANG_IDS.map((i) => z[i]); // 언어 토큰 점수만 골라냄 (빈칸의 답)\n  const m = Math.max(...langLogits);\n  const e = langLogits.map((v) => Math.exp(v - m));\n  const s = e.reduce((a, b) => a + b, 0);\n  return e\n    .map((v, i): [string, number] => [LANGS[i], v / s])\n    .sort((a, b) => b[1] - a[1])\n    .slice(0, 5);\n}\n\nconst cases: Record<string, Record<string, number>> = {\n  \"한국어 음성\": { ko: 6.0, ja: 2.0 },\n  \"영어 음성\": { en: 7.0, de: 2.5 },\n  \"한영 섞인 음성\": { ko: 3.2, en: 3.0 },\n};\nconst res: Record<string, [string, number][]> = {};\nfor (const [name, boost] of Object.entries(cases)) {\n  res[name] = detect(fakeLogits(boost));\n  console.log(`${name} ->`, res[name].map(([l, p]) => `${l} ${(p * 100).toFixed(0)}%`).join(\", \"));\n}\n\ncheck(res[\"한국어 음성\"][0][0] === \"ko\" && res[\"영어 음성\"][0][0] === \"en\", \"가장 높은 확률의 언어가 정답이어야 해요.\");\nconst mixed = res[\"한영 섞인 음성\"];\nconsole.log(`섞인 음성: 1등 ${(mixed[0][1] * 100).toFixed(0)}%, 2등 ${(mixed[1][1] * 100).toFixed(0)}%`);\ncheck(mixed[0][1] < 0.7 && mixed[0][1] - mixed[1][1] < 0.3, \"섞인 음성은 1등 · 2등 확률이 비슷해 언어를 고정해 주는 편이 안전해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플을 담는 실수 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "beam": {
+  "part": "Part 4 · 빔 서치",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    13,
+    14
+   ]
+  ],
+  "python": "# D7 · Part 4 · 빔 서치: greedy 가 놓치는 더 좋은 문장 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d07_beam.py   (입력은 코드 안의 장난감 언어 모델 · 인터넷·GPU·마이크 불필요)\n#   빔 폭 1(greedy)과 5(Whisper 원본 기본값)를 같은 확률표에서 비교: 매 걸음 후보 문장 num_beams 개를 들고 가며 로그 확률 합이 가장 큰 것을 고름\n# 대체 경로: Whisper 대신 '직전 두 단어를 보고 다음 단어 확률을 주는' 손으로 만든 표를 쓴다.\nimport numpy as np\n\nEOS = \"</s>\"\n# 다음 단어 확률표: 지금까지 문장의 마지막 단어 -> 다음 단어 확률\nLM = {\n    \"<s>\":   {\"회의\": 0.45, \"회\": 0.35, \"해외\": 0.20},\n    \"회의\":  {\"는\": 0.40, \"를\": 0.30, \"록\": 0.30},\n    \"회\":    {\"의록\": 0.95, \"의\": 0.05},\n    \"해외\":  {\"로\": 1.0},\n    \"는\":    {\"끝\": 0.5, \"시작\": 0.5},\n    \"를\":    {\"시작\": 1.0},\n    \"록\":    {\"을\": 1.0},\n    \"의록\":  {\"작성\": 1.0},\n    \"의\":    {\"록\": 1.0},\n    \"로\":    {\"출장\": 1.0},\n    \"끝\": {EOS: 0.2, \"남\": 0.8}, \"시작\": {EOS: 1.0}, \"을\": {EOS: 1.0}, \"작성\": {EOS: 1.0}, \"출장\": {EOS: 1.0}, \"남\": {EOS: 1.0},\n}\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef beam_search(num_beams: int, max_len: int = 4):\n    beams = [([\"<s>\"], 0.0)]                            # (단어들, 로그 확률 합)\n    for _ in range(max_len):\n        cand = []\n        for seq, lp in beams:\n            if seq[-1] == EOS:\n                cand.append((seq, lp))                  # 끝난 문장은 그대로 들고 간다\n                continue\n            for w, p in LM[seq[-1]].items():\n                cand.append((seq + [w], lp + float(np.log(p))))\n        beams = sorted(cand, key=lambda b: -b[1])[:num_beams]\n    return beams[0]\n\n\nNUM_BEAMS = 5                                           # Whisper 원본의 기본 빔 폭\nfor label, k in [(\"greedy (num_beams=1)\", 1), (f\"beam (num_beams={NUM_BEAMS})\", NUM_BEAMS)]:\n    seq, lp = beam_search(k)\n    print(f\"{label:22s} | {' '.join(w for w in seq[1:] if w != EOS):12s} | 문장 확률 {np.exp(lp):.3f}\")\n\ng, b = beam_search(1), beam_search(NUM_BEAMS)\ncheck(NUM_BEAMS == 5 and b[1] > g[1], \"빔을 넓히면 전체 확률이 더 높은 문장을 찾아요.\")\ncheck(\" \".join(b[0][1:-1]) == \"회 의록 작성\" and \" \".join(g[0][1:]) != \" \".join(b[0][1:]), \"빔 서치는 처음엔 확률이 낮아 보이던 '회 -> 의록 -> 작성' 을 찾아요.\")\n",
+  "typescript": "// D7 · Part 4 · 빔 서치: greedy 가 놓치는 더 좋은 문장 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_beam.ts\n//   빔 폭 1(greedy)과 5(Whisper 원본 기본값)를 같은 확률표에서 비교: 매 걸음 후보 문장 num_beams 개를 들고 가며 로그 확률 합이 가장 큰 것을 고름\n// 대체 경로: Whisper 대신 '직전 단어를 보고 다음 단어 확률을 주는' 손으로 만든 표를 쓴다.\nconst EOS = \"</s>\";\nconst LM: Record<string, Record<string, number>> = {\n  \"<s>\": { 회의: 0.45, 회: 0.35, 해외: 0.2 },\n  회의: { 는: 0.4, 를: 0.3, 록: 0.3 },\n  회: { 의록: 0.95, 의: 0.05 },\n  해외: { 로: 1.0 },\n  는: { 끝: 0.5, 시작: 0.5 },\n  를: { 시작: 1.0 },\n  록: { 을: 1.0 },\n  의록: { 작성: 1.0 },\n  의: { 록: 1.0 },\n  로: { 출장: 1.0 },\n  끝: { [EOS]: 0.2, 남: 0.8 },\n  시작: { [EOS]: 1.0 },\n  을: { [EOS]: 1.0 },\n  작성: { [EOS]: 1.0 },\n  출장: { [EOS]: 1.0 },\n  남: { [EOS]: 1.0 },\n};\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction beamSearch(numBeams: number, maxLen: number = 4): [string[], number] {\n  let beams: [string[], number][] = [[[\"<s>\"], 0]]; // (단어들, 로그 확률 합)\n  for (let step = 0; step < maxLen; step++) {\n    const cand: [string[], number][] = [];\n    for (const [seq, lp] of beams) {\n      const last = seq[seq.length - 1];\n      if (last === EOS) {\n        cand.push([seq, lp]); // 끝난 문장은 그대로 들고 간다\n        continue;\n      }\n      for (const [w, p] of Object.entries(LM[last])) cand.push([[...seq, w], lp + Math.log(p)]);\n    }\n    beams = cand.sort((a, b) => b[1] - a[1]).slice(0, numBeams);\n  }\n  return beams[0];\n}\n\nconst NUM_BEAMS = 5; // Whisper 원본의 기본 빔 폭\nfor (const [label, k] of [[\"greedy (num_beams=1)\", 1], [`beam (num_beams=${NUM_BEAMS})`, NUM_BEAMS]] as [string, number][]) {\n  const [seq, lp] = beamSearch(k);\n  console.log(`${label.padEnd(22)} | ${seq.slice(1).filter((w) => w !== EOS).join(\" \").padEnd(12)} | 문장 확률 ${Math.exp(lp).toFixed(3)}`);\n}\n\nconst g = beamSearch(1);\nconst b = beamSearch(NUM_BEAMS);\ncheck(NUM_BEAMS === 5 && b[1] > g[1], \"빔을 넓히면 전체 확률이 더 높은 문장을 찾아요.\");\ncheck(b[0].slice(1, -1).join(\" \") === \"회 의록 작성\" && g[0].join(\" \") !== b[0].join(\" \"), \"빔 서치는 처음엔 확률이 낮아 보이던 '회 -> 의록 -> 작성' 을 찾아요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "temp": {
+  "part": "Part 4 · temperature 와 fallback",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    15,
+    15
+   ]
+  ],
+  "python": "# D7 · Part 4 · temperature 와 fallback — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d07_temp.py   (입력은 코드 안에서 만든 점수 · 인터넷·GPU·마이크 불필요)\n#   softmax(z / T) 로 temperature 가 분포를 뾰족·납작하게 바꾸는 것을 엔트로피로 확인하고, 압축률·평균 로그 확률이 나쁘면 T 를 올려 다시 시도하는 fallback 루프\n# 대체 경로: Whisper 대신 '낮은 T 에서는 같은 말을 반복하고, 높은 T 에서는 정상 문장이 나오는' 장난감 디코더를 쓴다.\nimport zlib\n\nimport numpy as np\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef softmax_t(z: np.ndarray, T: float) -> np.ndarray:\n    z = z / T\n    e = np.exp(z - z.max())\n    return e / e.sum()\n\n\nz = np.array([4.0, 3.0, 1.0, 0.5, 0.0])                   # 다음 단어 후보 5개의 점수\nent = lambda p: float(-(p * np.log(p)).sum())\nprint(\"T 가 클수록 분포가 납작 (엔트로피 증가):\")\nents = []\nfor T in (0.2, 0.6, 1.0, 1.2):\n    p = softmax_t(z, T)\n    ents.append(ent(p))\n    print(f\"  T={T}: 확률 {np.round(p, 3)} | 엔트로피 {ents[-1]:.3f}\")\ncheck(ents == sorted(ents) and softmax_t(z, 0.2).argmax() == 0, \"T 가 커질수록 엔트로피가 커지고, 아주 작은 T 는 1등만 거의 100% 예요.\")\n\n# fallback: 압축률 > 2.4 이거나 평균 로그 확률 < -1.0 이면 temperature 를 올려 다시\nTEMPS = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)\nCOMP_MAX, LOGP_MIN = 2.4, -1.0\nOUTS = {0.0: (\"네. \" * 30, -0.3), 0.2: (\"네. \" * 25, -0.4), 0.4: (\"그래서 회의를 시작하겠 습니다 오늘 그\", -1.4),\n        0.6: (\"오늘 회의는 음성 비서 프로젝트 진행 상황을 점검하겠습니다.\", -0.7)}\n\n\ndef decode(T):                                            # 장난감 디코더: T 마다 (문장, 평균 로그 확률)\n    return OUTS.get(T, (\"(생략)\", -2.0))\n\n\ntried = []\nfor T in TEMPS:\n    text, avg_lp = decode(T)\n    ratio = len(text.encode()) / len(zlib.compress(text.encode()))\n    ok = ratio <= COMP_MAX and avg_lp >= LOGP_MIN\n    tried.append((T, ratio, avg_lp, ok))\n    print(f\"T={T}: 압축률 {ratio:5.2f} | 평균 logp {avg_lp:5.2f} | {'통과' if ok else '다시'} | {text[:24]}\")\n    if ok:\n        break\ncheck(tried[-1][3] and tried[-1][0] == 0.6 and not any(t[3] for t in tried[:-1]), \"압축률이 높거나 평균 logp 가 낮으면 T 를 올려 다시, 정상 문장이 나오면 멈춰요.\")\n",
+  "typescript": "// D7 · Part 4 · temperature 와 fallback — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_temp.ts\n//   softmax(z / T) 로 temperature 가 분포를 뾰족·납작하게 바꾸는 것을 엔트로피로 확인하고, 압축률·평균 로그 확률이 나쁘면 T 를 올려 다시 시도하는 fallback 루프\n// 대체 경로: Whisper 대신 '낮은 T 에서는 같은 말을 반복하고, 높은 T 에서는 정상 문장이 나오는' 장난감 디코더를 쓴다.\nimport { deflateSync } from \"node:zlib\";\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction softmaxT(z: number[], T: number): number[] {\n  const s = z.map((v) => v / T);\n  const m = Math.max(...s);\n  const e = s.map((v) => Math.exp(v - m));\n  const sum = e.reduce((a, b) => a + b, 0);\n  return e.map((v) => v / sum);\n}\n\nconst z = [4.0, 3.0, 1.0, 0.5, 0.0]; // 다음 단어 후보 5개의 점수\nconst entropy = (p: number[]): number => -p.reduce((s, v) => s + (v > 0 ? v * Math.log(v) : 0), 0);\nconsole.log(\"T 가 클수록 분포가 납작 (엔트로피 증가):\");\nconst ents: number[] = [];\nfor (const T of [0.2, 0.6, 1.0, 1.2]) {\n  const p = softmaxT(z, T);\n  ents.push(entropy(p));\n  console.log(`  T=${T}: 확률 [${p.map((v) => v.toFixed(3)).join(\", \")}] | 엔트로피 ${ents[ents.length - 1].toFixed(3)}`);\n}\ncheck(ents.every((e, i) => i === 0 || e > ents[i - 1]) && softmaxT(z, 0.2)[0] > 0.7, \"T 가 커질수록 엔트로피가 커지고, 아주 작은 T 는 1등이 거의 독차지해요.\");\n\n// fallback: 압축률 > 2.4 이거나 평균 로그 확률 < -1.0 이면 temperature 를 올려 다시\nconst TEMPS = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];\nconst COMP_MAX = 2.4;\nconst LOGP_MIN = -1.0;\nconst OUTS: Record<number, [string, number]> = {\n  0.0: [\"네. \".repeat(30), -0.3],\n  0.2: [\"네. \".repeat(25), -0.4],\n  0.4: [\"그래서 회의를 시작하겠 습니다 오늘 그\", -1.4],\n  0.6: [\"오늘 회의는 음성 비서 프로젝트 진행 상황을 점검하겠습니다.\", -0.7],\n};\nconst decode = (T: number): [string, number] => OUTS[T] ?? [\"(생략)\", -2.0]; // 장난감 디코더: T 마다 (문장, 평균 로그 확률)\n\nconst tried: [number, number, number, boolean][] = [];\nfor (const T of TEMPS) {\n  const [text, avgLp] = decode(T);\n  const b = Buffer.from(text, \"utf-8\");\n  const ratio = b.length / deflateSync(b).length;\n  const ok = ratio <= COMP_MAX && avgLp >= LOGP_MIN;\n  tried.push([T, ratio, avgLp, ok]);\n  console.log(`T=${T}: 압축률 ${ratio.toFixed(2).padStart(5)} | 평균 logp ${avgLp.toFixed(2).padStart(5)} | ${ok ? \"통과\" : \"다시\"} | ${text.slice(0, 24)}`);\n  if (ok) break;\n}\nconst last = tried[tried.length - 1];\ncheck(last[3] && last[0] === 0.6 && !tried.slice(0, -1).some((t) => t[3]), \"압축률이 높거나 평균 logp 가 낮으면 T 를 올려 다시, 정상 문장이 나오면 멈춰요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:zlib",
+     "version": "내장",
+     "purpose": "문장 압축률(zlib) 계산: 같은 말 반복 감지",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/zlib.html",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "stamp": {
+  "part": "Part 4 · 타임스탬프 토큰과 프롬프트",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    16,
+    17
+   ]
+  ],
+  "python": "# D7 · Part 4 · 타임스탬프 토큰과 프롬프트 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d07_stamp.py   (입력은 코드 안의 토큰 열 · 인터넷·GPU·마이크 불필요)\n#   Whisper 는 시각도 토큰(<|0.00|> ~ <|30.00|>, 0.02초 간격)으로 낸다: 시각 ↔ 토큰 번호 변환, 토큰 열을 [시작→끝] 구간으로 풀기, 프롬프트(용어 쪽지) 앞붙이기\n# 대체 경로: Whisper 가 낸 토큰 열 대신, 같은 형식으로 손수 만든 토큰 열(글자는 단어로 대신)을 푼다.\nTS_BEGIN = 50364                       # <|0.00|> 의 번호 (다국어 Whisper)\nSTEP = 0.02                            # 시각 토큰 하나 = 0.02초 (Encoder 칸 하나)\nSOT_PREV = 50361                       # <|startofprev|>: 이 뒤에 오는 글은 '앞 문맥(프롬프트)'\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef sec_to_token(t: float) -> int:\n    return TS_BEGIN + round(t / STEP)\n\n\ndef token_to_sec(i: int) -> float:\n    return round((i - TS_BEGIN) * STEP, 2)\n\n\nprint(\"0.00초 ->\", sec_to_token(0.0), \"| 3.20초 ->\", sec_to_token(3.2), \"| 30.00초 ->\", sec_to_token(30.0))\ncheck(sec_to_token(0.0) == 50364 and sec_to_token(30.0) == 51864 and token_to_sec(sec_to_token(3.2)) == 3.2, \"<|30.00|> 은 50364 + 1500 = 51864 번이에요.\")\n\n# 토큰 열: 시각 토큰이 '시작 글 ... 글 끝' 으로 감싼다 (글자 토큰은 문자열로 대신)\nseq = [sec_to_token(0.0), \"안녕하세요.\", sec_to_token(2.4), sec_to_token(2.4), \"오늘은 위스퍼를\", \"알아봅니다.\", sec_to_token(7.0)]\nsegs, cur, st = [], [], None\nfor tok in seq:\n    if isinstance(tok, int):\n        t = token_to_sec(tok)\n        if cur:\n            segs.append((st, t, \" \".join(cur)))         # 글이 쌓여 있으면 이 시각이 '끝'\n            cur = []\n        st = t                                          # 이 시각이 다음 구간의 '시작' 이 될 수 있다\n    else:\n        cur.append(tok)\nfor a, b, s in segs:\n    print(f\"[{a:5.2f} -> {b:5.2f}] {s}\")\ncheck(segs == [(0.0, 2.4, \"안녕하세요.\"), (2.4, 7.0, \"오늘은 위스퍼를 알아봅니다.\")], \"글이 나온 뒤 처음 만나는 시각 토큰이 구간의 끝이에요.\")\n\n# 프롬프트: <|startofprev|> + 용어 쪽지를 앞에 붙이면 디코더가 그 철자를 먼저 본다\nPROMPT = \"아이구루 교육센터, 라이브킷, 파이프캣\"\ndecoder_input = [SOT_PREV, PROMPT, 50258, 50264, 50359]      # 앞 문맥 -> 시작 -> 언어 -> 작업\nprint(\"프롬프트가 붙은 디코더 입력:\", decoder_input)\ncheck(decoder_input[0] == SOT_PREV and decoder_input[1] == PROMPT and decoder_input[2] == 50258, \"프롬프트는 <|startoftranscript|> 보다 앞에 와요.\")\n",
+  "typescript": "// D7 · Part 4 · 타임스탬프 토큰과 프롬프트 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_stamp.ts\n//   Whisper 는 시각도 토큰(<|0.00|> ~ <|30.00|>, 0.02초 간격)으로 낸다: 시각 ↔ 토큰 번호 변환, 토큰 열을 [시작→끝] 구간으로 풀기, 프롬프트(용어 쪽지) 앞붙이기\n// 대체 경로: Whisper 가 낸 토큰 열 대신, 같은 형식으로 손수 만든 토큰 열(글자는 단어로 대신)을 푼다.\nconst TS_BEGIN = 50364; // <|0.00|> 의 번호 (다국어 Whisper)\nconst STEP = 0.02; // 시각 토큰 하나 = 0.02초 (Encoder 칸 하나)\nconst SOT_PREV = 50361; // <|startofprev|>: 이 뒤에 오는 글은 '앞 문맥(프롬프트)'\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst secToToken = (t: number): number => TS_BEGIN + Math.round(t / STEP);\nconst tokenToSec = (i: number): number => Math.round((i - TS_BEGIN) * STEP * 100) / 100;\n\nconsole.log(\"0.00초 ->\", secToToken(0), \"| 3.20초 ->\", secToToken(3.2), \"| 30.00초 ->\", secToToken(30));\ncheck(secToToken(0) === 50364 && secToToken(30) === 51864 && tokenToSec(secToToken(3.2)) === 3.2, \"<|30.00|> 은 50364 + 1500 = 51864 번이에요.\");\n\n// 토큰 열: 시각 토큰이 '시작 글 ... 글 끝' 으로 감싼다 (글자 토큰은 문자열로 대신)\nconst seq: (number | string)[] = [secToToken(0), \"안녕하세요.\", secToToken(2.4), secToToken(2.4), \"오늘은 위스퍼를\", \"알아봅니다.\", secToToken(7.0)];\nconst segs: [number, number, string][] = [];\nlet cur: string[] = [];\nlet st = 0;\nfor (const tok of seq) {\n  if (typeof tok === \"number\") {\n    const t = tokenToSec(tok);\n    if (cur.length > 0) {\n      segs.push([st, t, cur.join(\" \")]); // 글이 쌓여 있으면 이 시각이 '끝'\n      cur = [];\n    }\n    st = t; // 이 시각이 다음 구간의 '시작' 이 될 수 있다\n  } else {\n    cur.push(tok);\n  }\n}\nfor (const [a, b, s] of segs) console.log(`[${a.toFixed(2)} -> ${b.toFixed(2)}] ${s}`);\ncheck(JSON.stringify(segs) === JSON.stringify([[0, 2.4, \"안녕하세요.\"], [2.4, 7, \"오늘은 위스퍼를 알아봅니다.\"]]), \"글이 나온 뒤 처음 만나는 시각 토큰이 구간의 끝이에요.\");\n\n// 프롬프트: <|startofprev|> + 용어 쪽지를 앞에 붙이면 디코더가 그 철자를 먼저 본다\nconst PROMPT = \"아이구루 교육센터, 라이브킷, 파이프캣\";\nconst decoderInput: (number | string)[] = [SOT_PREV, PROMPT, 50258, 50264, 50359]; // 앞 문맥 -> 시작 -> 언어 -> 작업\nconsole.log(\"프롬프트가 붙은 디코더 입력:\", decoderInput.join(\" | \"));\ncheck(decoderInput[0] === SOT_PREV && decoderInput[1] === PROMPT && decoderInput[2] === 50258, \"프롬프트는 <|startoftranscript|> 보다 앞에 와요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "halluc": {
+  "part": "Part 5 · 환각 대응: 무음 · 압축률 · VAD",
+  "nb": "D7_Whisper심층분석_실습.ipynb",
+  "ord": [
+   [
+    18,
+    22
+   ]
+  ],
+  "python": "# D7 · Part 5 · 환각(hallucination) 대응: 무음 감지 · 압축률 · 에너지 VAD — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d07_halluc.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   말 없는 소리(거의 무음 · 웅웅거림)와 말 소리를 합성해 에너지로 걸러내고, zlib 압축률로 같은 말 반복을 잡는 환각 체크리스트\n# 대체 경로: Whisper 의 no_speech 확률과 silero-vad 대신, 프레임 에너지(dB)로 말 구간을 찾는 간단한 VAD 를 쓴다.\nimport zlib\n\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef compression_ratio(text: str) -> float:\n    b = text.encode(\"utf-8\")\n    return len(b) / len(zlib.compress(b))\n\n\ndef speech_ratio(y: np.ndarray, top_db: float = 35.0, frame: int = 400) -> float:\n    \"\"\"말이 있는 프레임의 비율: 가장 큰 프레임 에너지보다 top_db 이상 작으면 무음.\"\"\"\n    n = len(y) // frame\n    rms = np.sqrt((y[: n * frame].reshape(n, frame) ** 2).mean(1)) + 1e-12\n    db = 20 * np.log10(rms / rms.max())\n    return float((db > -top_db).mean())\n\n\nrng = np.random.default_rng(1)\nt10 = np.arange(10 * SR) / SR\nquiet = (0.002 * rng.standard_normal(10 * SR)).astype(np.float32)                                     # 거의 무음\nhum = (0.05 * np.sin(2 * np.pi * 110 * t10) + 0.02 * rng.standard_normal(10 * SR)).astype(np.float32)  # 웅웅거림\nenv = (np.sin(2 * np.pi * 3 * t10) > 0.2).astype(np.float32)                                          # 말처럼 켜졌다 꺼짐\ntalk = (0.3 * np.sin(2 * np.pi * 180 * t10) * env + 0.001 * rng.standard_normal(10 * SR)).astype(np.float32)\n\n# 말 + 중간에 긴 무음: 무음 구간은 Whisper 에 넣지 않는다\nloud = lambda y: float(np.sqrt((y ** 2).mean()))\nprint(f\"RMS 크기: 거의 무음 {loud(quiet):.4f} | 웅웅 {loud(hum):.4f} | 말 {loud(talk):.4f}\")\nr_talk, r_quiet = speech_ratio(talk), speech_ratio(np.concatenate([talk, quiet]))\nprint(f\"말 비율: 말 {r_talk:.0%} | 말 + 무음 이어붙임 {r_quiet:.0%}\")\ncheck(loud(quiet) < 0.01 < loud(talk) and r_quiet < r_talk, \"거의 무음은 소리가 작고, 무음을 붙이면 말 비율이 줄어요.\")\n\nsamples = {\"보통 문장\": \"안녕하세요. 오늘은 음성 인식 모델 위스퍼를 자세히 알아보겠습니다.\",\n           \"조금 반복\": \"네 맞습니다. 네 맞습니다. 그렇게 진행하면 됩니다. 네 맞습니다.\",\n           \"반복 고리\": \"네. \" * 40, \"영어 반복\": \"Thank you. \" * 30}\nfor name, s in samples.items():\n    r = compression_ratio(s)\n    print(f\"{name:6s} | 압축률 {r:5.2f} {'-> 2.4 초과: 반복 의심' if r > 2.4 else ''}\")\ncheck(compression_ratio(samples[\"보통 문장\"]) < 2.4 < min(compression_ratio(samples[\"반복 고리\"]), compression_ratio(samples[\"영어 반복\"])),\n      \"정상 문장은 2.4 이하, 반복 고리는 2.4 를 넘어요.\")\n\n# 체크리스트: 말이 거의 없으면 건너뛰고, 있어도 압축률이 높으면 버린다\ndef accept(y: np.ndarray, text: str) -> bool:\n    return speech_ratio(y) > 0.2 and compression_ratio(text) <= 2.4\n\n\nprint(\"말 + 정상 문장:\", accept(talk, samples[\"보통 문장\"]), \"| 말 + 반복 고리:\", accept(talk, samples[\"반복 고리\"]))\ncheck(accept(talk, samples[\"보통 문장\"]) and not accept(talk, samples[\"반복 고리\"]), \"환각 의심(반복)은 버려요.\")\n",
+  "typescript": "// D7 · Part 5 · 환각(hallucination) 대응: 무음 감지 · 압축률 · 에너지 VAD — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d07_halluc.ts\n//   말 없는 소리(거의 무음 · 웅웅거림)와 말 소리를 합성해 에너지로 걸러내고, zlib 압축률로 같은 말 반복을 잡는 환각 체크리스트\n// 대체 경로: Whisper 의 no_speech 확률과 silero-vad 대신, 프레임 에너지(dB)로 말 구간을 찾는 간단한 VAD 를 쓴다.\nimport { deflateSync } from \"node:zlib\";\n\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst compressionRatio = (text: string): number => {\n  const b = Buffer.from(text, \"utf-8\");\n  return b.length / deflateSync(b).length;\n};\n\nfunction speechRatio(y: Float32Array, topDb: number = 35, frame: number = 400): number {\n  // 말이 있는 프레임의 비율: 가장 큰 프레임 에너지보다 topDb 이상 작으면 무음\n  const n = Math.floor(y.length / frame);\n  const rms: number[] = [];\n  for (let i = 0; i < n; i++) {\n    let s = 0;\n    for (let j = 0; j < frame; j++) s += y[i * frame + j] ** 2;\n    rms.push(Math.sqrt(s / frame) + 1e-12);\n  }\n  const mx = Math.max(...rms);\n  return rms.filter((r) => 20 * Math.log10(r / mx) > -topDb).length / n;\n}\n\nlet seed = 1;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst randn = (): number => Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\nconst N = 10 * SR;\nconst quiet = Float32Array.from({ length: N }, () => 0.002 * randn()); // 거의 무음\nconst talk = Float32Array.from({ length: N }, (_, i) => {\n  const t = i / SR;\n  const env = Math.sin(2 * Math.PI * 3 * t) > 0.2 ? 1 : 0; // 말처럼 켜졌다 꺼짐\n  return 0.3 * Math.sin(2 * Math.PI * 180 * t) * env + 0.001 * randn();\n});\nconst concat = (a: Float32Array, b: Float32Array): Float32Array => {\n  const out = new Float32Array(a.length + b.length);\n  out.set(a);\n  out.set(b, a.length);\n  return out;\n};\nconst rms = (y: Float32Array): number => Math.sqrt(y.reduce((s, v) => s + v * v, 0) / y.length);\n\nconsole.log(`RMS 크기: 거의 무음 ${rms(quiet).toFixed(4)} | 말 ${rms(talk).toFixed(4)}`);\nconst rTalk = speechRatio(talk);\nconst rMix = speechRatio(concat(talk, quiet));\nconsole.log(`말 비율: 말 ${(rTalk * 100).toFixed(0)}% | 말 + 무음 이어붙임 ${(rMix * 100).toFixed(0)}%`);\ncheck(rms(quiet) < 0.01 && 0.01 < rms(talk) && rMix < rTalk, \"거의 무음은 소리가 작고, 무음을 붙이면 말 비율이 줄어요.\");\n\nconst samples: Record<string, string> = {\n  \"보통 문장\": \"안녕하세요. 오늘은 음성 인식 모델 위스퍼를 자세히 알아보겠습니다.\",\n  \"조금 반복\": \"네 맞습니다. 네 맞습니다. 그렇게 진행하면 됩니다. 네 맞습니다.\",\n  \"반복 고리\": \"네. \".repeat(40),\n  \"영어 반복\": \"Thank you. \".repeat(30),\n};\nfor (const [name, s] of Object.entries(samples)) {\n  const r = compressionRatio(s);\n  console.log(`${name} | 압축률 ${r.toFixed(2)} ${r > 2.4 ? \"-> 2.4 초과: 반복 의심\" : \"\"}`);\n}\ncheck(compressionRatio(samples[\"보통 문장\"]) < 2.4 && 2.4 < Math.min(compressionRatio(samples[\"반복 고리\"]), compressionRatio(samples[\"영어 반복\"])), \"정상 문장은 2.4 이하, 반복 고리는 2.4 를 넘어요.\");\n\n// 체크리스트: 말이 거의 없으면 건너뛰고, 있어도 압축률이 높으면 버린다\nconst accept = (y: Float32Array, text: string): boolean => speechRatio(y) > 0.2 && compressionRatio(text) <= 2.4;\nconsole.log(\"말 + 정상 문장:\", accept(talk, samples[\"보통 문장\"]), \"| 말 + 반복 고리:\", accept(talk, samples[\"반복 고리\"]));\ncheck(accept(talk, samples[\"보통 문장\"]) && !accept(talk, samples[\"반복 고리\"]), \"환각 의심(반복)은 버려요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "node:zlib",
+     "version": "내장",
+     "purpose": "문장 압축률(zlib) 계산: 같은 말 반복 감지",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://nodejs.org/api/zlib.html",
+     "license": "MIT (Node.js)"
+    },
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플을 담는 실수 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ }
+}

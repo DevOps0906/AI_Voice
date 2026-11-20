@@ -1,0 +1,18 @@
+{
+ "notebook": "day07/D7_*_실습.ipynb",
+ "map": {
+  "flow": ["Part 0~6 · 오늘의 흐름 전체", [3, 4, 5, 10, 16, 18, 22, 24, 29, 34, 40, 43, 45, 48, 53, 56, 60, 63, 65]],
+  "arch": ["Part 1 · Whisper 의 구조: 30초 창 · Encoder 3000칸 → 1500칸", [10, 13]],
+  "tokens": ["Part 1 · 특수 토큰: 디코더에게 주는 주문서", [16, 18]],
+  "sizes": ["Part 2 · 모델 크기: 빠르게 vs 정확하게", [22, 24]],
+  "langid": ["Part 3 · 언어 감지", [29]],
+  "beam": ["Part 4 · 빔 서치", [38, 40]],
+  "temp": ["Part 4 · temperature 와 fallback", [43]],
+  "stamp": ["Part 4 · 타임스탬프 토큰과 프롬프트", [45, 48]],
+  "halluc": ["Part 5 · 환각 대응: 무음 · 압축률 · VAD", [53, 56, 60, 63, 65]]
+ },
+ "ts_libs": [
+  ["from \"node:zlib\"", "node:zlib", "문장 압축률(zlib) 계산: 같은 말 반복 감지", "https://nodejs.org/api/zlib.html"],
+  ["\\bnew Float(?:32|64)Array\\(|\\bFloat(?:32|64)Array\\.from\\(", "Float32Array · Float64Array", "소리 샘플을 담는 실수 배열", "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"]
+ ]
+}

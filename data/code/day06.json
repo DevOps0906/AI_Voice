@@ -1,0 +1,260 @@
+{
+ "flow": {
+  "part": "Part 0~6 · 오늘의 흐름 전체",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    3,
+    24
+   ]
+  ],
+  "python": "# D6 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d06_flow.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   소리 → 프레임 → (CTC 접기 · Attention 한 글자씩 · Transducer 격자) 까지 세 방식의 핵심을 한 파일에서 맛보기\n# 대체 경로: 실제 Wav2Vec2·Whisper 모델은 내려받지 않고, 합성 신호와 손으로 만든 확률표(장난감)로 같은 계산을 한다.\nimport math\nfrom itertools import groupby\n\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n# 1) 소리 → 프레임: 3초 합성 신호, 20 ms(320샘플)마다 프레임 1개\nt = np.arange(3 * SR) / SR\ny = (0.3 * np.sin(2 * np.pi * 220 * t)).astype(np.float32)\nT = (len(y) - 400) // 320 + 1\nU = len(\"speech recognition turns sound into text\")\nprint(f\"샘플 {len(y):,}개 -> 프레임 T={T}개, 글자 U={U}개 -> 글자 하나에 평균 {T / U:.1f}프레임\")\ncheck(T > U, \"프레임 수 T가 글자 수 U보다 훨씬 많아야 해요(정렬 문제).\")\n\n# 2) CTC: 프레임마다 가장 큰 칸 -> 접기(연속 반복 합치기 -> blank 지우기)\nBLANK = \"-\"\ncollapse = lambda p: \"\".join(k for k, _ in groupby(p) if k != BLANK)\nprint(\"접기:\", \"hhe-ll-lloo\", \"->\", collapse(\"hhe-ll-lloo\"))\ncheck(collapse(\"hhe-ll-lloo\") == \"hello\" and collapse(\"hhel-lo---o\") == \"helloo\", \"blank가 사이에 있으면 같은 글자도 두 번 나와요.\")\n\n# 3) Attention: 글자 하나 쓸 때마다 모든 프레임을 훑어 가중합\nrng = np.random.default_rng(0)\nd = 64\nQ, K, V = rng.normal(size=(5, d)), rng.normal(size=(40, d)), rng.normal(size=(40, d))\ns = Q @ K.T / math.sqrt(d)\nw = np.exp(s - s.max(1, keepdims=True))\nw /= w.sum(1, keepdims=True)\nprint(\"가중치 모양:\", w.shape, \"| 행 합:\", w.sum(1).round(3))\ncheck(np.allclose(w.sum(1), 1) and (w @ V).shape == (5, d), \"attention 가중치의 한 행은 합이 1이에요.\")\n\n# 4) Transducer: 격자 경로 수 C(T+U-1, U) 가 CTC 의 C(T+U, 2U) 보다 훨씬 적다\nfor t_, u_ in [(50, 10), (150, 40)]:\n    print(f\"T={t_}, U={u_}: CTC ~ 10^{math.log10(math.comb(t_ + u_, 2 * u_)):.0f}, Transducer ~ 10^{math.log10(math.comb(t_ + u_ - 1, u_)):.0f}\")\ncheck(math.comb(8, 6) == 28 and math.comb(7, 3) == 35, \"공식 C(8,6)=28 (T=5, 'cat').\")\n",
+  "typescript": "// D6 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_flow.ts\n//   소리 → 프레임 → (CTC 접기 · Attention 한 글자씩 · Transducer 격자) 까지 세 방식의 핵심을 한 파일에서 맛보기\n// 대체 경로: 실제 Wav2Vec2·Whisper 모델은 쓰지 않고, 합성 신호와 손으로 만든 확률표(장난감)로 같은 계산을 한다.\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 조합 수 C(n, k): 로그로 계산해 큰 수도 다룬다\nfunction log10Comb(n: number, k: number): number {\n  let s = 0;\n  for (let i = 1; i <= k; i++) s += Math.log10(n - k + i) - Math.log10(i);\n  return s;\n}\n\n// 1) 소리 → 프레임: 3초 합성 신호, 20 ms(320샘플)마다 프레임 1개\nconst y = new Float32Array(3 * SR).map((_, i) => 0.3 * Math.sin((2 * Math.PI * 220 * i) / SR));\nconst T = Math.floor((y.length - 400) / 320) + 1;\nconst U = \"speech recognition turns sound into text\".length;\nconsole.log(`샘플 ${y.length}개 -> 프레임 T=${T}개, 글자 U=${U}개 -> 글자 하나에 평균 ${(T / U).toFixed(1)}프레임`);\ncheck(T > U, \"프레임 수 T가 글자 수 U보다 훨씬 많아야 해요(정렬 문제).\");\n\n// 2) CTC: 연속 반복 합치기 -> blank 지우기\nconst collapse = (p: string): string => [...p].filter((c, i, a) => (i === 0 || c !== a[i - 1]) && c !== \"-\").join(\"\");\nconsole.log(\"접기: hhe-ll-lloo ->\", collapse(\"hhe-ll-lloo\"));\ncheck(collapse(\"hhe-ll-lloo\") === \"hello\" && collapse(\"hhel-lo---o\") === \"helloo\", \"blank가 사이에 있으면 같은 글자도 두 번 나와요.\");\n\n// 3) Attention: 한 글자(query)가 모든 프레임을 훑어 가중치 합 1 을 만든다 (결정적 의사 난수)\nlet seed = 12345;\nconst rnd = (): number => {\n  seed = (seed * 1103515245 + 12345) % 2147483648;\n  return seed / 2147483648 - 0.5;\n};\nconst d = 64;\nconst q = Array.from({ length: d }, rnd);\nconst keys = Array.from({ length: 40 }, () => Array.from({ length: d }, rnd));\nconst scores = keys.map((k) => k.reduce((a, v, i) => a + v * q[i], 0) / Math.sqrt(d));\nconst m = Math.max(...scores);\nconst e = scores.map((s) => Math.exp(s - m));\nconst w = e.map((v) => v / e.reduce((a, b) => a + b, 0));\nconsole.log(\"가중치 개수:\", w.length, \"| 합:\", w.reduce((a, b) => a + b, 0).toFixed(3));\ncheck(Math.abs(w.reduce((a, b) => a + b, 0) - 1) < 1e-12 && w.length === 40, \"attention 가중치의 합은 1이에요.\");\n\n// 4) Transducer: 격자 경로 수 C(T+U-1, U) 가 CTC 의 C(T+U, 2U) 보다 훨씬 적다\nfor (const [t, u] of [[50, 10], [150, 40]]) {\n  console.log(`T=${t}, U=${u}: CTC ~ 10^${log10Comb(t + u, 2 * u).toFixed(0)}, Transducer ~ 10^${log10Comb(t + u - 1, u).toFixed(0)}`);\n}\ncheck(Math.round(10 ** log10Comb(8, 6)) === 28 && Math.round(10 ** log10Comb(7, 3)) === 35, \"공식 C(8,6)=28 (T=5, 'cat').\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 실수 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "align": {
+  "part": "Part 1 · 음성 인식은 무엇이 어려운가: 정렬 문제",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    3,
+    4
+   ]
+  ],
+  "python": "# D6 · Part 1 · 음성 인식은 무엇이 어려운가: 정렬 문제 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d06_align.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   프레임 수 T 와 글자 수 U 가 달라 '어느 프레임이 어느 글자인가' 라벨이 없다는 것 · 가능한 정렬 경로 수를 직접 세어 확인\n# 대체 경로: gTTS 로 만든 음성 대신 2.5초 합성 신호(음절처럼 커졌다 작아지는 소리)를 쓴다.\nimport itertools\nimport math\n\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\nHOP = 160                                    # 10 ms 마다 프레임 1개 (Log-Mel)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nTEXT = \"speech recognition turns sound into text\"\nt = np.arange(int(2.5 * SR)) / SR\ny = 0.3 * np.sin(2 * np.pi * 200 * t) * (1 + np.sin(2 * np.pi * 3 * t)) / 2\nT = len(y) // HOP + 1\nU = len(TEXT)\nprint(f\"문장 {TEXT!r}: 글자 U={U}, 프레임 T={T} -> 글자 하나에 평균 {T / U:.1f}프레임\")\ncheck(T > U, \"프레임이 글자보다 많아야 해요.\")\n\n\n# 작은 크기에서 가능한 정렬을 전부 나열: 프레임 T=5, 정답 'cat', 칸 = blank + 3글자\ndef fold(path):\n    merged = [k for k, _ in itertools.groupby(path)]\n    return \"\".join(k for k in merged if k != \"-\")\n\n\npaths = [\"\".join(p) for p in itertools.product(\"-cat\", repeat=5) if fold(p) == \"cat\"]\nprint(f\"T=5 에서 'cat' 으로 접히는 경로 {len(paths)}개, 예:\", paths[:5])\ncheck(len(paths) == math.comb(8, 6) == 28, \"접히는 경로 수는 C(T+U, 2U) = C(8, 6) = 28 이에요.\")\n\n# 실제 크기에서는 하나씩 더하는 것이 불가능\nreal = math.log10(math.comb(150 + 40, 80))\nprint(f\"실제 T=150, U=40 -> 정답으로 접히는 경로 약 10^{real:.0f}개\")\ncheck(real > 40, \"경로 수가 천문학적이라 동적 계획법(α)이 필요해요.\")\n",
+  "typescript": "// D6 · Part 1 · 음성 인식은 무엇이 어려운가: 정렬 문제 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_align.ts\n//   프레임 수 T 와 글자 수 U 가 달라 '어느 프레임이 어느 글자인가' 라벨이 없다는 것 · 가능한 정렬 경로 수를 직접 세어 확인\n// 대체 경로: 음성 파일 대신 2.5초 합성 신호(음절처럼 커졌다 작아지는 소리)를 쓴다.\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\nconst HOP = 160; // 10 ms 마다 프레임 1개\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst TEXT = \"speech recognition turns sound into text\";\nconst y = new Float32Array(Math.floor(2.5 * SR)).map((_, i) => {\n  const t = i / SR;\n  return (0.3 * Math.sin(2 * Math.PI * 200 * t) * (1 + Math.sin(2 * Math.PI * 3 * t))) / 2;\n});\nconst T = Math.floor(y.length / HOP) + 1;\nconst U = TEXT.length;\nconsole.log(`문장 \"${TEXT}\": 글자 U=${U}, 프레임 T=${T} -> 글자 하나에 평균 ${(T / U).toFixed(1)}프레임`);\ncheck(T > U, \"프레임이 글자보다 많아야 해요.\");\n\n// 작은 크기에서 가능한 정렬을 전부 나열: 프레임 T=5, 정답 'cat', 칸 = blank + 3글자\nconst fold = (p: string): string => [...p].filter((c, i, a) => (i === 0 || c !== a[i - 1]) && c !== \"-\").join(\"\");\nconst vocab = \"-cat\";\nconst paths: string[] = [];\nconst total = vocab.length ** 5;\nfor (let n = 0; n < total; n++) {\n  let p = \"\";\n  let r = n;\n  for (let k = 0; k < 5; k++) {\n    p += vocab[r % vocab.length];\n    r = Math.floor(r / vocab.length);\n  }\n  if (fold(p) === \"cat\") paths.push(p);\n}\nconsole.log(`T=5 에서 'cat' 으로 접히는 경로 ${paths.length}개, 예: ${paths.slice(0, 5).join(\" \")}`);\ncheck(paths.length === 28, \"접히는 경로 수는 C(T+U, 2U) = C(8, 6) = 28 이에요.\");\n\n// 실제 크기에서는 하나씩 더하는 것이 불가능\nlet real = 0;\nfor (let i = 1; i <= 80; i++) real += Math.log10(190 - 80 + i) - Math.log10(i);\nconsole.log(`실제 T=150, U=40 -> 정답으로 접히는 경로 약 10^${real.toFixed(0)}개`);\ncheck(real > 40, \"경로 수가 천문학적이라 동적 계획법(α)이 필요해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Float64Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치를 담는 실수 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "ctc": {
+  "part": "Part 2 · CTC: blank 와 접기 규칙",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    5,
+    5
+   ]
+  ],
+  "python": "# D6 · Part 2 · CTC: blank 와 접기 규칙 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d06_ctc.py   (입력은 코드 안의 문자열 · 인터넷·GPU·마이크 불필요)\n#   CTC 접기 B(): 연속 반복을 하나로 합치고 blank 를 지운다 · blank 가 사이에 있어야 같은 글자가 두 번 나온다\nfrom itertools import groupby\n\nBLANK = \"-\"\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef ctc_collapse(path, blank=BLANK):\n    merged = [k for k, _ in groupby(path)]          # ① 연속 반복 -> 하나\n    return [k for k in merged if k != blank]        # ② blank 지우기\n\n\ntests = {\"hhe-ll-lloo\": \"hello\", \"he-llll-ooo\": \"helo\", \"--c-aa--tt-\": \"cat\", \"hhel-lo---o\": \"helloo\", \"-----\": \"\"}\nfor p, want in tests.items():\n    got = \"\".join(ctc_collapse(p))\n    print(f\"{p:>12s} -> {got!r:9s} {'맞음' if got == want else '틀림'}\")\ncheck(all(\"\".join(ctc_collapse(p)) == w for p, w in tests.items()), \"두 번째 줄에서 지울 것은 blank입니다.\")\n\n# 같은 글자를 두 번 쓰려면 사이에 blank 가 꼭 필요하다\ncheck(\"\".join(ctc_collapse(\"ll\")) == \"l\" and \"\".join(ctc_collapse(\"l-l\")) == \"ll\", \"'ll' 은 l 하나, 'l-l' 은 l 둘이에요.\")\n",
+  "typescript": "// D6 · Part 2 · CTC: blank 와 접기 규칙 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_ctc.ts\n//   CTC 접기 B(): 연속 반복을 하나로 합치고 blank 를 지운다 · blank 가 사이에 있어야 같은 글자가 두 번 나온다\nconst BLANK = \"-\";\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction ctcCollapse(path: string, blank: string = BLANK): string {\n  const merged = [...path].filter((c, i, a) => i === 0 || c !== a[i - 1]); // ① 연속 반복 -> 하나\n  return merged.filter((c) => c !== blank).join(\"\"); // ② blank 지우기\n}\n\nconst tests: Record<string, string> = { \"hhe-ll-lloo\": \"hello\", \"he-llll-ooo\": \"helo\", \"--c-aa--tt-\": \"cat\", \"hhel-lo---o\": \"helloo\", \"-----\": \"\" };\nfor (const [p, want] of Object.entries(tests)) {\n  const got = ctcCollapse(p);\n  console.log(`${p.padStart(12)} -> \"${got}\" ${got === want ? \"맞음\" : \"틀림\"}`);\n}\ncheck(Object.entries(tests).every(([p, w]) => ctcCollapse(p) === w), \"두 번째 줄에서 지울 것은 blank입니다.\");\n\n// 같은 글자를 두 번 쓰려면 사이에 blank 가 꼭 필요하다\ncheck(ctcCollapse(\"ll\") === \"l\" && ctcCollapse(\"l-l\") === \"ll\", \"'ll' 은 l 하나, 'l-l' 은 l 둘이에요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "ctcloss": {
+  "part": "Part 2 · CTC 격자 · α(forward) 알고리즘",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    6,
+    8
+   ]
+  ],
+  "python": "# D6 · Part 2 · CTC 격자 · α(forward) 알고리즘 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d06_ctcloss.py   (입력은 코드 안에서 만든 난수 확률표 · 인터넷·GPU·마이크 불필요)\n#   확장 라벨 위에서 α 를 채워 '모든 경로의 합' 을 구하고, 경로를 전부 더한 값 · torch.nn.functional.ctc_loss 와 비교\nimport itertools\n\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\n\nBLANK = \"-\"\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef collapse(path):\n    merged = [k for k, _ in itertools.groupby(path)]\n    return \"\".join(k for k in merged if k != BLANK)\n\n\ndef ctc_forward(probs, target, vocab, blank=BLANK):\n    idx = {c: i for i, c in enumerate(vocab)}\n    lp = [blank]\n    for ch in target:\n        lp += [ch, blank]                                   # 확장 라벨 l' (길이 2U+1)\n    S, T = len(lp), len(probs)\n    alpha = np.zeros((T, S))\n    alpha[0, 0] = probs[0, idx[lp[0]]]\n    alpha[0, 1] = probs[0, idx[lp[1]]]\n    for t in range(1, T):\n        for s in range(S):\n            a = alpha[t - 1, s]                             # 제자리\n            if s >= 1:\n                a += alpha[t - 1, s - 1]                    # 한 칸 아래\n            if s >= 2 and lp[s] != blank and lp[s] != lp[s - 2]:\n                a += alpha[t - 1, s - 2]                    # 두 칸 건너뛰기 (같은 글자 연속이면 불가)\n            alpha[t, s] = a * probs[t, idx[lp[s]]]\n    return alpha, alpha[-1, -1] + alpha[-1, -2]\n\n\ndef brute(probs, target, vocab):                            # 정답: 접히는 경로를 전부 더하기\n    tot = 0.0\n    for p in itertools.product(vocab, repeat=len(probs)):\n        if collapse(p) == target:\n            tot += np.prod([probs[t, vocab.index(ch)] for t, ch in enumerate(p)])\n    return tot\n\n\nrng = np.random.default_rng(0)\nvocab = [\"-\", \"a\", \"b\", \"c\", \"t\"]\nprobs = rng.dirichlet(np.ones(len(vocab)), size=6)          # T=6 프레임의 임의 확률 (각 행의 합 = 1)\n\nlog_probs = torch.log(torch.tensor(probs, dtype=torch.float32)).unsqueeze(1)      # (T, N=1, V)\nok = True\nfor tgt in [\"cat\", \"baa\", \"ab\"]:\n    _, p_alpha = ctc_forward(probs, tgt, vocab)\n    p_brute = brute(probs, tgt, vocab)\n    loss = F.ctc_loss(log_probs, torch.tensor([[vocab.index(c) for c in tgt]]), input_lengths=torch.tensor([6]),\n                      target_lengths=torch.tensor([len(tgt)]), blank=0, reduction=\"sum\").item()\n    print(f\"{tgt}: α {p_alpha:.6e} | 전부 더하기 {p_brute:.6e} | -logP α {-np.log(p_alpha):.5f} vs F.ctc_loss {loss:.5f}\")\n    ok = ok and np.isclose(p_alpha, p_brute) and abs(-np.log(p_alpha) - loss) < 1e-4\ncheck(ok, \"'baa' 처럼 같은 글자가 연달아 나오면 두 칸 건너뛰기를 막아야 해요 (lp[s] != lp[s-2]).\")\n",
+  "typescript": "// D6 · Part 2 · CTC 격자 · α(forward) 알고리즘 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_ctcloss.ts\n//   확장 라벨 위에서 α 를 채워 '모든 경로의 합' 을 구하고, 경로를 전부 더한 값과 비교 (PyTorch ctc_loss 비교는 Python 코드에서)\n// 대체 경로: 난수 확률표는 결정적 의사 난수로 만든다.\nconst BLANK = \"-\";\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst collapse = (p: string[]): string => p.filter((c, i, a) => (i === 0 || c !== a[i - 1]) && c !== BLANK).join(\"\");\n\nfunction ctcForward(probs: number[][], target: string, vocab: string[]): number {\n  const lp: string[] = [BLANK];\n  for (const ch of target) lp.push(ch, BLANK); // 확장 라벨 l' (길이 2U+1)\n  const S = lp.length;\n  const T = probs.length;\n  const idx = (c: string): number => vocab.indexOf(c);\n  const alpha: number[][] = Array.from({ length: T }, () => new Array(S).fill(0));\n  alpha[0][0] = probs[0][idx(lp[0])];\n  alpha[0][1] = probs[0][idx(lp[1])];\n  for (let t = 1; t < T; t++) {\n    for (let s = 0; s < S; s++) {\n      let a = alpha[t - 1][s]; // 제자리\n      if (s >= 1) a += alpha[t - 1][s - 1]; // 한 칸 아래\n      if (s >= 2 && lp[s] !== BLANK && lp[s] !== lp[s - 2]) a += alpha[t - 1][s - 2]; // 두 칸 건너뛰기 (같은 글자 연속이면 불가)\n      alpha[t][s] = a * probs[t][idx(lp[s])];\n    }\n  }\n  return alpha[T - 1][S - 1] + alpha[T - 1][S - 2];\n}\n\nfunction brute(probs: number[][], target: string, vocab: string[]): number {\n  // 정답: 접히는 경로를 전부 더하기\n  const T = probs.length;\n  const V = vocab.length;\n  let tot = 0;\n  for (let n = 0; n < V ** T; n++) {\n    const p: string[] = [];\n    let r = n;\n    let prod = 1;\n    for (let t = 0; t < T; t++) {\n      const k = r % V;\n      r = Math.floor(r / V);\n      p.push(vocab[k]);\n      prod *= probs[t][k];\n    }\n    if (collapse(p) === target) tot += prod;\n  }\n  return tot;\n}\n\nlet seed = 7;\nconst rnd = (): number => {\n  seed = (seed * 1103515245 + 12345) % 2147483648;\n  return seed / 2147483648 + 0.05;\n};\nconst vocab = [BLANK, \"a\", \"b\", \"c\", \"t\"];\nconst probs = Array.from({ length: 6 }, () => {\n  const row = vocab.map(rnd);\n  const s = row.reduce((a, b) => a + b, 0);\n  return row.map((v) => v / s); // 각 행의 합 = 1\n});\n\nlet ok = true;\nfor (const tgt of [\"cat\", \"baa\", \"ab\"]) {\n  const pa = ctcForward(probs, tgt, vocab);\n  const pb = brute(probs, tgt, vocab);\n  console.log(`${tgt}: α ${pa.toExponential(6)} | 전부 더하기 ${pb.toExponential(6)}`);\n  ok = ok && Math.abs(pa - pb) < 1e-12 * Math.max(1, pb) + 1e-15;\n}\ncheck(ok, \"'baa' 처럼 같은 글자가 연달아 나오면 두 칸 건너뛰기를 막아야 해요 (lp[s] != lp[s-2]).\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "CTC 손실 · attention · cross-entropy 를 PyTorch 와 비교(CPU)",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "w2v": {
+  "part": "Part 3 · Wav2Vec2 프레임 수 · greedy 디코딩 · 글자 시각",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    9,
+    13
+   ]
+  ],
+  "python": "# D6 · Part 3 · Wav2Vec2 프레임 수 공식 · greedy 디코딩 · 글자 시각 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d06_w2v.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   Wav2Vec2 합성곱 층의 커널·보폭으로 프레임 수 T=floor((L-R)/S)+1 계산, 프레임별 argmax -> 접기 -> 글자 시작 시각(초)\n# 대체 경로: facebook/wav2vec2-base-960h 모델(수백 MB 다운로드) 대신, 정답 글자가 튀어나오는 시각에 높은 점수를 둔 가짜 logits 로 같은 디코딩을 한다.\nfrom itertools import groupby\n\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\nKERNELS = (10, 3, 3, 3, 3, 2, 2)             # Wav2Vec2-base 합성곱 커널 (config.conv_kernel)\nSTRIDES = (5, 2, 2, 2, 2, 2, 2)              # 층별 보폭 (config.conv_stride)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nR, jump = 1, 1\nfor k, s in zip(KERNELS, STRIDES):\n    R += (k - 1) * jump                      # 수용 영역이 넓어지는 양\n    jump *= s                                # 지금까지의 보폭 곱\nS_TOT = jump\nprint(f\"수용 영역 R = {R} 샘플 ({R / SR * 1000:.0f} ms), 전체 보폭 = {S_TOT} 샘플 ({S_TOT / SR * 1000:.0f} ms)\")\n\n\ndef n_frames_layerwise(L):\n    for k, s in zip(KERNELS, STRIDES):\n        L = (L - k) // s + 1                 # 출력 크기 공식 (패딩 0)\n    return L\n\n\nL = int(2.0 * SR)\nT_formula = (L - R) // S_TOT + 1\nprint(f\"L = {L:,} 샘플 -> 공식 {T_formula} | 층별 {n_frames_layerwise(L)}\")\ncheck(T_formula == n_frames_layerwise(L) == 99 and S_TOT == 320, \"나누는 값은 전체 보폭 S_TOT(320)입니다.\")\n\n# 가짜 logits: 어휘 = [blank '-', 구분 '|', 알파벳]. 'cat dog' 글자가 튀어나오는 프레임\nvocab = [\"-\", \"|\"] + list(\"abcdefghijklmnopqrstuvwxyz\")\nspikes = {5: \"c\", 12: \"a\", 13: \"a\", 20: \"t\", 30: \"|\", 40: \"d\", 50: \"o\", 60: \"g\"}     # 같은 글자가 2프레임 연속 나오기도 함\nlogits = np.full((T_formula, len(vocab)), -4.0)\nlogits[:, 0] = 4.0                                                                    # 대부분 blank\nfor t, ch in spikes.items():\n    logits[t, 0] = -4.0\n    logits[t, vocab.index(ch)] = 6.0\nids = logits.argmax(axis=-1)                                                          # 어휘 방향(마지막 축)\npath = [vocab[i] for i in ids]\ntext = \"\".join(k for k, _ in groupby(path) if k != \"-\").replace(\"|\", \" \")\nprint(\"디코딩:\", repr(text), \"| blank 비율\", f\"{(ids == 0).mean():.0%}\")\n\nFRAME_SEC = S_TOT / SR                                                                # 프레임 하나 = 0.02초\nchar_times = [(p, t * FRAME_SEC) for t, p in enumerate(path) if p != \"-\" and (t == 0 or p != path[t - 1])]\nwords, cur, start = [], \"\", 0.0\nfor ch, ts in char_times + [(\"|\", T_formula * FRAME_SEC)]:\n    if ch == \"|\":\n        if cur:\n            words.append((cur, start, ts))\n            cur = \"\"\n    else:\n        if not cur:\n            start = ts\n        cur += ch\nfor w, s, e in words:\n    print(f\"{s:5.2f} ~ {e:5.2f} s  {w}\")\ncheck(text == \"cat dog\" and abs(FRAME_SEC - 0.02) < 1e-12 and abs(words[0][1] - 0.1) < 1e-9,\n      \"한 프레임 = 320/16000 = 0.02초, 단어 시작은 첫 글자 프레임 x 0.02초입니다.\")\n",
+  "typescript": "// D6 · Part 3 · Wav2Vec2 프레임 수 공식 · greedy 디코딩 · 글자 시각 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_w2v.ts\n//   Wav2Vec2 합성곱 층의 커널·보폭으로 프레임 수 T=floor((L-R)/S)+1 계산, 프레임별 argmax -> 접기 -> 글자 시작 시각(초)\n// 대체 경로: wav2vec2-base-960h 모델 대신, 정답 글자가 튀어나오는 시각에 높은 점수를 둔 가짜 logits 로 같은 디코딩을 한다.\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\nconst KERNELS = [10, 3, 3, 3, 3, 2, 2]; // Wav2Vec2-base 합성곱 커널\nconst STRIDES = [5, 2, 2, 2, 2, 2, 2]; // 층별 보폭\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet R = 1;\nlet jump = 1;\nKERNELS.forEach((k, i) => {\n  R += (k - 1) * jump; // 수용 영역이 넓어지는 양\n  jump *= STRIDES[i]; // 지금까지의 보폭 곱\n});\nconst S_TOT = jump;\nconsole.log(`수용 영역 R = ${R} 샘플 (${Math.round((R / SR) * 1000)} ms), 전체 보폭 = ${S_TOT} 샘플 (${Math.round((S_TOT / SR) * 1000)} ms)`);\n\nfunction nFramesLayerwise(len: number): number {\n  let L = len;\n  KERNELS.forEach((k, i) => {\n    L = Math.floor((L - k) / STRIDES[i]) + 1; // 출력 크기 공식 (패딩 0)\n  });\n  return L;\n}\n\nconst L = Math.floor(2.0 * SR);\nconst tFormula = Math.floor((L - R) / S_TOT) + 1;\nconsole.log(`L = ${L} 샘플 -> 공식 ${tFormula} | 층별 ${nFramesLayerwise(L)}`);\ncheck(tFormula === nFramesLayerwise(L) && tFormula === 99 && S_TOT === 320, \"나누는 값은 전체 보폭 S_TOT(320)입니다.\");\n\n// 가짜 logits: 어휘 = [blank '-', 구분 '|', 알파벳]\nconst vocab = [\"-\", \"|\", ...\"abcdefghijklmnopqrstuvwxyz\"];\nconst spikes: Record<number, string> = { 5: \"c\", 12: \"a\", 13: \"a\", 20: \"t\", 30: \"|\", 40: \"d\", 50: \"o\", 60: \"g\" };\nconst ids: number[] = [];\nfor (let t = 0; t < tFormula; t++) {\n  const row = new Array(vocab.length).fill(-4);\n  if (spikes[t]) row[vocab.indexOf(spikes[t])] = 6;\n  else row[0] = 4; // 대부분 blank\n  ids.push(row.indexOf(Math.max(...row))); // 어휘 방향 argmax\n}\nconst path = ids.map((i) => vocab[i]);\nconst text = path\n  .filter((c, i, a) => (i === 0 || c !== a[i - 1]) && c !== \"-\")\n  .join(\"\")\n  .replace(/\\|/g, \" \");\nconsole.log(`디코딩: \"${text}\" | blank 비율 ${Math.round((ids.filter((i) => i === 0).length / ids.length) * 100)}%`);\n\nconst FRAME_SEC = S_TOT / SR; // 프레임 하나 = 0.02초\nconst charTimes: [string, number][] = [];\npath.forEach((p, t) => {\n  if (p !== \"-\" && (t === 0 || p !== path[t - 1])) charTimes.push([p, t * FRAME_SEC]);\n});\nconst words: [string, number, number][] = [];\nlet cur = \"\";\nlet start = 0;\nfor (const [ch, ts] of [...charTimes, [\"|\", tFormula * FRAME_SEC] as [string, number]]) {\n  if (ch === \"|\") {\n    if (cur) {\n      words.push([cur, start, ts]);\n      cur = \"\";\n    }\n  } else {\n    if (!cur) start = ts;\n    cur += ch;\n  }\n}\nfor (const [w, s, e] of words) console.log(`${s.toFixed(2)} ~ ${e.toFixed(2)} s  ${w}`);\ncheck(text === \"cat dog\" && Math.abs(FRAME_SEC - 0.02) < 1e-12 && Math.abs(words[0][1] - 0.1) < 1e-9, \"한 프레임 = 320/16000 = 0.02초, 단어 시작은 첫 글자 프레임 x 0.02초입니다.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "attn": {
+  "part": "Part 4 · Attention Encoder-Decoder: attention · 한 글자씩 생성",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    14,
+    18
+   ]
+  ],
+  "python": "# D6 · Part 4 · Attention Encoder-Decoder: scaled dot-product attention · 한 글자씩 생성 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d06_attn.py   (입력은 코드 안에서 만든 난수 · 인터넷·GPU·마이크 불필요)\n#   attention 을 식 그대로 구현해 F.scaled_dot_product_attention 과 비교, 점수 분산 = d 이고 √d 로 나누면 1, 한 글자씩 읽어 가는 장난감 디코더\n# 대체 경로: Whisper-tiny 모델 대신, 프레임마다 글자 특징이 들어 있는 장난감 인코더 출력과 직접 만든 query 로 cross-attention 을 흉내 낸다.\nimport math\n\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef attention(Q, K, V):\n    d = Q.shape[-1]\n    scores = Q @ K.transpose(-2, -1) / math.sqrt(d)     # (U, T) 글자 x 프레임\n    w = scores.softmax(dim=-1)                          # 프레임 방향으로 합 = 1\n    return w @ V, w\n\n\ntorch.manual_seed(0)\nd = 64\nQ = torch.randn(1, 5, d)                                # 디코더 쪽 5글자\nK = torch.randn(1, 40, d)\nV = torch.randn(1, 40, d)                               # 인코더 쪽 40프레임\nout, w = attention(Q, K, V)\nref = F.scaled_dot_product_attention(Q, K, V)\nprint(\"출력 모양:\", tuple(out.shape), \"| 가중치 모양:\", tuple(w.shape), \"| 행 합:\", w.sum(-1)[0].numpy().round(4))\ncheck(torch.allclose(out, ref, atol=1e-5), \"d_k 의 제곱근 math.sqrt(d) 로 나눕니다.\")\n\n# q·k 의 분산은 d -> √d 로 나누면 1 (softmax 가 한쪽으로 쏠리는 것을 막는다)\nok = True\nfor d_ in [16, 64, 256, 1024]:\n    q, k = torch.randn(2000, d_), torch.randn(2000, 40, d_)\n    raw = torch.einsum(\"nd,ntd->nt\", q, k)\n    print(f\"d={d_:5d} | 점수 분산 {raw.var().item():7.1f} (이론 {d_}) | √d 로 나눈 뒤 {(raw / math.sqrt(d_)).var().item():.2f}\")\n    ok = ok and abs(raw.var().item() / d_ - 1) < 0.1 and abs((raw / math.sqrt(d_)).var().item() - 1) < 0.1\ncheck(ok, \"점수 분산은 d 에 가깝고, √d 로 나누면 1 에 가까워야 해요.\")\n\n# 한 글자씩 생성하는 장난감 디코더: 인코더 프레임 40개에 글자 4개가 구간별로 들어 있고, query 가 해당 구간을 본다\nrng = np.random.default_rng(0)\nletters = \"cat!\"                                        # '!' = 끝(EOS)\ncodes = {c: rng.normal(size=32) for c in letters}      # 글자마다 특징 벡터\nseg_len = 10\nenc = np.vstack([codes[c] + 0.1 * rng.normal(size=32) for c in letters for _ in range(seg_len)])      # (40, 32)\ngen, attn_rows = \"\", []\nfor i in range(len(letters)):\n    qv = codes[letters[i]] * 3.0                        # 학습된 디코더가 '지금 들을 곳' 을 만들어 낸다고 가정\n    sc = enc @ qv / math.sqrt(32)\n    wt = np.exp(sc - sc.max())\n    wt /= wt.sum()\n    ctx = wt @ enc                                      # 가중합 = 문맥 벡터\n    pred = max(letters, key=lambda c: float(ctx @ codes[c]))     # 문맥과 가장 닮은 글자\n    gen += pred\n    attn_rows.append(wt)\n    if pred == \"!\":\n        break\npeak = [int(r.argmax()) for r in attn_rows]\nprint(\"생성:\", gen, \"| 스텝별 가장 많이 본 프레임:\", peak)\ncheck(gen == \"cat!\" and peak == sorted(peak) and peak[0] < 10 <= peak[1] < 20, \"글자를 쓸수록 보는 프레임이 오른쪽으로 이동(대각선)해야 해요.\")\n",
+  "typescript": "// D6 · Part 4 · Attention Encoder-Decoder: scaled dot-product attention · 한 글자씩 생성 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_attn.ts\n//   attention 을 식 그대로 구현, 점수 분산 = d 이고 √d 로 나누면 1, 한 글자씩 읽어 가는 장난감 디코더 (PyTorch 비교는 Python 코드에서)\n// 대체 경로: Whisper-tiny 모델 대신, 프레임마다 글자 특징이 들어 있는 장난감 인코더 출력과 직접 만든 query 로 cross-attention 을 흉내 낸다.\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 결정적 정규분포 난수 (Box-Muller)\nlet seed = 2024;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수 (0 초과 1 미만)\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst randn = (): number => Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\nconst vec = (n: number, s: number = 1): number[] => Array.from({ length: n }, () => s * randn());\nconst dot = (a: number[], b: number[]): number => a.reduce((s, v, i) => s + v * b[i], 0);\nconst softmax = (z: number[]): number[] => {\n  const m = Math.max(...z);\n  const e = z.map((v) => Math.exp(v - m));\n  const s = e.reduce((a, b) => a + b, 0);\n  return e.map((v) => v / s);\n};\nconst variance = (x: number[]): number => {\n  const m = x.reduce((a, b) => a + b, 0) / x.length;\n  return x.reduce((a, b) => a + (b - m) ** 2, 0) / (x.length - 1);\n};\n\n// q·k 의 분산은 d -> √d 로 나누면 1 (softmax 가 한쪽으로 쏠리는 것을 막는다)\nlet ok = true;\nfor (const d of [16, 64, 256, 1024]) {\n  const raw = Array.from({ length: 4000 }, () => dot(vec(d), vec(d)));\n  const v1 = variance(raw);\n  const v2 = variance(raw.map((r) => r / Math.sqrt(d)));\n  console.log(`d=${String(d).padStart(5)} | 점수 분산 ${v1.toFixed(1)} (이론 ${d}) | √d 로 나눈 뒤 ${v2.toFixed(2)}`);\n  ok = ok && Math.abs(v1 / d - 1) < 0.15 && Math.abs(v2 - 1) < 0.15;\n}\ncheck(ok, \"점수 분산은 d 에 가깝고, √d 로 나누면 1 에 가까워야 해요.\");\n\n// 한 글자씩 생성하는 장난감 디코더: 인코더 프레임 40개에 글자 4개가 구간별로 들어 있고, query 가 해당 구간을 본다\nconst letters = \"cat!\"; // '!' = 끝(EOS)\nconst codes: Record<string, number[]> = {};\nfor (const c of letters) codes[c] = vec(32);\nconst enc: number[][] = [];\nfor (const c of letters) for (let i = 0; i < 10; i++) enc.push(codes[c].map((v) => v + 0.1 * randn()));\nlet gen = \"\";\nconst peak: number[] = [];\nfor (let i = 0; i < letters.length; i++) {\n  const qv = codes[letters[i]].map((v) => v * 3); // 학습된 디코더가 '지금 들을 곳' 을 만들어 낸다고 가정\n  const wt = softmax(enc.map((f) => dot(f, qv) / Math.sqrt(32)));\n  const ctx = enc[0].map((_, j) => wt.reduce((s, w, t) => s + w * enc[t][j], 0)); // 가중합 = 문맥 벡터\n  const pred = [...letters].reduce((best, c) => (dot(ctx, codes[c]) > dot(ctx, codes[best]) ? c : best), letters[0]);\n  gen += pred;\n  peak.push(wt.indexOf(Math.max(...wt)));\n  if (pred === \"!\") break;\n}\nconsole.log(\"생성:\", gen, \"| 스텝별 가장 많이 본 프레임:\", peak.join(\", \"));\ncheck(gen === \"cat!\" && peak.every((p, i) => i === 0 || p > peak[i - 1]) && peak[0] < 10 && peak[1] >= 10 && peak[1] < 20, \"글자를 쓸수록 보는 프레임이 오른쪽으로 이동(대각선)해야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "CTC 손실 · attention · cross-entropy 를 PyTorch 와 비교(CPU)",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "rnnt": {
+  "part": "Part 5 · Transducer (RNN-T): T x (U+1) 격자와 α 점화식",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    19,
+    20
+   ]
+  ],
+  "python": "# D6 · Part 5 · Transducer (RNN-T): T x (U+1) 격자와 α 점화식 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d06_rnnt.py   (입력은 코드 안에서 만든 난수 확률표 · 인터넷·GPU·마이크 불필요)\n#   log 공간 α 점화식으로 모든 경로의 합을 구하고, 경로를 전부 나열해 더한 값과 비교 · 경로 수 C(T+U-1, U)\nimport itertools\nimport math\n\nimport numpy as np\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef rnnt_forward(logp, y, blank=0):\n    # logp: (T, U+1, V) 격자 각 점에서의 log 확률, y: 정답 글자 번호 (길이 U)\n    T, U1, _ = logp.shape\n    alpha = np.full((T, U1), -np.inf)\n    alpha[0, 0] = 0.0\n    for t in range(T):\n        for u in range(U1):\n            if t == 0 and u == 0:\n                continue\n            a = -np.inf\n            if t > 0:                                   # 왼쪽 (t-1, u)에서 ∅를 내고 옴\n                a = np.logaddexp(a, alpha[t - 1, u] + logp[t - 1, u, blank])\n            if u > 0:                                   # 아래 (t, u-1)에서 글자를 내고 옴\n                a = np.logaddexp(a, alpha[t, u - 1] + logp[t, u - 1, y[u - 1]])\n            alpha[t, u] = a\n    return alpha, alpha[T - 1, U1 - 1] + logp[T - 1, U1 - 1, blank]\n\n\ndef rnnt_brute(logp, y, blank=0):                       # 정답: 모든 경로를 직접 나열해 더하기\n    T, U1, _ = logp.shape\n    U = U1 - 1\n    tot, n = -np.inf, 0\n    for pos in itertools.combinations(range(T + U - 1), U):      # 마지막 걸음(∅)을 뺀 T+U-1걸음 중 글자 위치\n        t = u = 0\n        lp = 0.0\n        for k in range(T + U - 1):\n            if k in pos:\n                lp += logp[t, u, y[u]]\n                u += 1\n            else:\n                lp += logp[t, u, blank]\n                t += 1\n        tot = np.logaddexp(tot, lp + logp[t, u, blank])\n        n += 1\n    return tot, n\n\n\nrng = np.random.default_rng(1)\nT5, y5, V5 = 5, [2, 1, 3], 4                            # 프레임 5개, 정답 3글자, 어휘 = ∅ + 3글자\nz = rng.normal(size=(T5, len(y5) + 1, V5))\nlogp5 = z - np.log(np.exp(z).sum(-1, keepdims=True))    # log_softmax\n\nalpha, ll = rnnt_forward(logp5, y5)\nbl, n_paths = rnnt_brute(logp5, y5)\nprint(f\"log P: α 점화식 {ll:.6f} | 경로 {n_paths}개 전부 더하기 {bl:.6f} (공식 C(T+U-1, U) = {math.comb(T5 + 2, 3)})\")\ncheck(np.isclose(ll, bl) and n_paths == math.comb(T5 + 2, 3), \"점 (t, u-1)에서 내는 글자는 u번째 글자, 0부터 세면 y[u - 1]입니다.\")\n\nfor T_, U_ in [(50, 10), (150, 40)]:\n    print(f\"T={T_}, U={U_}: CTC C(T+U, 2U) ~ 10^{math.log10(math.comb(T_ + U_, 2 * U_)):.0f}, \"\n          f\"Transducer C(T+U-1, U) ~ 10^{math.log10(math.comb(T_ + U_ - 1, U_)):.0f}  -> 둘 다 α(동적 계획법)로 O(T·U)\")\ncheck(math.comb(149 + 40, 40) < math.comb(150 + 40, 80), \"Transducer 경로 수가 CTC 보다 적어요.\")\n",
+  "typescript": "// D6 · Part 5 · Transducer (RNN-T): T x (U+1) 격자와 α 점화식 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_rnnt.ts\n//   log 공간 α 점화식으로 모든 경로의 합을 구하고, 경로를 전부 나열해 더한 값과 비교 · 경로 수 C(T+U-1, U)\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst logaddexp = (a: number, b: number): number => {\n  if (a === -Infinity) return b;\n  if (b === -Infinity) return a;\n  const m = Math.max(a, b);\n  return m + Math.log(Math.exp(a - m) + Math.exp(b - m));\n};\n\n// logp[t][u][v]: 격자 각 점에서의 log 확률, y: 정답 글자 번호 (길이 U)\nfunction rnntForward(logp: number[][][], y: number[], blank: number = 0): number {\n  const T = logp.length;\n  const U1 = logp[0].length;\n  const alpha = Array.from({ length: T }, () => new Array(U1).fill(-Infinity));\n  alpha[0][0] = 0;\n  for (let t = 0; t < T; t++) {\n    for (let u = 0; u < U1; u++) {\n      if (t === 0 && u === 0) continue;\n      let a = -Infinity;\n      if (t > 0) a = logaddexp(a, alpha[t - 1][u] + logp[t - 1][u][blank]); // 왼쪽에서 ∅를 내고 옴\n      if (u > 0) a = logaddexp(a, alpha[t][u - 1] + logp[t][u - 1][y[u - 1]]); // 아래에서 u번째 글자를 내고 옴\n      alpha[t][u] = a;\n    }\n  }\n  return alpha[T - 1][U1 - 1] + logp[T - 1][U1 - 1][blank];\n}\n\n// 정답: 글자를 내는 걸음 위치(조합)를 전부 나열해 더하기\nfunction rnntBrute(logp: number[][][], y: number[], blank: number = 0): [number, number] {\n  const T = logp.length;\n  const U = logp[0].length - 1;\n  const steps = T + U - 1; // 마지막 걸음(∅)을 뺀 걸음 수\n  let tot = -Infinity;\n  let n = 0;\n  for (let mask = 0; mask < 1 << steps; mask++) {\n    let bits = 0;\n    for (let k = 0; k < steps; k++) if (mask & (1 << k)) bits++;\n    if (bits !== U) continue;\n    let t = 0;\n    let u = 0;\n    let lp = 0;\n    for (let k = 0; k < steps; k++) {\n      if (mask & (1 << k)) {\n        lp += logp[t][u][y[u]];\n        u++;\n      } else {\n        lp += logp[t][u][blank];\n        t++;\n      }\n    }\n    tot = logaddexp(tot, lp + logp[t][u][blank]);\n    n++;\n  }\n  return [tot, n];\n}\n\nlet seed = 1;\nconst randn = (): number => {\n  const uni = (): number => {\n    seed = (seed * 1103515245 + 12345) % 2147483648;\n    return (seed + 1) / 2147483649;\n  };\n  return Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\n};\nconst T5 = 5;\nconst y5 = [2, 1, 3]; // 정답 3글자, 어휘 = ∅ + 3글자\nconst V5 = 4;\nconst logp5 = Array.from({ length: T5 }, () =>\n  Array.from({ length: y5.length + 1 }, () => {\n    const z = Array.from({ length: V5 }, randn);\n    const lse = Math.log(z.reduce((a, v) => a + Math.exp(v), 0));\n    return z.map((v) => v - lse); // log_softmax\n  }),\n);\n\nconst ll = rnntForward(logp5, y5);\nconst [bl, nPaths] = rnntBrute(logp5, y5);\nconsole.log(`log P: α 점화식 ${ll.toFixed(6)} | 경로 ${nPaths}개 전부 더하기 ${bl.toFixed(6)} (공식 C(T+U-1, U) = 35)`);\ncheck(Math.abs(ll - bl) < 1e-9 && nPaths === 35, \"점 (t, u-1)에서 내는 글자는 u번째 글자, 0부터 세면 y[u - 1]입니다.\");\n\nconst log10Comb = (n: number, k: number): number => {\n  let s = 0;\n  for (let i = 1; i <= k; i++) s += Math.log10(n - k + i) - Math.log10(i);\n  return s;\n};\nfor (const [t, u] of [[50, 10], [150, 40]]) {\n  console.log(`T=${t}, U=${u}: CTC ~ 10^${log10Comb(t + u, 2 * u).toFixed(0)}, Transducer ~ 10^${log10Comb(t + u - 1, u).toFixed(0)}  -> 둘 다 α(동적 계획법)로 O(T·U)`);\n}\ncheck(log10Comb(189, 40) < log10Comb(190, 80), \"Transducer 경로 수가 CTC 보다 적어요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "compare": {
+  "part": "Part 5 · 세 방식 비교: CTC · Attention Enc-Dec · Transducer",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    19,
+    20
+   ]
+  ],
+  "python": "# D6 · Part 5 · 세 방식 비교: CTC · Attention Enc-Dec · Transducer — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d06_compare.py   (입력은 코드 안에서 만든 장난감 값 · 인터넷·GPU·마이크 불필요)\n#   첫 글자를 내보내기까지 기다려야 하는 프레임 수(스트리밍 가능 여부)와 경로 수를 숫자로 비교\n# 대체 경로: 실제 모델 대신 '프레임 t 까지 들은 소리만 쓸 수 있는가' 규칙만으로 첫 글자가 나오는 시각을 계산한다.\nimport math\n\nimport numpy as np\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nT = 100                                             # 2초 음성 = 20 ms 프레임 100개\nfirst_char_frame = 30                               # 소리 속에서 첫 글자가 실제로 들리는 프레임(장난감)\n\n# CTC · Transducer: 프레임을 하나씩 받으며 그때그때 글자를 낼 수 있다 -> 첫 글자 시각 = 들린 직후\n# AED(Attention): 인코더가 소리 전체를 본 뒤에야 디코더가 시작한다 -> 첫 글자 시각 = 마지막 프레임\nwait = {\"CTC\": first_char_frame, \"Transducer\": first_char_frame, \"Attention Enc-Dec\": T}\nrows = [\n    (\"CTC\",               \"프레임끼리 독립\", \"가능(프레임마다 출력)\", math.log10(math.comb(150 + 40, 80))),\n    (\"Attention Enc-Dec\", \"앞 글자에 조건부\", \"어려움(전체 필요)\",   float(\"nan\")),\n    (\"Transducer\",        \"앞 글자 + 프레임\", \"가능(스트리밍)\",     math.log10(math.comb(150 + 40 - 1, 40))),\n]\nprint(f\"{'방식':18s} {'가정':16s} {'스트리밍':20s} {'첫 글자까지 기다린 프레임':>14s}  경로 수(T=150,U=40)\")\nfor name, assume, stream, lg in rows:\n    paths = \"해당 없음(한 글자씩 생성)\" if np.isnan(lg) else f\"10^{lg:.0f}\"\n    print(f\"{name:18s} {assume:16s} {stream:20s} {wait[name]:14d}  {paths}\")\n\ncheck(wait[\"Attention Enc-Dec\"] > wait[\"CTC\"] == wait[\"Transducer\"] and rows[2][3] < rows[0][3],\n      \"스트리밍은 CTC·Transducer, AED는 소리 전체를 기다려요. 경로 수는 Transducer 가 더 적어요.\")\n",
+  "typescript": "// D6 · Part 5 · 세 방식 비교: CTC · Attention Enc-Dec · Transducer — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_compare.ts\n//   첫 글자를 내보내기까지 기다려야 하는 프레임 수(스트리밍 가능 여부)와 경로 수를 숫자로 비교\n// 대체 경로: 실제 모델 대신 '프레임 t 까지 들은 소리만 쓸 수 있는가' 규칙만으로 첫 글자가 나오는 시각을 계산한다.\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst log10Comb = (n: number, k: number): number => {\n  let s = 0;\n  for (let i = 1; i <= k; i++) s += Math.log10(n - k + i) - Math.log10(i);\n  return s;\n};\n\nconst T = 100; // 2초 음성 = 20 ms 프레임 100개\nconst firstCharFrame = 30; // 소리 속에서 첫 글자가 실제로 들리는 프레임(장난감)\n\n// CTC · Transducer: 프레임을 하나씩 받으며 그때그때 글자를 낼 수 있다 -> 첫 글자 시각 = 들린 직후\n// AED(Attention): 인코더가 소리 전체를 본 뒤에야 디코더가 시작한다 -> 첫 글자 시각 = 마지막 프레임\nconst wait: Record<string, number> = { CTC: firstCharFrame, Transducer: firstCharFrame, \"Attention Enc-Dec\": T };\nconst rows: [string, string, string, number | null][] = [\n  [\"CTC\", \"프레임끼리 독립\", \"가능(프레임마다 출력)\", log10Comb(190, 80)],\n  [\"Attention Enc-Dec\", \"앞 글자에 조건부\", \"어려움(전체 필요)\", null],\n  [\"Transducer\", \"앞 글자 + 프레임\", \"가능(스트리밍)\", log10Comb(189, 40)],\n];\nconsole.log(\"방식 | 가정 | 스트리밍 | 첫 글자까지 기다린 프레임 | 경로 수(T=150,U=40)\");\nfor (const [name, assume, stream, lg] of rows) {\n  const paths = lg === null ? \"해당 없음(한 글자씩 생성)\" : `10^${lg.toFixed(0)}`;\n  console.log(`${name} | ${assume} | ${stream} | ${wait[name]} | ${paths}`);\n}\n\ncheck(wait[\"Attention Enc-Dec\"] > wait[\"CTC\"] && wait[\"CTC\"] === wait[\"Transducer\"] && (rows[2][3] as number) < (rows[0][3] as number),\n  \"스트리밍은 CTC·Transducer, AED는 소리 전체를 기다려요. 경로 수는 Transducer 가 더 적어요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ },
+ "ssl": {
+  "part": "Part 6 · 자기지도 학습: 마스킹 비율 · InfoNCE",
+  "nb": "D6_ASR원리_실습.ipynb",
+  "ord": [
+   [
+    21,
+    24
+   ]
+  ],
+  "python": "# D6 · Part 6 · 자기지도 학습: 가려진 비율 · InfoNCE 대조 손실 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6 torch==2.15.0\n# 실행: python d06_ssl.py   (입력은 코드 안에서 만든 난수 · 인터넷·GPU·마이크 불필요)\n#   wav2vec2 식 마스킹: 시작점 확률 p, 길이 M 이면 가려지는 비율 1-(1-p)^M · InfoNCE 를 식 그대로 구해 F.cross_entropy 와 비교\n# 대체 경로: facebook/wav2vec2-base · hubert-base-ls960 사전학습 모델(수백 MB) 대신 난수 벡터로 같은 손실 식을 계산한다.\nimport math\n\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n# 가려지는 비율: 공식과 시뮬레이션\nrng = np.random.default_rng(0)\nL_, trials = 500, 2000\nok = True\nfor p, M in [(0.065, 10), (0.065, 5), (0.03, 10)]:\n    starts = rng.random((trials, L_)) < p                                   # 시작점 뽑기\n    masked = np.zeros_like(starts)\n    for k in range(M):                                                      # 시작점부터 M칸 가리기\n        masked[:, k:] |= starts[:, :L_ - k]\n    sim = masked[:, M:].mean()\n    print(f\"p={p}, M={M:2d} | 공식 {1 - (1 - p) ** M:.3f} | 시뮬레이션 {sim:.3f}\")\n    ok = ok and abs(sim - (1 - (1 - p) ** M)) < 0.02\ncheck(ok, \"가려지는 비율은 1 - (1-p)^M 에 가까워야 해요.\")\n\n# InfoNCE: 후보 101개 중 0번 칸이 진짜\ntorch.manual_seed(0)\nT_, K_, D_, kappa = 8, 100, 256, 0.1\nc = torch.randn(T_, D_)                                        # Transformer 출력 c_t (가려진 자리 8개)\nq_pos = c + 3.0 * torch.randn(T_, D_)                          # 진짜 q_t: c_t 와 조금 닮음 (잡음이 큼)\nq_neg = torch.randn(T_, K_, D_)                                # 가짜 100개\ncands = torch.cat([q_pos.unsqueeze(1), q_neg], dim=1)          # (T, 1+K, D) - 0번 칸 = 진짜\nsims = F.cosine_similarity(c.unsqueeze(1), cands, dim=-1)      # (T, 1+K)\n\nloss_manual = -torch.log_softmax(sims / kappa, dim=-1)[:, 0].mean()\nloss_ce = F.cross_entropy(sims / kappa, torch.zeros(T_, dtype=torch.long))\nacc = (sims.argmax(-1) == 0).float().mean()\nprint(f\"InfoNCE 직접 {loss_manual.item():.4f} | F.cross_entropy {loss_ce.item():.4f} | 진짜를 1등으로 고른 비율 {acc:.0%}\")\nprint(f\"참고: 무작위로 고르면 손실 log(101) = {math.log(101):.3f}\")\nfor k in [1.0, 0.1, 0.01]:\n    print(f\"  kappa = {k:5}: 손실 {F.cross_entropy(sims / k, torch.zeros(T_, dtype=torch.long)).item():.3f}\")\ncheck(torch.allclose(loss_manual, loss_ce) and loss_manual.item() < math.log(101), \"진짜는 0번 칸이고, 손실은 무작위(log 101)보다 작아야 해요.\")\n",
+  "typescript": "// D6 · Part 6 · 자기지도 학습: 가려진 비율 · InfoNCE 대조 손실 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d06_ssl.ts\n//   wav2vec2 식 마스킹: 시작점 확률 p, 길이 M 이면 가려지는 비율 1-(1-p)^M · InfoNCE 를 식 그대로 구해 '-log softmax' 와 비교\n// 대체 경로: 사전학습 모델 대신 난수 벡터로 같은 손실 식을 계산한다.\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 99;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수 (0 초과 1 미만)\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst randn = (): number => Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\n\n// 가려지는 비율: 공식과 시뮬레이션\nlet ok = true;\nfor (const [p, M] of [[0.065, 10], [0.065, 5], [0.03, 10]]) {\n  const L = 500;\n  const trials = 400;\n  let masked = 0;\n  let counted = 0;\n  for (let n = 0; n < trials; n++) {\n    const m = new Array(L).fill(false);\n    for (let i = 0; i < L; i++) {\n      if (uni() < p) for (let k = 0; k < M && i + k < L; k++) m[i + k] = true; // 시작점부터 M칸 가리기\n    }\n    for (let i = M; i < L; i++) {\n      counted++;\n      if (m[i]) masked++;\n    }\n  }\n  const sim = masked / counted;\n  const formula = 1 - (1 - p) ** M;\n  console.log(`p=${p}, M=${String(M).padStart(2)} | 공식 ${formula.toFixed(3)} | 시뮬레이션 ${sim.toFixed(3)}`);\n  ok = ok && Math.abs(sim - formula) < 0.03;\n}\ncheck(ok, \"가려지는 비율은 1 - (1-p)^M 에 가까워야 해요.\");\n\n// InfoNCE: 후보 101개 중 0번 칸이 진짜\nconst T = 8;\nconst K = 100;\nconst D = 64;\nconst kappa = 0.1;\nconst cosine = (a: number[], b: number[]): number => {\n  const dot = a.reduce((s, v, i) => s + v * b[i], 0);\n  return dot / (Math.hypot(...a) * Math.hypot(...b));\n};\nlet lossManual = 0;\nlet hit = 0;\nfor (let t = 0; t < T; t++) {\n  const c = Array.from({ length: D }, randn);\n  const pos = c.map((v) => v + 3 * randn()); // 진짜 q_t: c_t 와 조금 닮음 (잡음이 큼)\n  const cands = [pos, ...Array.from({ length: K }, () => Array.from({ length: D }, randn))]; // 0번 칸 = 진짜\n  const sims = cands.map((q) => cosine(c, q) / kappa);\n  const m = Math.max(...sims);\n  const lse = m + Math.log(sims.reduce((s, v) => s + Math.exp(v - m), 0));\n  lossManual += -(sims[0] - lse) / T; // -log softmax 의 0번 칸 평균\n  if (sims.indexOf(m) === 0) hit++;\n}\nconsole.log(`InfoNCE ${lossManual.toFixed(4)} | 진짜를 1등으로 고른 비율 ${Math.round((hit / T) * 100)}%`);\nconsole.log(`참고: 무작위로 고르면 손실 log(101) = ${Math.log(101).toFixed(3)}`);\ncheck(lossManual < Math.log(101) && lossManual >= 0, \"진짜는 0번 칸이고, 손실은 무작위(log 101)보다 작아야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    },
+    {
+     "name": "torch",
+     "version": "2.15.0",
+     "purpose": "CTC 손실 · attention · cross-entropy 를 PyTorch 와 비교(CPU)",
+     "install": "pip install torch==2.15.0",
+     "docs": "https://pytorch.org/docs/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ }
+}

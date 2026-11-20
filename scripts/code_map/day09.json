@@ -1,0 +1,18 @@
+{
+ "notebook": "day09/D9_*_실습.ipynb",
+ "map": {
+  "flow": ["Part 0~6 · 오늘의 흐름 전체", [3, 5, 9, 11, 16, 19, 24, 27, 32, 36, 38, 40, 43, 47, 50, 54, 56, 59]],
+  "stamps": ["Part 1 · 문장 시각 vs 단어 시각: Whisper 단어 시각의 한계", [9, 11]],
+  "trellis": ["Part 2 · 강제 정렬: 격자 따라가기", [16, 19]],
+  "wxpipe": ["Part 3 · WhisperX 파이프라인과 SRT 자막", [24, 27, 32]],
+  "embed": ["Part 4 · 목소리 지문과 코사인 유사도", [38, 40]],
+  "cluster": ["Part 4 · 화자 군집(응집형)", [36, 43]],
+  "der": ["Part 5 · DER 계산기", [47, 50]],
+  "assign": ["Part 6 · 단어에 화자 붙이기와 이름 붙이기", [54, 59]],
+  "minutes": ["Part 6 · 같은 화자의 단어를 한 줄로: 회의록", [56]]
+ },
+ "py_libs": {},
+ "ts_libs": [
+  ["\\bnew Float(?:32|64)Array\\(|\\bFloat(?:32|64)Array\\.from\\(", "Float32Array · Float64Array", "소리 샘플 · FFT 배열을 담는 실수 배열", "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"]
+ ]
+}

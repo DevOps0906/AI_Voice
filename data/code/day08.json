@@ -1,0 +1,289 @@
+{
+ "flow": {
+  "part": "Part 0~6 · 오늘의 흐름 전체",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    2,
+    13
+   ],
+   [
+    17,
+    22
+   ]
+  ],
+  "python": "# D8 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_flow.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   병목(Decoder) 찾기 → 양자화로 줄이기 → VAD 로 안 듣기 → LocalAgreement 로 말하는 도중에 확정하기, 네 가지 핵심 계산을 한 파일에서 맛보기\n# 대체 경로: faster-whisper · whisper.cpp 모델은 내려받지 않고, 비용 모델과 장난감 행렬·합성 신호로 같은 계산을 한다.\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n# 1) 병목: Encoder 는 한 번, Decoder 는 토큰마다 -> 토큰이 많을수록 Decoder 몫이 커진다 (비용 단위 = 임의 단위)\nENC_COST, DEC_COST_PER_TOKEN = 100.0, 8.0\nfor n_tok in (5, 20, 40):\n    total = ENC_COST + DEC_COST_PER_TOKEN * n_tok\n    print(f\"토큰 {n_tok:2d}개: 전체 {total:6.1f} = Encoder {ENC_COST:.0f} + Decoder {total - ENC_COST:.0f} (Decoder 몫 {(total - ENC_COST) / total:.0%})\")\ncheck((DEC_COST_PER_TOKEN * 40) / (ENC_COST + DEC_COST_PER_TOKEN * 40) > 0.5, \"토큰이 40개쯤 되면 Decoder 가 절반 넘게 차지해요.\")\n\n# 2) 양자화: float32 -> int8 (눈금 간격 scale = 최대값 / 127)\nrng = np.random.default_rng(0)\nw = rng.normal(0, 0.05, (256, 128)).astype(np.float32)\nscale = np.abs(w).max() / 127\nq = np.clip(np.round(w / scale), -127, 127).astype(np.int8)\nerr = np.abs(w - q.astype(np.float32) * scale).mean() / np.abs(w).mean()\nprint(f\"메모리 {w.nbytes / 1024:.0f} KB -> {q.nbytes / 1024:.0f} KB, 평균 상대 오차 {err:.1%}\")\ncheck(w.nbytes == 4 * q.nbytes and err < 0.03, \"int8 은 float32 의 1/4 크기이고 오차는 몇 % 이내예요.\")\n\n# 3) VAD: 소리 크기로 말 구간만 남기면 Whisper 에 넣을 길이가 줄어든다\nt = np.arange(12 * SR) / SR\ngate = ((t % 4) < 1.5).astype(np.float32)                         # 4초마다 1.5초만 말\ny = 0.3 * np.sin(2 * np.pi * 200 * t) * gate + 0.001 * rng.standard_normal(len(t))\nframe = 400\nrms = np.sqrt((y[: len(y) // frame * frame].reshape(-1, frame) ** 2).mean(1))\nspeech = rms > 0.02\nprint(f\"전체 {len(y) / SR:.0f}초 중 말 {speech.mean() * len(y) / SR:.1f}초만 Whisper 에 넣음 ({speech.mean():.0%})\")\ncheck(0.3 < speech.mean() < 0.45, \"말 구간은 약 37% 예요 (1.5초 / 4초).\")\n\n# 4) LocalAgreement: 두 번 연속 같은 앞부분만 확정\nlcp = lambda a, b: next((i for i, (x, z) in enumerate(zip(a, b)) if x != z), min(len(a), len(b)))\nh1, h2 = [\"아이구루\", \"교육\"], [\"아이구루\", \"교육센터에서\", \"라이\"]\nprint(\"공통 앞부분 단어 수:\", lcp(h1, h2), \"->\", h2[: lcp(h1, h2)], \"만 확정\")\ncheck(lcp(h1, h2) == 1 and lcp([\"가\", \"나\"], [\"다\", \"나\"]) == 0, \"앞에서부터 같은 단어가 몇 개 이어지는지가 확정 길이예요.\")\n",
+  "typescript": "// D8 · Part 0~6 · 오늘의 흐름 전체 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_flow.ts\n//   병목(Decoder) 찾기 → 양자화로 줄이기 → VAD 로 안 듣기 → LocalAgreement 로 말하는 도중에 확정하기, 네 가지 핵심 계산을 한 파일에서 맛보기\n// 대체 경로: faster-whisper · whisper.cpp 모델은 쓰지 않고, 비용 모델과 장난감 배열·합성 신호로 같은 계산을 한다.\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 5;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst randn = (): number => Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\n\n// 1) 병목: Encoder 는 한 번, Decoder 는 토큰마다 -> 토큰이 많을수록 Decoder 몫이 커진다 (비용 단위 = 임의 단위)\nconst ENC_COST = 100;\nconst DEC_COST_PER_TOKEN = 8;\nfor (const n of [5, 20, 40]) {\n  const total = ENC_COST + DEC_COST_PER_TOKEN * n;\n  console.log(`토큰 ${n}개: 전체 ${total.toFixed(1)} = Encoder ${ENC_COST} + Decoder ${total - ENC_COST} (Decoder 몫 ${Math.round(((total - ENC_COST) / total) * 100)}%)`);\n}\ncheck((DEC_COST_PER_TOKEN * 40) / (ENC_COST + DEC_COST_PER_TOKEN * 40) > 0.5, \"토큰이 40개쯤 되면 Decoder 가 절반 넘게 차지해요.\");\n\n// 2) 양자화: float32 -> int8 (눈금 간격 scale = 최대값 / 127)\nconst w = Float32Array.from({ length: 256 * 128 }, () => 0.05 * randn());\nconst scale = Math.max(...w.map(Math.abs)) / 127;\nconst q = Int8Array.from(w, (v) => Math.max(-127, Math.min(127, Math.round(v / scale))));\nlet errSum = 0;\nlet magSum = 0;\nw.forEach((v, i) => {\n  errSum += Math.abs(v - q[i] * scale);\n  magSum += Math.abs(v);\n});\nconst err = errSum / magSum;\nconsole.log(`메모리 ${w.byteLength / 1024} KB -> ${q.byteLength / 1024} KB, 평균 상대 오차 ${(err * 100).toFixed(1)}%`);\ncheck(w.byteLength === 4 * q.byteLength && err < 0.03, \"int8 은 float32 의 1/4 크기이고 오차는 몇 % 이내예요.\");\n\n// 3) VAD: 소리 크기로 말 구간만 남기면 Whisper 에 넣을 길이가 줄어든다\nconst y = Float32Array.from({ length: 12 * SR }, (_, i) => {\n  const t = i / SR;\n  return (t % 4 < 1.5 ? 0.3 * Math.sin(2 * Math.PI * 200 * t) : 0) + 0.001 * randn(); // 4초마다 1.5초만 말\n});\nconst frame = 400;\nlet on = 0;\nconst nFrames = Math.floor(y.length / frame);\nfor (let i = 0; i < nFrames; i++) {\n  let s = 0;\n  for (let j = 0; j < frame; j++) s += y[i * frame + j] ** 2;\n  if (Math.sqrt(s / frame) > 0.02) on++;\n}\nconst ratio = on / nFrames;\nconsole.log(`전체 ${y.length / SR}초 중 말 ${(ratio * (y.length / SR)).toFixed(1)}초만 Whisper 에 넣음 (${Math.round(ratio * 100)}%)`);\ncheck(ratio > 0.3 && ratio < 0.45, \"말 구간은 약 37% 예요 (1.5초 / 4초).\");\n\n// 4) LocalAgreement: 두 번 연속 같은 앞부분만 확정\nconst lcp = (a: string[], b: string[]): number => {\n  let i = 0;\n  while (i < Math.min(a.length, b.length) && a[i] === b[i]) i++;\n  return i;\n};\nconst h1 = [\"아이구루\", \"교육\"];\nconst h2 = [\"아이구루\", \"교육센터에서\", \"라이\"];\nconsole.log(\"공통 앞부분 단어 수:\", lcp(h1, h2), \"->\", h2.slice(0, lcp(h1, h2)).join(\" \"), \"만 확정\");\ncheck(lcp(h1, h2) === 1 && lcp([\"가\", \"나\"], [\"다\", \"나\"]) === 0, \"앞에서부터 같은 단어가 몇 개 이어지는지가 확정 길이예요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Int8Array · Uint8Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치 · 양자화 정수를 담는 타입 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "bottleneck": {
+  "part": "Part 1 · 왜 느린가: Encoder 와 Decoder 시간 재기",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    4,
+    5
+   ]
+  ],
+  "python": "# D8 · Part 1 · 왜 느린가: 시간이 어디로 가는지 재기 (Encoder 와 Decoder) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_bottleneck.py   (입력은 코드 안에서 만든 난수 · 인터넷·GPU·마이크 불필요)\n#   Encoder 는 한 번, Decoder 는 토큰 하나마다 한 번 돈다: 장난감 트랜스포머 블록의 곱셈 횟수를 세어 Decoder 몫이 토큰 수에 따라 커지는 것을 확인하고 실제 시간도 함께 찍는다\n# 대체 경로: whisper-small 을 돌려 시간을 재는 대신, 같은 구조의 작은 행렬 곱 반복(장난감)으로 곱셈 횟수와 시간을 잰다. 시간은 컴퓨터마다 달라 정답 판정에는 곱셈 횟수만 쓴다.\nimport time\n\nimport numpy as np\n\nD, FRAMES = 128, 1500                        # 모델 차원, Encoder 칸 수 (Whisper 의 1500칸)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nrng = np.random.default_rng(0)\nW = rng.normal(0, 0.05, (D, D)).astype(np.float32)\nx_audio = rng.normal(size=(FRAMES, D)).astype(np.float32)\nmults = {\"enc\": 0, \"dec\": 0}\n\n\ndef encoder(x, layers=4):\n    for _ in range(layers):\n        x = np.tanh(x @ W)                                   # (FRAMES, D) x (D, D)\n        mults[\"enc\"] += x.shape[0] * D * D\n    return x\n\n\ndef decoder_step(h_enc, tok_vec, layers=4):\n    v = tok_vec\n    for _ in range(layers):\n        v = np.tanh(v @ W)\n        mults[\"dec\"] += D * D\n        scores = h_enc @ v                                   # cross-attention: 프레임 1500개와 내적\n        mults[\"dec\"] += FRAMES * D\n        v = v + (np.exp(scores - scores.max()) / np.exp(scores - scores.max()).sum()) @ h_enc * 0.01\n        mults[\"dec\"] += FRAMES * D\n    return v\n\n\nt0 = time.perf_counter()\nh = encoder(x_audio)\nenc_time = time.perf_counter() - t0                          # Encoder 는 한 번만\nn_tok = 30\ntok = rng.normal(size=D).astype(np.float32)\nt0 = time.perf_counter()\nfor _ in range(n_tok):                                       # 토큰 하나마다 Decoder 를 한 번씩\n    tok = decoder_step(h, tok)\ndec_time = time.perf_counter() - t0\ntotal = enc_time + dec_time                                  # 전체 = Encoder + Decoder (빈칸: total - enc_time = dec_time)\nprint(f\"시간: 전체 {total * 1000:6.0f} ms = Encoder {enc_time * 1000:5.0f} ms + Decoder {dec_time * 1000:6.0f} ms (토큰 {n_tok}개)\")\nprint(f\"곱셈 횟수: Encoder {mults['enc']:,} | Decoder {mults['dec']:,} ({mults['dec'] / (mults['enc'] + mults['dec']):.0%})\")\n\n# 토큰 수에 따른 Decoder 몫: 곱셈 횟수 모델\nenc_m = 4 * FRAMES * D * D\ndec_m = lambda n: n * 4 * (D * D + 2 * FRAMES * D)\nfor n in (5, 30, 100):\n    print(f\"  토큰 {n:3d}개 -> Decoder 몫 {dec_m(n) / (enc_m + dec_m(n)):.0%}\")\ncheck(mults[\"enc\"] == enc_m and mults[\"dec\"] == dec_m(n_tok), \"곱셈 횟수는 식과 같아야 해요.\")\ncheck(dec_m(100) / (enc_m + dec_m(100)) > dec_m(5) / (enc_m + dec_m(5)), \"토큰이 많을수록 Decoder 가 차지하는 몫이 커져요.\")\n",
+  "typescript": "// D8 · Part 1 · 왜 느린가: 시간이 어디로 가는지 재기 (Encoder 와 Decoder) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_bottleneck.ts\n//   Encoder 는 한 번, Decoder 는 토큰 하나마다 한 번 돈다: 장난감 트랜스포머 블록의 곱셈 횟수를 세어 Decoder 몫이 토큰 수에 따라 커지는 것을 확인하고 실제 시간도 함께 찍는다\n// 대체 경로: whisper-small 을 돌려 시간을 재는 대신, 같은 구조의 작은 행렬 곱 반복(장난감)으로 곱셈 횟수와 시간을 잰다. 시간은 컴퓨터마다 달라 정답 판정에는 곱셈 횟수만 쓴다.\nconst D = 64; // 모델 차원\nconst FRAMES = 300; // Encoder 칸 수 (Whisper 는 1500칸, 여기서는 시간 절약용으로 줄임)\nconst LAYERS = 4;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 3;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst rnd = (s: number): number => (uni() - 0.5) * s;\nconst W = Array.from({ length: D }, () => Float64Array.from({ length: D }, () => rnd(0.2)));\nconst mults = { enc: 0, dec: 0 };\n\nconst matvec = (v: Float64Array): Float64Array => {\n  const out = new Float64Array(D);\n  for (let i = 0; i < D; i++) {\n    let s = 0;\n    for (let j = 0; j < D; j++) s += v[j] * W[j][i];\n    out[i] = Math.tanh(s);\n  }\n  return out;\n};\n\nfunction encoder(x: Float64Array[]): Float64Array[] {\n  let cur = x;\n  for (let l = 0; l < LAYERS; l++) {\n    cur = cur.map(matvec);\n    mults.enc += cur.length * D * D;\n  }\n  return cur;\n}\n\nfunction decoderStep(hEnc: Float64Array[], tokVec: Float64Array): Float64Array {\n  let v = tokVec;\n  for (let l = 0; l < LAYERS; l++) {\n    v = matvec(v);\n    mults.dec += D * D;\n    const scores = hEnc.map((f) => f.reduce((s, a, i) => s + a * v[i], 0)); // cross-attention: 프레임과 내적\n    mults.dec += FRAMES * D;\n    const m = Math.max(...scores);\n    const e = scores.map((s) => Math.exp(s - m));\n    const sum = e.reduce((a, b) => a + b, 0);\n    const ctx = new Float64Array(D);\n    e.forEach((w, t) => {\n      for (let i = 0; i < D; i++) ctx[i] += (w / sum) * hEnc[t][i];\n    });\n    mults.dec += FRAMES * D;\n    v = v.map((a, i) => a + 0.01 * ctx[i]);\n  }\n  return v;\n}\n\nconst xAudio = Array.from({ length: FRAMES }, () => Float64Array.from({ length: D }, () => rnd(2)));\nlet t0 = performance.now();\nconst h = encoder(xAudio);\nconst encTime = performance.now() - t0; // Encoder 는 한 번만\nconst nTok = 30;\nlet tok = Float64Array.from({ length: D }, () => rnd(2));\nt0 = performance.now();\nfor (let i = 0; i < nTok; i++) tok = decoderStep(h, tok); // 토큰 하나마다 Decoder 를 한 번씩\nconst decTime = performance.now() - t0;\nconst total = encTime + decTime; // 전체 = Encoder + Decoder (빈칸: total - encTime = decTime)\nconsole.log(`시간: 전체 ${total.toFixed(0)} ms = Encoder ${encTime.toFixed(0)} ms + Decoder ${decTime.toFixed(0)} ms (토큰 ${nTok}개)`);\nconsole.log(`곱셈 횟수: Encoder ${mults.enc.toLocaleString()} | Decoder ${mults.dec.toLocaleString()} (${Math.round((mults.dec / (mults.enc + mults.dec)) * 100)}%)`);\n\n// 토큰 수에 따른 Decoder 몫: 곱셈 횟수 모델\nconst encM = LAYERS * FRAMES * D * D;\nconst decM = (n: number): number => n * LAYERS * (D * D + 2 * FRAMES * D);\nfor (const n of [5, 30, 100]) console.log(`  토큰 ${n}개 -> Decoder 몫 ${Math.round((decM(n) / (encM + decM(n))) * 100)}%`);\ncheck(mults.enc === encM && mults.dec === decM(nTok), \"곱셈 횟수는 식과 같아야 해요.\");\ncheck(decM(100) / (encM + decM(100)) > decM(5) / (encM + decM(5)), \"토큰이 많을수록 Decoder 가 차지하는 몫이 커져요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Int8Array · Uint8Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치 · 양자화 정수를 담는 타입 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "engine": {
+  "part": "Part 2 · faster-whisper: 같은 모델, 더 빠른 엔진",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    6,
+    8
+   ]
+  ],
+  "python": "# D8 · Part 2 · faster-whisper: 같은 모델, 더 빠른 엔진 (KV 캐시 · 게으른 생성기) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_engine.py   (입력은 코드 안에서 만든 난수 · 인터넷·GPU·마이크 불필요)\n#   엔진이 빠른 이유 하나: 이미 계산한 key·value 를 저장(KV 캐시)해 두면 토큰이 늘어도 한 걸음 일이 늘지 않는다. 캐시 있음·없음의 곱셈 횟수와 결과가 같음을 확인하고, 파이썬 generator 가 '꺼낼 때' 계산하는 것도 확인\n# 대체 경로: faster-whisper(CTranslate2) 와 small 모델 대신, 한 층짜리 장난감 self-attention 디코더로 캐시 유무를 비교한다.\nimport numpy as np\n\nD = 32\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nrng = np.random.default_rng(0)\nWq, Wk, Wv = (rng.normal(0, 0.3, (D, D)) for _ in range(3))\nembed = rng.normal(size=(50, D))                                 # 토큰 50개의 임베딩\n\n\ndef softmax(s):\n    e = np.exp(s - s.max())\n    return e / e.sum()\n\n\ndef decode_no_cache(first, steps):\n    toks, mults = [first], 0\n    for _ in range(steps):\n        X = embed[toks]                                          # 지금까지 모든 토큰을 매번 다시 투영\n        K, V = X @ Wk, X @ Wv\n        mults += 2 * len(toks) * D * D\n        q = X[-1] @ Wq\n        out = softmax(K @ q / np.sqrt(D)) @ V\n        mults += D * D + 2 * len(toks) * D\n        toks.append(int(np.argmax(embed @ out)))\n    return toks, mults\n\n\ndef decode_cache(first, steps):\n    toks, mults = [first], 0\n    Ks, Vs = [], []                                              # KV 캐시: 한 번 계산한 key · value 를 쌓아 둠\n    for _ in range(steps):\n        x = embed[toks[-1]]                                      # 새 토큰 하나만 투영\n        Ks.append(x @ Wk)\n        Vs.append(x @ Wv)\n        mults += 2 * D * D\n        q = x @ Wq\n        out = softmax(np.array(Ks) @ q / np.sqrt(D)) @ np.array(Vs)\n        mults += D * D + 2 * len(toks) * D\n        toks.append(int(np.argmax(embed @ out)))\n    return toks, mults\n\n\na, ma = decode_no_cache(3, 30)\nb, mb = decode_cache(3, 30)\nprint(f\"캐시 없음 곱셈 {ma:,}번 | 캐시 있음 {mb:,}번 -> {ma / mb:.1f}배 적음\")\nprint(\"생성한 토큰 앞 10개:\", a[:10])\ncheck(a == b and mb < ma, \"캐시를 써도 결과 토큰은 똑같고, 곱셈은 줄어야 해요.\")\n\n# 게으른 생성기: transcribe() 는 호출만으로는 일하지 않고, list() 로 꺼낼 때 일한다 (빈칸: list)\ncalls = []\n\n\ndef transcribe(clips):\n    for c in clips:\n        calls.append(c)                                          # 이 줄은 꺼낼 때에만 실행됨\n        yield f\"구간 {c} 받아쓰기\"\n\n\nsegments = transcribe([1, 2, 3])\nbefore = len(calls)\nsegs = list(segments)\nprint(f\"호출 직후 처리한 구간 {before}개 -> list() 후 {len(calls)}개 | {segs}\")\ncheck(before == 0 and isinstance(segs, list) and len(calls) == 3, \"generator 는 list() 로 꺼낼 때 실제로 일해요.\")\n",
+  "typescript": "// D8 · Part 2 · faster-whisper: 같은 모델, 더 빠른 엔진 (KV 캐시 · 게으른 생성기) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_engine.ts\n//   엔진이 빠른 이유 하나: 이미 계산한 key·value 를 저장(KV 캐시)해 두면 토큰이 늘어도 한 걸음 일이 늘지 않는다. 캐시 있음·없음의 곱셈 횟수와 결과가 같음을 확인하고, 제너레이터(function*)가 '꺼낼 때' 계산하는 것도 확인\n// 대체 경로: faster-whisper(CTranslate2) 와 small 모델 대신, 한 층짜리 장난감 self-attention 디코더로 캐시 유무를 비교한다.\nconst D = 16;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 11;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst mat = (r: number, c: number, s: number): number[][] => Array.from({ length: r }, () => Array.from({ length: c }, () => (uni() - 0.5) * s));\nconst Wq = mat(D, D, 0.6);\nconst Wk = mat(D, D, 0.6);\nconst Wv = mat(D, D, 0.6);\nconst embed = mat(50, D, 2);\nconst proj = (x: number[], W: number[][]): number[] => W[0].map((_, j) => x.reduce((s, v, i) => s + v * W[i][j], 0));\nconst dot = (a: number[], b: number[]): number => a.reduce((s, v, i) => s + v * b[i], 0);\nconst softmax = (s: number[]): number[] => {\n  const m = Math.max(...s);\n  const e = s.map((v) => Math.exp(v - m));\n  const t = e.reduce((a, b) => a + b, 0);\n  return e.map((v) => v / t);\n};\nconst attend = (Ks: number[][], Vs: number[][], q: number[]): number[] => {\n  const w = softmax(Ks.map((k) => dot(k, q) / Math.sqrt(D)));\n  return Vs[0].map((_, j) => w.reduce((s, a, t) => s + a * Vs[t][j], 0));\n};\nconst nextTok = (out: number[]): number => embed.map((e) => dot(e, out)).reduce((b, v, i, a) => (v > a[b] ? i : b), 0);\n\nfunction decodeNoCache(first: number, steps: number): [number[], number] {\n  const toks = [first];\n  let mults = 0;\n  for (let s = 0; s < steps; s++) {\n    const X = toks.map((t) => embed[t]); // 지금까지 모든 토큰을 매번 다시 투영\n    const Ks = X.map((x) => proj(x, Wk));\n    const Vs = X.map((x) => proj(x, Wv));\n    mults += 2 * toks.length * D * D;\n    const q = proj(X[X.length - 1], Wq);\n    const out = attend(Ks, Vs, q);\n    mults += D * D + 2 * toks.length * D;\n    toks.push(nextTok(out));\n  }\n  return [toks, mults];\n}\n\nfunction decodeCache(first: number, steps: number): [number[], number] {\n  const toks = [first];\n  let mults = 0;\n  const Ks: number[][] = []; // KV 캐시: 한 번 계산한 key · value 를 쌓아 둠\n  const Vs: number[][] = [];\n  for (let s = 0; s < steps; s++) {\n    const x = embed[toks[toks.length - 1]]; // 새 토큰 하나만 투영\n    Ks.push(proj(x, Wk));\n    Vs.push(proj(x, Wv));\n    mults += 2 * D * D;\n    const q = proj(x, Wq);\n    const out = attend(Ks, Vs, q);\n    mults += D * D + 2 * toks.length * D;\n    toks.push(nextTok(out));\n  }\n  return [toks, mults];\n}\n\nconst [a, ma] = decodeNoCache(3, 30);\nconst [b, mb] = decodeCache(3, 30);\nconsole.log(`캐시 없음 곱셈 ${ma.toLocaleString()}번 | 캐시 있음 ${mb.toLocaleString()}번 -> ${(ma / mb).toFixed(1)}배 적음`);\nconsole.log(\"생성한 토큰 앞 10개:\", a.slice(0, 10).join(\", \"));\ncheck(a.join() === b.join() && mb < ma, \"캐시를 써도 결과 토큰은 똑같고, 곱셈은 줄어야 해요.\");\n\n// 게으른 생성기: 호출만으로는 일하지 않고, 꺼낼 때(Array.from) 일한다\nconst calls: number[] = [];\nfunction* transcribe(clips: number[]): Generator<string> {\n  for (const c of clips) {\n    calls.push(c); // 이 줄은 꺼낼 때에만 실행됨\n    yield `구간 ${c} 받아쓰기`;\n  }\n}\nconst segments = transcribe([1, 2, 3]);\nconst before = calls.length;\nconst segs = Array.from(segments);\nconsole.log(`호출 직후 처리한 구간 ${before}개 -> 꺼낸 뒤 ${calls.length}개 | ${segs.join(\" / \")}`);\ncheck(before === 0 && Array.isArray(segs) && calls.length === 3, \"제너레이터는 꺼낼 때 실제로 일해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "제너레이터(function*)",
+     "version": "내장",
+     "purpose": "호출만으로는 일하지 않고 꺼낼 때 계산하는 게으른 반복",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function*",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "quant": {
+  "part": "Part 3 · 양자화: 숫자를 작게 저장하기",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    9,
+    11
+   ]
+  ],
+  "python": "# D8 · Part 3 · 양자화: 숫자를 작게 저장하기 (int8 눈금 · 오차 · 모델 크기) — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_quant.py   (입력은 코드 안에서 만든 난수 · 인터넷·GPU·마이크 불필요)\n#   가중치 하나를 scale = 최대값/127 눈금으로 int8 에 담고 되돌려 오차를 재고, 한 덩어리 vs 행마다 눈금, 숫자 형식별 모델 크기(float32 · float16 · int8)를 계산\n# 대체 경로: whisper-small 의 실제 가중치 대신, 같은 모양(3072 x 768)의 정규분포 난수 가중치를 쓴다.\nimport numpy as np\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nrng = np.random.default_rng(0)\nw = rng.normal(0, 0.04, (3072, 768)).astype(np.float32)\nw[5, 5] = 1.2                                                      # 튀는 값 하나: 눈금 간격을 키워 나머지 오차를 키운다\nscale = np.abs(w).max() / 127                                      # 눈금 간격 (한 덩어리 전체에 하나)\nq = np.clip(np.round(w / scale), -127, 127).astype(np.int8)        # int8 정수로\nw_hat = q.astype(np.float32) * scale                               # 되돌리기\nerr = np.abs(w - w_hat)\nprint(f\"가중치 모양 {w.shape}, 개수 {w.size:,} | 눈금 간격 scale = {scale:.6f}\")\nprint(f\"원래  : {w[0, :5].round(5)}\\n정수 q: {q[0, :5]}\\n복원  : {w_hat[0, :5].round(5)}\")\nprint(f\"평균 오차 {err.mean():.2e} (가중치 평균 크기의 {err.mean() / np.abs(w).mean():.1%})\")\nprint(f\"메모리: float32 {w.nbytes / 1e6:.1f} MB -> int8 {q.nbytes / 1e6:.1f} MB\")\ncheck(w.nbytes == 4 * q.nbytes and err.max() <= scale / 2 + 1e-7, \"int8 은 1/4 크기이고, 오차는 눈금 간격의 절반 이하예요.\")\n\n# 행마다 눈금: 튀는 값이 있어도 다른 행의 오차는 작다\nrow_scale = np.abs(w).max(1, keepdims=True) / 127\nq2 = np.clip(np.round(w / row_scale), -127, 127)\nerr2 = np.abs(w - q2 * row_scale).mean()\nprint(f\"눈금 하나 {err.mean():.2e} vs 행마다 눈금 {err2:.2e}\")\ncheck(err2 < err.mean(), \"행마다 눈금을 쓰면 평균 오차가 줄어요.\")\n\n# 숫자 형식별 모델 크기\nBYTES = {\"float32\": 4, \"float16\": 2, \"int8\": 1}\nn_params = 244_000_000                                             # whisper-small 약 2억 4천만 개\nfor k, b in BYTES.items():\n    print(f\"  {k:8s}: 숫자 하나 {b}바이트 -> 가중치 약 {n_params * b / 1e6:5.0f} MB\")\ncheck(BYTES[\"int8\"] * 8 == 8 and BYTES[\"float32\"] // BYTES[\"int8\"] == 4, \"int8 = 8비트 = 1바이트.\")\n",
+  "typescript": "// D8 · Part 3 · 양자화: 숫자를 작게 저장하기 (int8 눈금 · 오차 · 모델 크기) — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_quant.ts\n//   가중치 하나를 scale = 최대값/127 눈금으로 int8 에 담고 되돌려 오차를 재고, 한 덩어리 vs 행마다 눈금, 숫자 형식별 모델 크기(float32 · float16 · int8)를 계산\n// 대체 경로: whisper-small 의 실제 가중치 대신, 정규분포 난수 가중치(256 x 192)를 쓴다.\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 21;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst randn = (): number => Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\n\nconst ROWS = 256;\nconst COLS = 192;\nconst w = Float32Array.from({ length: ROWS * COLS }, () => 0.04 * randn());\nw[5 * COLS + 5] = 1.2; // 튀는 값 하나: 눈금 간격을 키워 나머지 오차를 키운다\nconst absMax = (arr: Float32Array | number[]): number => arr.reduce((m, v) => Math.max(m, Math.abs(v)), 0);\nconst clamp127 = (v: number): number => Math.max(-127, Math.min(127, Math.round(v)));\n\nconst scale = absMax(w) / 127; // 눈금 간격 (한 덩어리 전체에 하나)\nconst q = Int8Array.from(w, (v) => clamp127(v / scale)); // int8 정수로\nlet errSum = 0;\nlet errMax = 0;\nlet mag = 0;\nw.forEach((v, i) => {\n  const e = Math.abs(v - q[i] * scale); // 되돌리기\n  errSum += e;\n  errMax = Math.max(errMax, e);\n  mag += Math.abs(v);\n});\nconsole.log(`가중치 모양 (${ROWS}, ${COLS}), 개수 ${w.length} | 눈금 간격 scale = ${scale.toFixed(6)}`);\nconsole.log(`원래  : ${Array.from(w.slice(0, 5), (v) => v.toFixed(5)).join(\" \")}`);\nconsole.log(`정수 q: ${Array.from(q.slice(0, 5)).join(\" \")}`);\nconsole.log(`평균 오차 ${(errSum / w.length).toExponential(2)} (가중치 평균 크기의 ${((errSum / mag) * 100).toFixed(1)}%)`);\nconsole.log(`메모리: float32 ${w.byteLength / 1000} KB -> int8 ${q.byteLength / 1000} KB`);\ncheck(w.byteLength === 4 * q.byteLength && errMax <= scale / 2 + 1e-6, \"int8 은 1/4 크기이고, 오차는 눈금 간격의 절반 이하예요.\");\n\n// 행마다 눈금: 튀는 값이 있어도 다른 행의 오차는 작다\nlet err2 = 0;\nfor (let r = 0; r < ROWS; r++) {\n  const row = w.subarray(r * COLS, (r + 1) * COLS);\n  const rs = absMax(row) / 127;\n  row.forEach((v) => {\n    err2 += Math.abs(v - clamp127(v / rs) * rs);\n  });\n}\nconsole.log(`눈금 하나 ${(errSum / w.length).toExponential(2)} vs 행마다 눈금 ${(err2 / w.length).toExponential(2)}`);\ncheck(err2 < errSum, \"행마다 눈금을 쓰면 평균 오차가 줄어요.\");\n\n// 숫자 형식별 모델 크기\nconst BYTES: Record<string, number> = { float32: 4, float16: 2, int8: 1 };\nconst nParams = 244_000_000; // whisper-small 약 2억 4천만 개\nfor (const [k, b] of Object.entries(BYTES)) console.log(`  ${k.padEnd(8)}: 숫자 하나 ${b}바이트 -> 가중치 약 ${String(Math.round((nParams * b) / 1e6)).padStart(5)} MB`);\ncheck(BYTES.int8 * 8 === 8 && BYTES.float32 / BYTES.int8 === 4, \"int8 = 8비트 = 1바이트.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Int8Array · Uint8Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치 · 양자화 정수를 담는 타입 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "batch": {
+  "part": "Part 4 · VAD 와 배치",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    12,
+    13
+   ]
+  ],
+  "python": "# D8 · Part 4 · VAD 와 배치: 듣지 않아도 될 것은 빼고, 한 번에 여러 개 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_batch.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   에너지 VAD 로 말 구간만 잘라 내고, 구간들을 쌓아(배치) 한 번의 행렬곱으로 처리해도 결과가 같다는 것과 호출 횟수가 줄어드는 것을 확인\n# 대체 경로: faster-whisper 의 vad_filter · BatchedInferencePipeline(silero-vad, 모델 다운로드 필요) 대신 프레임 에너지 VAD 와 장난감 행렬곱을 쓴다.\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n# 합성 녹음: 말 4구간 (1.0~2.4, 3.5~4.6, 7.0~8.5, 9.5~10.3초) + 사이는 거의 무음\nrng = np.random.default_rng(0)\nt = np.arange(12 * SR) / SR\nspans = [(1.0, 2.4), (3.5, 4.6), (7.0, 8.5), (9.5, 10.3)]\ngate = np.zeros_like(t)\nfor a, b in spans:\n    gate[(t >= a) & (t < b)] = 1\ny = (0.3 * np.sin(2 * np.pi * 190 * t) * gate + 0.001 * rng.standard_normal(len(t))).astype(np.float32)\n\n\ndef vad(y, frame=400, thr=0.02, min_gap_frames=25):\n    rms = np.sqrt((y[: len(y) // frame * frame].reshape(-1, frame) ** 2).mean(1))\n    on = rms > thr\n    segs, start, gap = [], None, 0\n    for i, v in enumerate(on):\n        if v:\n            start = i if start is None else start\n            gap = 0\n        elif start is not None:\n            gap += 1\n            if gap >= min_gap_frames:                            # 0.625초 이상 쉬면 구간 끝\n                segs.append((start * frame / SR, (i - gap + 1) * frame / SR))\n                start, gap = None, 0\n    if start is not None:\n        segs.append((start * frame / SR, len(on) * frame / SR))\n    return segs\n\n\nfound = vad(y)\nspeech_sec = sum(b - a for a, b in found)\nprint(\"VAD 구간:\", [(round(a, 2), round(b, 2)) for a, b in found])\nprint(f\"Whisper 에 넣는 길이 {speech_sec:.1f}초 / 전체 {len(y) / SR:.0f}초 ({speech_sec / (len(y) / SR):.0%})\")\ncheck(len(found) == 4 and all(abs(f[0] - s[0]) < 0.1 and abs(f[1] - s[1]) < 0.1 for f, s in zip(found, spans)), \"VAD 가 말 구간 4개를 찾아야 해요.\")\n\n# 배치: 구간마다 따로 곱하기(4번 호출) vs 길이를 맞춰 쌓아 한 번에 곱하기(1번 호출)\nW = rng.normal(0, 0.1, (64, 64))\nfeats = [rng.normal(size=(100, 64)) for _ in found]               # 구간마다 특징 100칸 (같은 길이로 가정)\none_by_one = [f @ W for f in feats]                                # 호출 4번\nBATCH = len(feats)                                                 # 묶음 크기: 한 번에 몇 구간\nbatched = np.stack(feats) @ W                                      # 호출 1번: (4, 100, 64) @ (64, 64)\nprint(f\"호출 횟수: 차례로 {len(feats)}번 -> 배치 1번 | 결과 차이 {np.abs(np.stack(one_by_one) - batched).max():.1e}\")\ncheck(BATCH == 4 and np.allclose(np.stack(one_by_one), batched), \"배치로 곱해도 결과는 같아야 해요.\")\n",
+  "typescript": "// D8 · Part 4 · VAD 와 배치: 듣지 않아도 될 것은 빼고, 한 번에 여러 개 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_batch.ts\n//   에너지 VAD 로 말 구간만 잘라 내고, 구간들을 쌓아(배치) 한 번에 처리해도 결과가 같다는 것과 호출 횟수가 줄어드는 것을 확인\n// 대체 경로: faster-whisper 의 vad_filter · BatchedInferencePipeline(silero-vad, 모델 다운로드 필요) 대신 프레임 에너지 VAD 와 장난감 행렬곱을 쓴다.\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 8;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst randn = (): number => Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\n\n// 합성 녹음: 말 4구간 + 사이는 거의 무음\nconst spans: [number, number][] = [[1.0, 2.4], [3.5, 4.6], [7.0, 8.5], [9.5, 10.3]];\nconst y = Float32Array.from({ length: 12 * SR }, (_, i) => {\n  const t = i / SR;\n  const on = spans.some(([a, b]) => t >= a && t < b);\n  return (on ? 0.3 * Math.sin(2 * Math.PI * 190 * t) : 0) + 0.001 * randn();\n});\n\nfunction vad(sig: Float32Array, frame: number = 400, thr: number = 0.02, minGapFrames: number = 25): [number, number][] {\n  const n = Math.floor(sig.length / frame);\n  const on: boolean[] = [];\n  for (let i = 0; i < n; i++) {\n    let s = 0;\n    for (let j = 0; j < frame; j++) s += sig[i * frame + j] ** 2;\n    on.push(Math.sqrt(s / frame) > thr);\n  }\n  const segs: [number, number][] = [];\n  let start = -1;\n  let gap = 0;\n  on.forEach((v, i) => {\n    if (v) {\n      if (start < 0) start = i;\n      gap = 0;\n    } else if (start >= 0) {\n      gap++;\n      if (gap >= minGapFrames) {\n        // 0.625초 이상 쉬면 구간 끝\n        segs.push([(start * frame) / SR, ((i - gap + 1) * frame) / SR]);\n        start = -1;\n        gap = 0;\n      }\n    }\n  });\n  if (start >= 0) segs.push([(start * frame) / SR, (n * frame) / SR]);\n  return segs;\n}\n\nconst found = vad(y);\nconst speechSec = found.reduce((s, [a, b]) => s + (b - a), 0);\nconsole.log(\"VAD 구간:\", found.map(([a, b]) => `(${a.toFixed(2)}, ${b.toFixed(2)})`).join(\" \"));\nconsole.log(`Whisper 에 넣는 길이 ${speechSec.toFixed(1)}초 / 전체 ${y.length / SR}초 (${Math.round((speechSec / (y.length / SR)) * 100)}%)`);\ncheck(found.length === 4 && found.every(([a, b], i) => Math.abs(a - spans[i][0]) < 0.1 && Math.abs(b - spans[i][1]) < 0.1), \"VAD 가 말 구간 4개를 찾아야 해요.\");\n\n// 배치: 구간마다 따로 곱하기(4번 호출) vs 길이를 맞춰 쌓아 한 번에 곱하기(1번 호출)\nconst D = 16;\nconst W = Array.from({ length: D }, () => Array.from({ length: D }, () => 0.1 * randn()));\nconst feats = found.map(() => Array.from({ length: 20 }, () => Array.from({ length: D }, randn))); // 구간마다 특징 20칸\nlet calls = 0;\nconst matmul = (X: number[][]): number[][] => {\n  calls++; // 호출 1번\n  return X.map((row) => W[0].map((_, j) => row.reduce((s, v, i) => s + v * W[i][j], 0)));\n};\nconst oneByOne = feats.map((f) => matmul(f)); // 호출 4번\nconst callsSeq = calls;\nconst BATCH = feats.length; // 묶음 크기: 한 번에 몇 구간\ncalls = 0;\nconst stacked = matmul(feats.flat()); // 호출 1번: 모든 구간의 칸을 위아래로 쌓아 곱함\nconst batched = Array.from({ length: BATCH }, (_, k) => stacked.slice(k * 20, (k + 1) * 20));\nconst diff = Math.max(...oneByOne.flatMap((m, k) => m.flatMap((row, r) => row.map((v, c) => Math.abs(v - batched[k][r][c])))));\nconsole.log(`호출 횟수: 차례로 ${callsSeq}번 -> 배치 ${calls}번 | 결과 차이 ${diff.toExponential(1)}`);\ncheck(BATCH === 4 && calls === 1 && diff < 1e-12, \"배치로 곱해도 결과는 같아야 해요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Int8Array · Uint8Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치 · 양자화 정수를 담는 타입 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "wcpp": {
+  "part": "Part 5 · whisper.cpp: q5_0 양자화",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    15,
+    15
+   ],
+   [
+    17,
+    18
+   ]
+  ],
+  "python": "# D8 · Part 5 · whisper.cpp: 블록 양자화 q5_0 (ggml) 직접 구현 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_wcpp.py   (입력은 코드 안에서 만든 난수 · 인터넷·GPU·마이크 불필요)\n#   ggml 의 q5_0 방식: 가중치 32개를 한 블록으로 묶어 블록마다 눈금(float16) 하나 + 5비트 정수 32개로 저장. 크기(5.5비트/값)와 복원 오차를 float16 과 비교\n# 대체 경로: whisper.cpp 를 빌드해 ggml-small.bin 을 양자화하는 대신, 같은 블록 규칙을 numpy 로 구현해 난수 가중치에 적용한다. (cmake · git · 모델 다운로드 불필요)\nimport numpy as np\n\nBLOCK = 32\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef quantize_q5_0(w: np.ndarray):\n    blocks = w.reshape(-1, BLOCK)\n    idx = np.abs(blocks).argmax(1)\n    amax = blocks[np.arange(len(blocks)), idx]                     # 부호 있는 최대 절대값\n    d = (amax / -16).astype(np.float16)                            # 블록 눈금 (float16 으로 저장)\n    inv = np.where(d == 0, 0, 1.0 / d.astype(np.float32))[:, None]\n    q = np.clip(np.floor(blocks * inv + 16.5), 0, 31).astype(np.uint8)    # 0..31 (5비트)\n    return d, q\n\n\ndef dequantize_q5_0(d, q):\n    return ((q.astype(np.float32) - 16) * d.astype(np.float32)[:, None]).reshape(-1)\n\n\nrng = np.random.default_rng(0)\nw = rng.normal(0, 0.05, 32 * 4096).astype(np.float32)             # 가중치 약 13만 개\nd, q = quantize_q5_0(w)\nw_hat = dequantize_q5_0(d, q)\n\nbits_per_weight = (BLOCK * 5 + 16) / BLOCK                        # 5비트 x 32 + float16 눈금 1개\nsize_f16, size_q5 = w.size * 2, w.size * bits_per_weight / 8\nmae = np.abs(w - w_hat).mean() / np.abs(w).mean()\nprint(f\"q5_0: 값 하나당 {bits_per_weight:.1f}비트 | float16 {size_f16 / 1e3:.0f} KB -> q5_0 {size_q5 / 1e3:.0f} KB ({size_q5 / size_f16:.0%})\")\nprint(f\"원래  : {w[:4].round(4)}\\n복원  : {w_hat[:4].round(4)}\\n평균 상대 오차 {mae:.1%}, 최대 오차 {np.abs(w - w_hat).max():.4f}\")\ncheck(q.max() <= 31 and size_q5 < 0.5 * size_f16, \"5비트 정수(0~31)로 담으면 float16 의 절반보다 작아요.\")\ncheck(mae < 0.06, \"q5_0 평균 상대 오차는 몇 % 이내예요.\")\n\nQTYPE = \"q5_0\"                                                    # 5비트 형식 이름 (빈칸의 답)\nprint(\"양자화 형식 이름:\", QTYPE)\ncheck(QTYPE == \"q5_0\" and BLOCK == 32, \"ggml 5비트 형식 이름은 q5_0, 블록은 32개예요.\")\n",
+  "typescript": "// D8 · Part 5 · whisper.cpp: 블록 양자화 q5_0 (ggml) 직접 구현 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_wcpp.ts\n//   ggml 의 q5_0 방식: 가중치 32개를 한 블록으로 묶어 블록마다 눈금(float16) 하나 + 5비트 정수 32개로 저장. 크기(5.5비트/값)와 복원 오차를 float16 과 비교\n// 대체 경로: whisper.cpp 를 빌드해 ggml-small.bin 을 양자화하는 대신, 같은 블록 규칙을 구현해 난수 가중치에 적용한다. (cmake · git · 모델 다운로드 불필요) float16 눈금은 float32 로 둔다.\nconst BLOCK = 32;\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nlet seed = 4;\nconst uni = (): number => {\n  // mulberry32: 작지만 고르게 퍼지는 의사 난수\n  seed = (seed + 0x6d2b79f5) | 0;\n  let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);\n  t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;\n  return (((t ^ (t >>> 14)) >>> 0) + 0.5) / 4294967296;\n};\nconst randn = (): number => Math.sqrt(-2 * Math.log(uni())) * Math.cos(2 * Math.PI * uni());\n\nfunction quantizeQ50(w: Float32Array): { d: Float32Array; q: Uint8Array } {\n  const nb = w.length / BLOCK;\n  const d = new Float32Array(nb);\n  const q = new Uint8Array(w.length);\n  for (let b = 0; b < nb; b++) {\n    let amax = 0; // 부호 있는 최대 절대값\n    for (let i = 0; i < BLOCK; i++) if (Math.abs(w[b * BLOCK + i]) > Math.abs(amax)) amax = w[b * BLOCK + i];\n    d[b] = amax / -16; // 블록 눈금\n    const inv = d[b] === 0 ? 0 : 1 / d[b];\n    for (let i = 0; i < BLOCK; i++) q[b * BLOCK + i] = Math.max(0, Math.min(31, Math.floor(w[b * BLOCK + i] * inv + 16.5))); // 0..31 (5비트)\n  }\n  return { d, q };\n}\nconst dequantizeQ50 = (d: Float32Array, q: Uint8Array): Float32Array => Float32Array.from(q, (v, i) => (v - 16) * d[Math.floor(i / BLOCK)]);\n\nconst w = Float32Array.from({ length: BLOCK * 1024 }, () => 0.05 * randn()); // 가중치 약 3만 개\nconst { d, q } = quantizeQ50(w);\nconst wHat = dequantizeQ50(d, q);\n\nconst bitsPerWeight = (BLOCK * 5 + 16) / BLOCK; // 5비트 x 32 + float16 눈금 1개\nconst sizeF16 = w.length * 2;\nconst sizeQ5 = (w.length * bitsPerWeight) / 8;\nlet errSum = 0;\nlet mag = 0;\nlet errMax = 0;\nw.forEach((v, i) => {\n  const e = Math.abs(v - wHat[i]);\n  errSum += e;\n  mag += Math.abs(v);\n  errMax = Math.max(errMax, e);\n});\nconst mae = errSum / mag;\nconsole.log(`q5_0: 값 하나당 ${bitsPerWeight.toFixed(1)}비트 | float16 ${(sizeF16 / 1e3).toFixed(0)} KB -> q5_0 ${(sizeQ5 / 1e3).toFixed(0)} KB (${Math.round((sizeQ5 / sizeF16) * 100)}%)`);\nconsole.log(`원래  : ${Array.from(w.slice(0, 4), (v) => v.toFixed(4)).join(\" \")}\\n복원  : ${Array.from(wHat.slice(0, 4), (v) => v.toFixed(4)).join(\" \")}\\n평균 상대 오차 ${(mae * 100).toFixed(1)}%, 최대 오차 ${errMax.toFixed(4)}`);\ncheck(Math.max(...q) <= 31 && sizeQ5 < 0.5 * sizeF16, \"5비트 정수(0~31)로 담으면 float16 의 절반보다 작아요.\");\ncheck(mae < 0.06, \"q5_0 평균 상대 오차는 몇 % 이내예요.\");\n\nconst QTYPE = \"q5_0\"; // 5비트 형식 이름 (빈칸의 답)\nconsole.log(\"양자화 형식 이름:\", QTYPE);\ncheck(QTYPE === \"q5_0\" && BLOCK === 32, \"ggml 5비트 형식 이름은 q5_0, 블록은 32개예요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Int8Array · Uint8Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치 · 양자화 정수를 담는 타입 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "chunk": {
+  "part": "Part 6 · 고정 청크 vs 끝점 청크",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    19,
+    19
+   ]
+  ],
+  "python": "# D8 · Part 6 · 고정 청크 vs 끝점(VAD) 청크: 단어가 잘리는지 비교 — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_chunk.py   (입력 소리는 코드 안에서 합성해요 · 인터넷·GPU·마이크 불필요)\n#   스트리밍에서 오디오를 3초씩 자르면 단어 중간이 잘려 인식이 깨진다. 단어가 있는 합성 신호에서 고정 3초 청크와 '말 사이 쉼' 에서 자르는 청크가 단어를 몇 개 자르는지 센다\n# 대체 경로: Whisper 로 받아쓰기하는 대신, 단어 구간(시작·끝)이 알려진 합성 신호로 '잘린 단어 수' 를 센다.\nimport numpy as np\n\nSR = 16000                                   # 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\n# 단어 구간(초): (단어, 시작, 끝). 사이에 짧은 쉼이 있다\nWORDS = [(\"안녕하세요\", 0.2, 1.1), (\"오늘은\", 1.3, 2.0), (\"위스퍼를\", 2.3, 3.4), (\"빠르게\", 3.6, 4.3), (\"만드는\", 4.5, 5.2),\n         (\"방법을\", 5.9, 6.7), (\"배웁니다\", 6.9, 8.0)]\ntotal = 8.4\nt = np.arange(int(total * SR)) / SR\ny = np.zeros_like(t)\nfor _, a, b in WORDS:\n    y[(t >= a) & (t < b)] = 0.3 * np.sin(2 * np.pi * 200 * t[(t >= a) & (t < b)])\n\n# 고정 청크: 3초 간격 (빈칸: 간격도 CHUNK_N)\nCHUNK_SEC = 3.0\nCHUNK_N = int(CHUNK_SEC * SR)\nchunks = [(i / SR, min(i + CHUNK_N, len(y)) / SR) for i in range(0, len(y), CHUNK_N)]\ncut_fixed = [w for w, a, b in WORDS if any(a < c0 < b for c0, _ in chunks[1:])]       # 청크 경계가 단어 한가운데 걸린 단어\nprint(f\"고정 3초 청크 {len(chunks)}개, 경계 {[c[0] for c in chunks[1:]]} -> 잘린 단어 {cut_fixed}\")\ncheck(sum(c[1] - c[0] for c in chunks) - total < 1e-9 and len(chunks) == int(np.ceil(len(y) / CHUNK_N)), \"청크끼리 겹치지 않으려면 간격도 CHUNK_N 이어야 해요.\")\n\n# 끝점 청크: 3초가 넘으면 그 뒤 첫 번째 쉼(에너지가 낮은 프레임)에서 자른다\nframe = 160\nrms = np.sqrt((y[: len(y) // frame * frame].reshape(-1, frame) ** 2).mean(1))\nquiet = rms < 0.02\nbounds, last = [], 0.0\nfor i, q in enumerate(quiet):\n    now = i * frame / SR\n    if q and now - last >= CHUNK_SEC:\n        bounds.append(now)\n        last = now\ncut_end = [w for w, a, b in WORDS if any(a < c0 < b for c0 in bounds)]\nprint(f\"끝점 청크 경계 {[round(b, 2) for b in bounds]} -> 잘린 단어 {cut_end}\")\ncheck(len(cut_fixed) >= 1 and len(cut_end) == 0, \"쉼에서 자르면 단어가 잘리지 않아요.\")\n",
+  "typescript": "// D8 · Part 6 · 고정 청크 vs 끝점(VAD) 청크: 단어가 잘리는지 비교 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_chunk.ts\n//   스트리밍에서 오디오를 3초씩 자르면 단어 중간이 잘려 인식이 깨진다. 단어가 있는 합성 신호에서 고정 3초 청크와 '말 사이 쉼' 에서 자르는 청크가 단어를 몇 개 자르는지 센다\n// 대체 경로: Whisper 로 받아쓰기하는 대신, 단어 구간(시작·끝)이 알려진 합성 신호로 '잘린 단어 수' 를 센다.\nconst SR = 16000; // 음성 모델 표준: 1초에 16,000번 측정 (16kHz)\n\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\n// 단어 구간(초): (단어, 시작, 끝). 사이에 짧은 쉼이 있다\nconst WORDS: [string, number, number][] = [\n  [\"안녕하세요\", 0.2, 1.1], [\"오늘은\", 1.3, 2.0], [\"위스퍼를\", 2.3, 3.4], [\"빠르게\", 3.6, 4.3], [\"만드는\", 4.5, 5.2], [\"방법을\", 5.9, 6.7], [\"배웁니다\", 6.9, 8.0],\n];\nconst total = 8.4;\nconst y = Float32Array.from({ length: Math.floor(total * SR) }, (_, i) => {\n  const t = i / SR;\n  return WORDS.some(([, a, b]) => t >= a && t < b) ? 0.3 * Math.sin(2 * Math.PI * 200 * t) : 0;\n});\n\n// 고정 청크: 3초 간격 (빈칸: 간격도 CHUNK_N)\nconst CHUNK_SEC = 3.0;\nconst CHUNK_N = Math.floor(CHUNK_SEC * SR);\nconst chunks: [number, number][] = [];\nfor (let i = 0; i < y.length; i += CHUNK_N) chunks.push([i / SR, Math.min(i + CHUNK_N, y.length) / SR]);\nconst cutFixed = WORDS.filter(([, a, b]) => chunks.slice(1).some(([c0]) => a < c0 && c0 < b)).map((w) => w[0]); // 청크 경계가 단어 한가운데 걸린 단어\nconsole.log(`고정 3초 청크 ${chunks.length}개, 경계 [${chunks.slice(1).map((c) => c[0]).join(\", \")}] -> 잘린 단어 [${cutFixed.join(\", \")}]`);\ncheck(Math.abs(chunks.reduce((s, c) => s + c[1] - c[0], 0) - total) < 1e-9 && chunks.length === Math.ceil(y.length / CHUNK_N), \"청크끼리 겹치지 않으려면 간격도 CHUNK_N 이어야 해요.\");\n\n// 끝점 청크: 3초가 넘으면 그 뒤 첫 번째 쉼(에너지가 낮은 프레임)에서 자른다\nconst frame = 160;\nconst bounds: number[] = [];\nlet last = 0;\nfor (let i = 0; i < Math.floor(y.length / frame); i++) {\n  let s = 0;\n  for (let j = 0; j < frame; j++) s += y[i * frame + j] ** 2;\n  const now = (i * frame) / SR;\n  if (Math.sqrt(s / frame) < 0.02 && now - last >= CHUNK_SEC) {\n    bounds.push(now);\n    last = now;\n  }\n}\nconst cutEnd = WORDS.filter(([, a, b]) => bounds.some((c0) => a < c0 && c0 < b)).map((w) => w[0]);\nconsole.log(`끝점 청크 경계 [${bounds.map((b) => b.toFixed(2)).join(\", \")}] -> 잘린 단어 [${cutEnd.join(\", \")}]`);\ncheck(cutFixed.length >= 1 && cutEnd.length === 0, \"쉼에서 자르면 단어가 잘리지 않아요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": [
+    {
+     "name": "Float32Array · Int8Array · Uint8Array",
+     "version": "내장",
+     "purpose": "소리 샘플 · 가중치 · 양자화 정수를 담는 타입 배열",
+     "install": "설치 불필요 (Node 26 내장)",
+     "docs": "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray",
+     "license": "MIT (Node.js)"
+    }
+   ]
+  }
+ },
+ "agree": {
+  "part": "Part 6 · LocalAgreement",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    20,
+    21
+   ]
+  ],
+  "python": "# D8 · Part 6 · LocalAgreement: 두 번 같은 말이 나오면 확정 — 단독 실행 완성 코드 (Python 3.11)\n# pip install 불필요 (표준 라이브러리만)\n# 실행: python d08_agree.py   (입력은 코드 안의 가설 목록 · 인터넷·GPU·마이크 불필요)\n#   1초마다 늘어나는 소리를 받아쓴 가설(끝부분이 자주 바뀜)에서, 이번 가설과 지난 가설의 공통 앞부분(lcp)만 확정하는 LocalAgreement-2 스트리밍\n# 대체 경로: faster-whisper 로 1초씩 받아쓰는 대신, 시각마다 나올 법한 가설(끝부분이 흔들리는 문장)을 손으로 적어 둔 장난감 스트림을 쓴다.\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\ndef lcp(a: list[str], b: list[str]) -> int:\n    # longest common prefix: 앞에서부터 같은 단어가 몇 개 이어지나\n    i = 0\n    while i < min(len(a), len(b)) and a[i] == b[i]:\n        i += 1\n    return i\n\n\ntests = [([\"아이구루\", \"교육\"], [\"아이구루\", \"교육센터에서\", \"라이\"], 1),\n         ([\"아이구루\", \"교육센터에서\", \"라이\"], [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이\"], 2),\n         ([\"가\", \"나\"], [\"다\", \"나\"], 0), ([], [\"가\"], 0)]\nfor a, b, want in tests:\n    print(f\"{a!s:34s} vs {b!s:48s} -> {lcp(a, b)} {'맞음' if lcp(a, b) == want else '틀림'}\")\ncheck(all(lcp(a, b) == want for a, b, want in tests), \"같은 위치 i 의 b 단어와 비교합니다: b[i]\")\n\n# 스트림: (시각 초, 그 시점까지 들은 소리의 가설). 끝 단어는 불안정해서 바뀐다\nSTREAM = [\n    (1, [\"아이구루\"]),\n    (2, [\"아이구루\", \"교육\"]),\n    (3, [\"아이구루\", \"교육센터에서\", \"라이\"]),\n    (4, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이\"]),\n    (5, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이프캣으로\", \"음성\"]),\n    (6, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이프캣으로\", \"음성\", \"에이전트를\"]),\n    (7, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이프캣으로\", \"음성\", \"에이전트를\", \"만듭니다\"]),\n]\ncommitted: list[tuple[str, int]] = []                              # (확정 단어, 확정된 시각)\nprev: list[str] = []\nfor now, hyp in STREAM:\n    pending = hyp[len(committed):]                                 # 아직 확정 안 된 부분만 비교\n    n = lcp(prev, pending)\n    for w in pending[:n]:\n        committed.append((w, now))\n    prev = pending[n:]\n    print(f\"{now}초 | 가설 끝 {hyp[-1]!r:10s} | 새로 확정 {pending[:n]} | 확정 누적 {len(committed)}개\")\n\n# 마지막에 소리가 끝나면 남은 가설을 모두 확정\nfinal_hyp = STREAM[-1][1]\nfor w in final_hyp[len(committed):]:\n    committed.append((w, STREAM[-1][0] + 1))\nwords = [w for w, _ in committed]\ncheck(words == final_hyp, \"확정한 단어를 이어 붙이면 마지막 가설과 같아야 해요.\")\ndelay = [t - (i // 1 + 1) for i, (w, t) in enumerate(committed)]    # 단어가 처음 가설에 나온 시각 대비 확정 지연\nprint(\"확정 지연(초):\", delay)\ncheck(max(delay) <= 2, \"두 번 확인하므로 지연은 보통 1~2초 안이에요.\")\n",
+  "typescript": "// D8 · Part 6 · LocalAgreement: 두 번 같은 말이 나오면 확정 — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_agree.ts\n//   1초마다 늘어나는 소리를 받아쓴 가설(끝부분이 자주 바뀜)에서, 이번 가설과 지난 가설의 공통 앞부분(lcp)만 확정하는 LocalAgreement-2 스트리밍\n// 대체 경로: faster-whisper 로 1초씩 받아쓰는 대신, 시각마다 나올 법한 가설(끝부분이 흔들리는 문장)을 손으로 적어 둔 장난감 스트림을 쓴다.\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nfunction lcp(a: string[], b: string[]): number {\n  // longest common prefix: 앞에서부터 같은 단어가 몇 개 이어지나\n  let i = 0;\n  while (i < Math.min(a.length, b.length) && a[i] === b[i]) i++;\n  return i;\n}\n\nconst tests: [string[], string[], number][] = [\n  [[\"아이구루\", \"교육\"], [\"아이구루\", \"교육센터에서\", \"라이\"], 1],\n  [[\"아이구루\", \"교육센터에서\", \"라이\"], [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이\"], 2],\n  [[\"가\", \"나\"], [\"다\", \"나\"], 0],\n  [[], [\"가\"], 0],\n];\nfor (const [a, b, want] of tests) console.log(`[${a.join(\",\")}] vs [${b.join(\",\")}] -> ${lcp(a, b)} ${lcp(a, b) === want ? \"맞음\" : \"틀림\"}`);\ncheck(tests.every(([a, b, want]) => lcp(a, b) === want), \"같은 위치 i 의 b 단어와 비교합니다: b[i]\");\n\n// 스트림: (시각 초, 그 시점까지 들은 소리의 가설). 끝 단어는 불안정해서 바뀐다\nconst STREAM: [number, string[]][] = [\n  [1, [\"아이구루\"]],\n  [2, [\"아이구루\", \"교육\"]],\n  [3, [\"아이구루\", \"교육센터에서\", \"라이\"]],\n  [4, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이\"]],\n  [5, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이프캣으로\", \"음성\"]],\n  [6, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이프캣으로\", \"음성\", \"에이전트를\"]],\n  [7, [\"아이구루\", \"교육센터에서\", \"라이브킷과\", \"파이프캣으로\", \"음성\", \"에이전트를\", \"만듭니다\"]],\n];\nconst committed: [string, number][] = []; // (확정 단어, 확정된 시각)\nlet prev: string[] = [];\nfor (const [now, hyp] of STREAM) {\n  const pending = hyp.slice(committed.length); // 아직 확정 안 된 부분만 비교\n  const n = lcp(prev, pending);\n  for (const w of pending.slice(0, n)) committed.push([w, now]);\n  prev = pending.slice(n);\n  console.log(`${now}초 | 가설 끝 \"${hyp[hyp.length - 1]}\" | 새로 확정 [${pending.slice(0, n).join(\", \")}] | 확정 누적 ${committed.length}개`);\n}\n\n// 마지막에 소리가 끝나면 남은 가설을 모두 확정\nconst finalHyp = STREAM[STREAM.length - 1][1];\nfor (const w of finalHyp.slice(committed.length)) committed.push([w, STREAM[STREAM.length - 1][0] + 1]);\ncheck(committed.map((c) => c[0]).join(\" \") === finalHyp.join(\" \"), \"확정한 단어를 이어 붙이면 마지막 가설과 같아야 해요.\");\nconst delay = committed.map(([, t], i) => t - (i + 1)); // 단어가 처음 가설에 나온 시각 대비 확정 지연\nconsole.log(\"확정 지연(초):\", delay.join(\", \"));\ncheck(Math.max(...delay) <= 2, \"두 번 확인하므로 지연은 보통 1~2초 안이에요.\");\n",
+  "libs": {
+   "python": [],
+   "typescript": []
+  }
+ },
+ "latency": {
+  "part": "Part 6 · 지연과 실시간 여부 재기",
+  "nb": "D8_추론최적화_스트리밍_실습.ipynb",
+  "ord": [
+   [
+    22,
+    22
+   ]
+  ],
+  "python": "# D8 · Part 6 · 지연 비교: 통째로 vs 고정 청크 vs LocalAgreement — 단독 실행 완성 코드 (Python 3.11)\n# pip install numpy==2.4.6\n# 실행: python d08_latency.py   (입력은 코드 안의 단어 시각표 · 인터넷·GPU·마이크 불필요)\n#   단어가 끝난 시각부터 화면에 보이기까지의 지연(평균·최대)을 세 방식으로 계산하고, 1초 단위 계산이 1초 안에 끝나야 '실시간' 이라는 조건을 확인\n# 대체 경로: faster-whisper 로 재는 대신, 단어 끝 시각표와 계산 시간(가정값)으로 지연을 계산하는 시뮬레이션이다.\nimport numpy as np\n\n\ndef check(cond: bool, hint: str = \"정답을 다시 확인하세요.\") -> None:\n    \"\"\"정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다.\"\"\"\n    print(\"[정답] 정답입니다!\" if cond else f\"[다시] {hint}\")\n\n\nword_end = np.array([1.1, 2.0, 3.4, 4.3, 5.2, 6.7, 8.0, 9.2, 10.4, 11.5])      # 단어가 끝나는 시각(초)\nTOTAL = 12.0                                                                    # 녹음이 끝나는 시각\nCOMPUTE = 0.4                                                                   # 한 번 받아쓰는 데 걸리는 시간 (가정)\n\n# 1) 통째로: 녹음이 끝난 뒤 한 번에 -> 모든 단어가 TOTAL + COMPUTE 에 보임\nlat_full = TOTAL + COMPUTE - word_end\n\n# 2) 고정 3초 청크: 단어가 들어 있는 청크가 끝난 뒤(청크 끝 + 계산)에 보임\nCHUNK = 3.0\nchunk_end = np.minimum(np.ceil(word_end / CHUNK) * CHUNK, TOTAL)\nlat_chunk = chunk_end + COMPUTE - word_end\n\n# 3) LocalAgreement: 1초마다 받아쓰고, 단어는 '두 번 연속 같을 때' 확정 -> 단어 끝 다음 1초 눈금 + 1초(재확인) + 계산\nSTEP = 1.0\nlat_agree = np.minimum(np.ceil(word_end / STEP) * STEP + STEP, TOTAL + STEP) + COMPUTE - word_end\n\nfor name, lat in [(\"통째로\", lat_full), (\"고정 3초 청크\", lat_chunk), (\"LocalAgreement\", lat_agree)]:\n    print(f\"{name:14s} | 지연 평균 {lat.mean():5.2f}초, 중앙값 {np.median(lat):5.2f}초, 최대 {lat.max():5.2f}초\")\ncheck(lat_agree.mean() < lat_chunk.mean() < lat_full.mean(), \"지연은 LocalAgreement < 고정 청크 < 통째로 순이에요.\")\n\n# 실시간 조건: 1초 분량을 받아쓰는 데 1초가 안 걸려야 한다 (계산 시간이 쌓이지 않음)\ncomp = np.array([0.3, 0.35, 0.4, 0.45, 0.42, 0.38])\nrealtime = comp.max() < STEP\nprint(f\"1초마다 계산 시간: 평균 {comp.mean():.2f}초, 최대 {comp.max():.2f}초 -> {'실시간 가능' if realtime else '1초 초과: 더 작은 모델 · int8 · GPU 필요'}\")\ncheck(realtime and not (np.array([0.5, 1.2]).max() < STEP), \"계산이 1초 안에 끝나야 실시간이에요.\")\n",
+  "typescript": "// D8 · Part 6 · 지연 비교: 통째로 vs 고정 청크 vs LocalAgreement — 단독 실행 완성 코드 (Node 26 · TypeScript)\n// 설치 불필요 (Node 내장만)\n// 실행: node --experimental-strip-types d08_latency.ts\n//   단어가 끝난 시각부터 화면에 보이기까지의 지연(평균·최대)을 세 방식으로 계산하고, 1초 단위 계산이 1초 안에 끝나야 '실시간' 이라는 조건을 확인\n// 대체 경로: faster-whisper 로 재는 대신, 단어 끝 시각표와 계산 시간(가정값)으로 지연을 계산하는 시뮬레이션이다.\nfunction check(cond: boolean, hint: string = \"정답을 다시 확인하세요.\"): void {\n  // 정답 확인 도우미: 조건이 맞으면 정답, 아니면 힌트를 보여 준다\n  console.log(cond ? \"[정답] 정답입니다!\" : `[다시] ${hint}`);\n}\n\nconst mean = (a: number[]): number => a.reduce((s, v) => s + v, 0) / a.length;\nconst median = (a: number[]): number => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];\n\nconst wordEnd = [1.1, 2.0, 3.4, 4.3, 5.2, 6.7, 8.0, 9.2, 10.4, 11.5]; // 단어가 끝나는 시각(초)\nconst TOTAL = 12.0; // 녹음이 끝나는 시각\nconst COMPUTE = 0.4; // 한 번 받아쓰는 데 걸리는 시간 (가정)\n\n// 1) 통째로: 녹음이 끝난 뒤 한 번에 -> 모든 단어가 TOTAL + COMPUTE 에 보임\nconst latFull = wordEnd.map((e) => TOTAL + COMPUTE - e);\n\n// 2) 고정 3초 청크: 단어가 들어 있는 청크가 끝난 뒤(청크 끝 + 계산)에 보임\nconst CHUNK = 3.0;\nconst latChunk = wordEnd.map((e) => Math.min(Math.ceil(e / CHUNK) * CHUNK, TOTAL) + COMPUTE - e);\n\n// 3) LocalAgreement: 1초마다 받아쓰고, 단어는 '두 번 연속 같을 때' 확정 -> 단어 끝 다음 1초 눈금 + 1초(재확인) + 계산\nconst STEP = 1.0;\nconst latAgree = wordEnd.map((e) => Math.min(Math.ceil(e / STEP) * STEP + STEP, TOTAL + STEP) + COMPUTE - e);\n\nfor (const [name, lat] of [[\"통째로\", latFull], [\"고정 3초 청크\", latChunk], [\"LocalAgreement\", latAgree]] as [string, number[]][]) {\n  console.log(`${name.padEnd(14)} | 지연 평균 ${mean(lat).toFixed(2)}초, 중앙값 ${median(lat).toFixed(2)}초, 최대 ${Math.max(...lat).toFixed(2)}초`);\n}\ncheck(mean(latAgree) < mean(latChunk) && mean(latChunk) < mean(latFull), \"지연은 LocalAgreement < 고정 청크 < 통째로 순이에요.\");\n\n// 실시간 조건: 1초 분량을 받아쓰는 데 1초가 안 걸려야 한다 (계산 시간이 쌓이지 않음)\nconst comp = [0.3, 0.35, 0.4, 0.45, 0.42, 0.38];\nconst realtime = Math.max(...comp) < STEP;\nconsole.log(`1초마다 계산 시간: 평균 ${mean(comp).toFixed(2)}초, 최대 ${Math.max(...comp).toFixed(2)}초 -> ${realtime ? \"실시간 가능\" : \"1초 초과: 더 작은 모델 · int8 · GPU 필요\"}`);\ncheck(realtime && !(Math.max(0.5, 1.2) < STEP), \"계산이 1초 안에 끝나야 실시간이에요.\");\n",
+  "libs": {
+   "python": [
+    {
+     "name": "numpy",
+     "version": "2.4.6",
+     "purpose": "오디오 배열 계산",
+     "install": "pip install numpy==2.4.6",
+     "docs": "https://numpy.org/doc/stable/",
+     "license": "BSD-3-Clause"
+    }
+   ],
+   "typescript": []
+  }
+ }
+}

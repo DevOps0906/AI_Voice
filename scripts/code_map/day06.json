@@ -1,0 +1,20 @@
+{
+ "notebook": "day06/D6_*_실습.ipynb",
+ "map": {
+  "flow": ["Part 0~6 · 오늘의 흐름 전체", [4, 6, 9, 12, 15, 17, 21, 23, 27, 29, 32, 38, 40, 42, 44, 46, 50, 52, 56, 58, 61, 63]],
+  "align": ["Part 1 · 음성 인식은 무엇이 어려운가: 정렬 문제", [4, 6]],
+  "ctc": ["Part 2 · CTC: blank 와 접기 규칙", [9]],
+  "ctcloss": ["Part 2 · CTC 격자 · α(forward) 알고리즘", [12, 15, 17]],
+  "w2v": ["Part 3 · Wav2Vec2 프레임 수 · greedy 디코딩 · 글자 시각", [21, 23, 27, 29, 32]],
+  "attn": ["Part 4 · Attention Encoder-Decoder: attention · 한 글자씩 생성", [38, 40, 42, 44, 46]],
+  "rnnt": ["Part 5 · Transducer (RNN-T): T x (U+1) 격자와 α 점화식", [50, 52]],
+  "compare": ["Part 5 · 세 방식 비교: CTC · Attention Enc-Dec · Transducer", [50, 52]],
+  "ssl": ["Part 6 · 자기지도 학습: 마스킹 비율 · InfoNCE", [56, 58, 61, 63]]
+ },
+ "py_libs": {
+  "torch": ["torch", "CTC 손실 · attention · cross-entropy 를 PyTorch 와 비교(CPU)", "https://pytorch.org/docs/stable/", "BSD-3-Clause"]
+ },
+ "ts_libs": [
+  ["\\bnew Float(?:32|64)Array\\(|\\bFloat(?:32|64)Array\\.from\\(", "Float32Array · Float64Array", "소리 샘플 · 가중치를 담는 실수 배열", "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"]
+ ]
+}

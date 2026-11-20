@@ -1,0 +1,18 @@
+{
+ "notebook": "day08/D8_*_실습.ipynb",
+ "map": {
+  "flow": ["Part 0~6 · 오늘의 흐름 전체", [3, 4, 6, 8, 11, 14, 16, 21, 24, 27, 31, 35, 45, 48, 53, 57, 59, 61]],
+  "bottleneck": ["Part 1 · 왜 느린가: Encoder 와 Decoder 시간 재기", [6, 8]],
+  "engine": ["Part 2 · faster-whisper: 같은 모델, 더 빠른 엔진", [11, 14, 16]],
+  "quant": ["Part 3 · 양자화: 숫자를 작게 저장하기", [21, 24, 27]],
+  "batch": ["Part 4 · VAD 와 배치", [31, 35]],
+  "wcpp": ["Part 5 · whisper.cpp: q5_0 양자화", [41, 45, 48]],
+  "chunk": ["Part 6 · 고정 청크 vs 끝점 청크", [53]],
+  "agree": ["Part 6 · LocalAgreement", [57, 59]],
+  "latency": ["Part 6 · 지연과 실시간 여부 재기", [61]]
+ },
+ "ts_libs": [
+  ["\\bnew (?:Float(?:32|64)|Int8|Uint8)Array\\(|\\b(?:Float(?:32|64)|Int8|Uint8)Array\\.from\\(", "Float32Array · Int8Array · Uint8Array", "소리 샘플 · 가중치 · 양자화 정수를 담는 타입 배열", "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"],
+  ["\\bfunction\\*", "제너레이터(function*)", "호출만으로는 일하지 않고 꺼낼 때 계산하는 게으른 반복", "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function*"]
+ ]
+}
