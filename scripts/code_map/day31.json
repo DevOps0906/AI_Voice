@@ -1,0 +1,155 @@
+{
+ "notebook": "day31/D31_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 1~5 · 오늘의 흐름 전체",
+   [
+    3,
+    7,
+    11,
+    15,
+    21,
+    27,
+    30,
+    33
+   ]
+  ],
+  "http": [
+   "Part 1 · 요청 · 응답 · FastAPI 엔드포인트",
+   [
+    7,
+    9,
+    11
+   ]
+  ],
+  "upload": [
+   "Part 2 · 파일 업로드 문지기",
+   [
+    15,
+    17
+   ]
+  ],
+  "status": [
+   "Part 2 · 상태 코드 한눈에",
+   [
+    17
+   ]
+  ],
+  "loop": [
+   "Part 3 · 이벤트 루프가 막히는 순간",
+   [
+    20,
+    21
+   ]
+  ],
+  "queue": [
+   "Part 3 · 번호표(Semaphore)와 작업 큐",
+   [
+    21,
+    24
+   ]
+  ],
+  "ws": [
+   "Part 4 · WebSocket 실시간 받아쓰기",
+   [
+    27,
+    30
+   ]
+  ],
+  "endpoint": [
+   "Part 5 · 엔드포인트 명세 찾기",
+   [
+    9,
+    33
+   ]
+  ],
+  "recap": [
+   "Part 5 · 정리",
+   [
+    33
+   ]
+  ]
+ },
+ "py_libs": {
+  "fastapi": [
+   "fastapi",
+   "API 서버 틀: 엔드포인트 · 요청 검사 · 파일 업로드 · WebSocket",
+   "https://fastapi.tiangolo.com/",
+   "MIT"
+  ],
+  "pydantic": [
+   "pydantic",
+   "요청 본문 모양 검사(BaseModel · Field)",
+   "https://docs.pydantic.dev/",
+   "MIT"
+  ],
+  "uvicorn": [
+   "uvicorn",
+   "서버 실행기 (임시 포트로 띄우고 끝나면 종료)",
+   "https://www.uvicorn.org/",
+   "BSD-3-Clause"
+  ],
+  "httpx": [
+   "httpx",
+   "서버에 요청을 보내는 HTTP 클라이언트",
+   "https://www.python-httpx.org/",
+   "BSD-3-Clause"
+  ],
+  "websockets": [
+   "websockets",
+   "서버에 실시간으로 말을 거는 WebSocket 클라이언트",
+   "https://websockets.readthedocs.io/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\bnew WebSocket\\(",
+   "WebSocket",
+   "서버와 실시간으로 주고받는 연결(Node 내장 클라이언트)",
+   "https://nodejs.org/api/globals.html#websocket"
+  ],
+  [
+   "\bnew Float(?:32|64)Array\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플을 담는 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "\bnew Int16Array\\(",
+   "Int16Array",
+   "PCM16(16비트 정수) 소리 조각",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Int16Array"
+  ],
+  [
+   "from \"node:http\"",
+   "node:http",
+   "임시 포트로 서버를 띄우고 요청 처리",
+   "https://nodejs.org/api/http.html"
+  ],
+  [
+   "\bfetch\\(",
+   "fetch",
+   "같은 파일의 서버에 요청 보내기",
+   "https://nodejs.org/api/globals.html#fetch"
+  ],
+  [
+   "\bnew FormData\\(",
+   "FormData · Blob",
+   "파일을 multipart/form-data로 올리기",
+   "https://nodejs.org/api/globals.html#formdata"
+  ],
+  [
+   "from \"node:crypto\"",
+   "node:crypto",
+   "WebSocket 연결 인사(SHA-1) 계산",
+   "https://nodejs.org/api/crypto.html"
+  ],
+  [
+   "from \"node:worker_threads\"",
+   "node:worker_threads",
+   "무거운 일을 다른 스레드로 보내기 (파이썬 to_thread처럼)",
+   "https://nodejs.org/api/worker_threads.html"
+  ]
+ ]
+}

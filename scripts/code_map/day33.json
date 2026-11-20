@@ -1,0 +1,98 @@
+{
+ "notebook": "day33/D33_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 0~4 · 오늘의 흐름 전체",
+   [
+    5,
+    7,
+    8,
+    14,
+    18,
+    23,
+    28,
+    34,
+    37
+   ]
+  ],
+  "path": [
+   "Part 1 · 에코 경로: 스피커 → 방 → 마이크",
+   [
+    7,
+    8
+   ]
+  ],
+  "xcorr": [
+   "Part 1 · 상호상관으로 에코 지연 찾기",
+   [
+    14
+   ]
+  ],
+  "nlms": [
+   "Part 2 · NLMS 에코 제거기와 ERLE",
+   [
+    18,
+    21
+   ]
+  ],
+  "dt": [
+   "Part 2 · 더블토크와 Geigel",
+   [
+    23
+   ]
+  ],
+  "snr": [
+   "Part 3 · 잡음 만들기와 SNR 맞추기",
+   [
+    26
+   ]
+  ],
+  "wiener": [
+   "Part 3 · 위너 필터 잡음 억제",
+   [
+    28,
+    31
+   ]
+  ],
+  "agc": [
+   "Part 4 · 자동 음량(AGC)",
+   [
+    34
+   ]
+  ],
+  "recap": [
+   "Part 4 · 전체 체인과 정리",
+   [
+    37
+   ]
+  ]
+ },
+ "py_libs": {
+  "scipy": [
+   "scipy",
+   "상호상관 · FFT 합성곱 · STFT 같은 신호 처리 · DCT",
+   "https://docs.scipy.org/doc/scipy/",
+   "BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\bnew WebSocket\\(",
+   "WebSocket",
+   "서버와 실시간으로 주고받는 연결(Node 내장 클라이언트)",
+   "https://nodejs.org/api/globals.html#websocket"
+  ],
+  [
+   "\bnew Float(?:32|64)Array\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플을 담는 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "\bnew Int16Array\\(",
+   "Int16Array",
+   "PCM16(16비트 정수) 소리 조각",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Int16Array"
+  ]
+ ]
+}

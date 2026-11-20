@@ -1,0 +1,120 @@
+{
+ "notebook": "day35/D35_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 1~4 · 오늘의 흐름 전체",
+   [
+    8,
+    13,
+    18,
+    21,
+    31,
+    38,
+    48,
+    55,
+    57
+   ]
+  ],
+  "space": [
+   "Part 1 · 목소리를 숫자로: 임베딩 공간",
+   [
+    8,
+    10,
+    13
+   ]
+  ],
+  "cosine": [
+   "Part 1 · 코사인 유사도",
+   [
+    8,
+    14
+   ]
+  ],
+  "eer": [
+   "Part 2 · FAR · FRR · EER",
+   [
+    18,
+    21
+   ]
+  ],
+  "oppoint": [
+   "Part 2 · 운영 문턱 정하기",
+   [
+    21,
+    27,
+    40
+   ]
+  ],
+  "enroll": [
+   "Part 3 · 등록과 암호화 보관",
+   [
+    31,
+    38
+   ]
+  ],
+  "ident": [
+   "Part 3 · 1:N 식별과 모르는 사람 거절",
+   [
+    31,
+    33,
+    36
+   ]
+  ],
+  "spoof": [
+   "Part 4 · 위조 음성 공격과 방어",
+   [
+    45,
+    48,
+    50,
+    55,
+    57
+   ]
+  ],
+  "recap": [
+   "Part 4 · 정리",
+   [
+    57
+   ]
+  ]
+ },
+ "py_libs": {
+  "scipy": [
+   "scipy",
+   "상호상관 · FFT 합성곱 · STFT 같은 신호 처리 · DCT",
+   "https://docs.scipy.org/doc/scipy/",
+   "BSD-3-Clause"
+  ],
+  "cryptography": [
+   "cryptography",
+   "화자 템플릿 암호화 보관(AES-GCM)",
+   "https://cryptography.io/",
+   "Apache-2.0 OR BSD-3-Clause"
+  ]
+ },
+ "ts_libs": [
+  [
+   "\bnew WebSocket\\(",
+   "WebSocket",
+   "서버와 실시간으로 주고받는 연결(Node 내장 클라이언트)",
+   "https://nodejs.org/api/globals.html#websocket"
+  ],
+  [
+   "\bnew Float(?:32|64)Array\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플을 담는 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "\bnew Int16Array\\(",
+   "Int16Array",
+   "PCM16(16비트 정수) 소리 조각",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Int16Array"
+  ],
+  [
+   "from \"node:crypto\"",
+   "node:crypto",
+   "템플릿 암호화 보관(AES-256-GCM) · 사용자 번호(SHA-256)",
+   "https://nodejs.org/api/crypto.html"
+  ]
+ ]
+}

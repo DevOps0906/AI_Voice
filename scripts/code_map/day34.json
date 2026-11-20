@@ -1,0 +1,94 @@
+{
+ "notebook": "day34/D34_*_실습.ipynb",
+ "map": {
+  "flow": [
+   "Part 1~4 · 오늘의 흐름 전체",
+   [
+    8,
+    11,
+    14,
+    22,
+    28,
+    35,
+    38
+   ]
+  ],
+  "itn": [
+   "Part 1 · 한국어 역정규화(ITN)",
+   [
+    8,
+    11,
+    14
+   ]
+  ],
+  "slots": [
+   "Part 2 · 슬롯 채우기",
+   [
+    14,
+    22
+   ]
+  ],
+  "confirm": [
+   "Part 2 · 확인 전략",
+   [
+    20,
+    22
+   ]
+  ],
+  "repair": [
+   "Part 3 · 오류 복구와 기다림",
+   [
+    28,
+    38
+   ]
+  ],
+  "silence": [
+   "Part 3 · 침묵 처리",
+   [
+    28,
+    32
+   ]
+  ],
+  "states": [
+   "Part 3 · 대화 상태 머신",
+   [
+    28
+   ]
+  ],
+  "hybrid": [
+   "Part 4 · 규칙 + LLM 하이브리드",
+   [
+    35,
+    38
+   ]
+  ],
+  "recap": [
+   "Part 4 · 시나리오 시험과 정리",
+   [
+    38,
+    40
+   ]
+  ]
+ },
+ "py_libs": {},
+ "ts_libs": [
+  [
+   "\bnew WebSocket\\(",
+   "WebSocket",
+   "서버와 실시간으로 주고받는 연결(Node 내장 클라이언트)",
+   "https://nodejs.org/api/globals.html#websocket"
+  ],
+  [
+   "\bnew Float(?:32|64)Array\\(",
+   "Float32Array · Float64Array",
+   "소리 샘플을 담는 숫자 배열",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/TypedArray"
+  ],
+  [
+   "\bnew Int16Array\\(",
+   "Int16Array",
+   "PCM16(16비트 정수) 소리 조각",
+   "https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Int16Array"
+  ]
+ ]
+}
