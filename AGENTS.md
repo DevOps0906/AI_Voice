@@ -6,13 +6,15 @@
 ## 1. 무엇인가
 <한 문장: 누구를 위한 무엇>. 기획 정본: `docs/01_PRD.md` · 구조: `docs/02_ARCHITECTURE.md`.
 
-## 2. 스택 (작업 시 최신 stable 확인 후 버전 고정)
+## 2. 스택 (정적 사이트 — 서버·DB·빌드 도구 없음)
 | 영역 | 선택 | 위치 |
 |---|---|---|
-| 웹 | Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4 · shadcn/ui | `apps/web` |
-| DB·인증 | Supabase (Postgres · RLS · Auth · Storage · Edge Functions) | `supabase/` |
-| API·AI | FastAPI · Pydantic v2 (LLM 키는 여기에만) | `apps/api` |
-| 앱 | (해당 시) Flutter · Riverpod 3 · go_router · drift | `apps/app` |
+| 화면 | 정적 HTML · CSS · 순수 JS(외부 라이브러리 없음, 해시 라우팅), 글꼴 Pretendard | `dashboard/index.html` |
+| 애니메이션 | 원본 animation.html에 디자인만 재입힘(로직 원본 동일) | `dashboard/dN/animation.html` ← `scripts/reskin.py` |
+| 데이터 | 원본 노트북·워크시트에서 추출한 JSON | `data/*.json` ← `scripts/extract.py` 외 `scripts/*.py` (Python 3.11) |
+| 디자인 토큰 | CSS 변수 | `design/tokens.css` |
+| 저장 | 브라우저 localStorage(개인 상태만) | — |
+| 배포 | GitHub Pages(main push 시 자동) | — |
 
 ## 3. 명령
 | 목적 | 명령 |
