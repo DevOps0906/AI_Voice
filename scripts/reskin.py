@@ -316,7 +316,10 @@ def build(n):
     rail = n >= RAIL_FROM
     s = re.sub(r"<link[^>]*fonts\.g[^>]*>\n?", "", src)
     m = re.search(r"<style>\n?(.*?)</style>", s, re.S)
-    s = s[:m.start()] + PRETENDARD + "\n<style>" + restyle(m.group(1), rail) + DAY_FIX.get(n, "") + CODEBOX_CSS + "</style>" + s[m.end():]
+    # 프로젝트 일차(D45~): 제목을 "프로젝트" / "① 키오스크 …" 두 줄로, 제목 글자는 0.8배
+    s, proj = re.subn(r"(<h1><small>.*?</small>프로젝트) ([①-⑳])", r"\1<br>\2", s, count=1)
+    fix = DAY_FIX.get(n, "") + (".rail h1{font-size:calc(var(--text-h1) * .8)}\n" if proj else "")
+    s = s[:m.start()] + PRETENDARD + "\n<style>" + restyle(m.group(1), rail) + fix + CODEBOX_CSS + "</style>" + s[m.end():]
     m = re.search(r"<script>(.*?)</script>", s, re.S)
     assert s.count("<script>") == 1
     s = s[:m.start(1)] + transform_script(m.group(1), rail) + s[m.end(1):]
