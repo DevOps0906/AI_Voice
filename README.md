@@ -13,8 +13,8 @@
 ## 콘텐츠 바로가기
 | 콘텐츠 | 링크 |
 |---|---|
-| 📊 학습 대시보드 | https://devops0906.github.io/AI_Voice/dashboard/ |
-| 🗺️ 과정 지도 | https://devops0906.github.io/AI_Voice/dashboard/#map |
+| 📊 학습 대시보드 | https://devops0906.github.io/AI_Voice/ |
+| 🗺️ 과정 지도 | https://devops0906.github.io/AI_Voice/#map |
 | 🎬 애니메이션 (예: D1) | https://devops0906.github.io/AI_Voice/dashboard/d1/animation.html |
 | 📁 일차별 수업 자료 | [`day01/`](day01/) ~ [`day44/`](day44/) |
 | 📝 기획 문서 | [`docs/PLAN.md`](docs/PLAN.md) |
@@ -23,7 +23,7 @@
 ## 로컬에서 보기
 ```bash
 python -m http.server 8000
-# http://localhost:8000/dashboard/
+# http://localhost:8000/
 ```
 
 ## 데이터·화면 다시 만들기

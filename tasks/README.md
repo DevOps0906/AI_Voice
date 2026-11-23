@@ -35,6 +35,7 @@
 | task-031 | 45일차(키오스크) 대시보드 연결 · 10주차 M10 프로젝트 · 요구사항·체크포인트 표 | W16 | — | 보통 | builder(sonnet) | 완료 |
 | task-032 | 코드 상자 로드 실패 안내 문구(reskin CODEBOX_JS, 1~45일 재생성) | W16 | 031 | 보통 | builder(sonnet) | 완료 |
 | task-033 | 글꼴 Pretendard 통일(코드 제외) · 결과값 글자 크기 손님의 말 크기로 고정(1~45일) | W16 | 032 | 낮음 | builder(sonnet) | 완료 |
+| task-034 | 사이트 주소에서 /dashboard/ 빼기(index.html 루트 이동·옛 주소 리다이렉트) | W16 | 033 | 보통 | builder(sonnet) | 완료 |
 
 상태: 대기 / 진행 / 완료 / 보류 · 위험도 → 워커 model: 낮음 haiku · 보통 sonnet · 높음 opus
 

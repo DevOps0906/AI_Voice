@@ -1,7 +1,7 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
 - 갱신: 2026-11-23
-- 현재 작업: 없음 — task-001~033 완료·push (task-033: 코드 외 글꼴 Pretendard 통일·결과값 .9rem 고정)
+- 현재 작업: 없음 — task-001~034 완료·push (task-034: 대시보드 루트 이동, 주소 https://devops0906.github.io/AI_Voice/ · 옛 /dashboard/ 는 해시 유지 리다이렉트)
 - 마지막으로 한 일: task-032 코드 상자 실패 문구 · task-033 reskin COMMON에 코드 제외 Pretendard !important·결과값(.kv b·.big·slider output) .9rem
 - 다음 한 걸음: D46~51 자료가 pull되면 같은 방식으로 연결(extract.py LAST 값 올리고 파이프라인 재실행)
 - 열린 결정(사용자 확인 필요): 없음 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)

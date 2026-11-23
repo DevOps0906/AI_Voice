@@ -9,7 +9,7 @@
 ## 2. 스택 (정적 사이트 — 서버·DB·빌드 도구 없음)
 | 영역 | 선택 | 위치 |
 |---|---|---|
-| 화면 | 정적 HTML · CSS · 순수 JS(외부 라이브러리 없음, 해시 라우팅), 글꼴 Pretendard | `dashboard/index.html` |
+| 화면 | 정적 HTML · CSS · 순수 JS(외부 라이브러리 없음, 해시 라우팅), 글꼴 Pretendard | `index.html` |
 | 애니메이션 | 원본 animation.html에 디자인만 재입힘(로직 원본 동일) | `dashboard/dN/animation.html` ← `scripts/reskin.py` |
 | 데이터 | 원본 노트북·워크시트에서 추출한 JSON | `data/*.json` ← `scripts/extract.py` 외 `scripts/*.py` (Python 3.11) |
 | 디자인 토큰 | CSS 변수 | `design/tokens.css` |
