@@ -195,9 +195,10 @@ h2 .hc{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.8rem;color:v
 /* ---- 새 셸 (design/tokens.css · DESIGN.md) ---- */
 body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-sans);font-size:var(--text-body);line-height:1.6}
 button,input,select{font-family:inherit}
+body *:not(pre):not(pre *):not(code):not(code *):not(kbd):not(samp){font-family:var(--font-sans)!important}
 h2{font-size:var(--text-h2);line-height:1.25;letter-spacing:-.01em}
 .note,.lead+.note{font-size:var(--text-caption)}
-.big,.kv b,label.sl output{font-family:var(--font-mono)}
+.big,.kv b,.kv b.s,label.sl output{font-family:var(--font-sans);font-size:.9rem;font-weight:700;line-height:1.45;letter-spacing:0;font-variant-numeric:tabular-nums}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:0;box-shadow:var(--ring)}
 .btn{min-height:var(--tap);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:var(--radius-control);padding:6px 14px;font-weight:500}
 .btn:hover{background:var(--soft);border-color:var(--line)}
