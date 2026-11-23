@@ -643,6 +643,8 @@ function renderGoals(){
   <h3 class="sec" style="margin-top:0">${d.periods.length}교시 시간표 <small style="color:var(--muted);font-weight:500">(교시별 Part 범위)</small></h3>
   <div class="periods" aria-hidden="true">${d.periods.map((p,i)=>`<div style="--i:${i};--c:var(${AC[i%5]})"></div>`).join('')}</div>
   <div class="plist">${d.periods.map((p,i)=>`<div class="card" style="--c:var(${AC[i%5]})"><b>${p.n}교시</b><p>${esc(p.topic)}</p><small>${esc(p.parts)}</small></div>`).join('')}</div>
+  ${(d.requirements||[]).length?`<h3 class="sec">요구사항 (고객의 말로)</h3><div class="tw"><table class="lt"><thead><tr><th>#</th><th>요구사항</th><th>만드는 곳</th></tr></thead><tbody>${d.requirements.map(r=>`<tr><td>${esc(r.id)}</td><td data-l="요구사항">${md(r.text)}</td><td data-l="만드는 곳">${esc(r.period)}</td></tr>`).join('')}</tbody></table></div>`:''}
+  ${(d.checkpoints||[]).length?`<h3 class="sec">체크포인트와 점수</h3><div class="tw"><table class="lt"><thead><tr><th>교시</th><th>체크포인트</th><th>내가 쓰는 함수</th><th>점수</th></tr></thead><tbody>${d.checkpoints.map(c=>`<tr><td>${esc(c.n)}</td><td data-l="체크포인트">${md(c.name)}</td><td data-l="함수"><code>${esc(c.fn)}</code></td><td data-l="점수">${esc(c.score)}</td></tr>`).join('')}</tbody></table></div>`:''}
   <h3 class="sec">Part 목록</h3><ul class="parts">${d.parts.map(p=>`<li><b>Part ${p.n}</b>${esc(p.title)}</li>`).join('')}</ul>`;
 }
 function renderAnim(){
@@ -955,7 +957,7 @@ function renderLib(page,week,day){
 /* 홈 대시보드 */
 const hwArr=n=>{try{const a=JSON.parse(sget('aiVoiceDash.hw.d'+n)||'[]');return Array.isArray(a)?a:[];}catch(e){return [];}};
 const hwAny=n=>hwArr(n).some(Boolean);
-const MDESC={map:['과정 지도','9주 44일 일정과 개념·문제·그래프·애니메이션 자료실'],flow:['오늘의 흐름','오늘 소리가 흘러가는 과정을 Part별 그림으로'],goals:['목표·교시','오늘의 목표와 교시별 시간표'],anim:['애니메이션','수업 애니메이션과 Python·TS 완성 코드'],files:['수업 자료','슬라이드·실습 노트북(Colab)·워크시트'],learned:['오늘 배운 것','오늘 배운 개념을 한 줄씩 정리한 표'],tasks:['과제·진도','과제를 체크하고 진도 막대로 확인'],quiz:['정리 퀴즈','워크시트 문제로 오늘 내용 확인'],motion:['모션 레퍼런스','화면에 쓰인 움직임 효과 모음']};
+const MDESC={map:['과정 지도',''],flow:['오늘의 흐름','오늘 소리가 흘러가는 과정을 Part별 그림으로'],goals:['목표·교시','오늘의 목표와 교시별 시간표'],anim:['애니메이션','수업 애니메이션과 Python·TS 완성 코드'],files:['수업 자료','슬라이드·실습 노트북(Colab)·워크시트'],learned:['오늘 배운 것','오늘 배운 개념을 한 줄씩 정리한 표'],tasks:['과제·진도','과제를 체크하고 진도 막대로 확인'],quiz:['정리 퀴즈','워크시트 문제로 오늘 내용 확인'],motion:['모션 레퍼런스','화면에 쓰인 움직임 효과 모음']};
 async function pickHomeDay(n){S.day=n;S.anim=null;sset('aiVoiceDash.lastDay',String(n));$('daySel').value=String(n);
   try{await loadDay(n);}catch(e){return;}if(active==='home')renderHome();}
 function renderHome(){
@@ -979,9 +981,9 @@ function renderHome(){
     <div class="hm-days">${wkDays.map(c=>`<button type="button" class="hm-day" data-d="${c.day}" aria-pressed="${c.day===S.day}"${c.ready?'':' disabled'} aria-label="D${c.day}${hwAny(c.day)?' 체크함':''}">D${c.day}${hwAny(c.day)?'<i>✓</i>':''}</button>`).join('')}</div></div>
   </div>
   <h3 class="sec">메뉴</h3>
-  <div class="hm-menu">${TABS.slice(1).map(([id],i)=>`<a class="hm-m" href="${hashOf(id,S.day)}"><span class="hm-n">${i+2}</span><span class="hm-mb"><b>${MDESC[id][0]}</b><span>${MDESC[id][1]}</span><em>${esc(stat[id])}</em></span></a>`).join('')}</div>
+  <div class="hm-menu">${TABS.slice(1).map(([id],i)=>`<a class="hm-m" href="${hashOf(id,S.day)}"><span class="hm-n">${i+2}</span><span class="hm-mb"><b>${MDESC[id][0]}</b><span>${id==='map'?`${new Set(S.course.map(c=>c.week)).size}주 ${S.course.length}일 일정과 개념·문제·그래프·애니메이션 자료실`:MDESC[id][1]}</span><em>${esc(stat[id])}</em></span></a>`).join('')}</div>
   <h3 class="sec">교육내용 선택하기</h3>
-  <details class="hm-fold"${matchMedia('(max-width:767px)').matches?'':' open'}><summary>주차 한눈에 · 9주 전체 펼치기 (이번 주 ${m.week}주차)</summary><div class="hm-wk">${Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="hm-wr"><b>${w}주차</b><small>${esc(ds[0].module)} · ${esc(ds[0].moduleName||'')}</small><div class="hm-pills">${ds.map(c=>{const ck=hwAny(c.day)?'<i>✓</i>':'';return c.ready?`<a class="hm-p${c.day===S.day?' cur':''}" href="#d${c.day}-flow">D${c.day}${ck}</a>`:`<span class="hm-p soon" aria-disabled="true">D${c.day}</span>`;}).join('')}</div></div>`;}).join('')}</div></details>
+  <details class="hm-fold"${matchMedia('(max-width:767px)').matches?'':' open'}><summary>주차 한눈에 · ${Object.keys(byW).length}주 전체 펼치기 (이번 주 ${m.week}주차)</summary><div class="hm-wk">${Object.keys(byW).map(w=>{const ds=byW[w];return `<div class="hm-wr"><b>${w}주차</b><small>${esc(ds[0].module)} · ${esc(ds[0].moduleName||'')}</small><div class="hm-pills">${ds.map(c=>{const ck=hwAny(c.day)?'<i>✓</i>':'';return c.ready?`<a class="hm-p${c.day===S.day?' cur':''}" href="#d${c.day}-flow">D${c.day}${ck}</a>`:`<span class="hm-p soon" aria-disabled="true">D${c.day}</span>`;}).join('')}</div></div>`;}).join('')}</div></details>
   <div class="row"><a class="btn" href="#map">과정 지도 전체 보기 →</a></div>`;
   $('p-home').querySelectorAll('.hm-day').forEach(b=>b.onclick=()=>pickHomeDay(+b.dataset.d));
   document.title='학습 대시보드 · 음성 AI 전문가 과정';
@@ -1003,7 +1005,7 @@ function applyBack(){document.querySelectorAll('.back-prev').forEach(e=>e.remove
 function parse(hh){const h=(hh==null?location.hash:hh).replace(/^#/,'');if(h==='home'||h==='map'||h==='motion')return {tab:h};
   const mw=/^map-w(\d+)(?:-d(\d+))?$/.exec(h);if(mw)return {tab:'map',mapWeek:+mw[1],mapDay:+(mw[2]||0)};
   const mp=/^map-d(\d+)$/.exec(h);if(mp){const c=S.course.find(x=>x.day===+mp[1]);return {tab:'map',mapWeek:c?c.week:0,mapDay:+mp[1]};}
-  const l=/^lib-(concepts|quiz|graphs|anims)(?:-w(\d))?(?:-d(\d+))?$/.exec(h);if(l)return {tab:'lib',page:l[1],week:+(l[2]||0),libDay:+(l[3]||0)};
+  const l=/^lib-(concepts|quiz|graphs|anims)(?:-w(\d+))?(?:-d(\d+))?$/.exec(h);if(l)return {tab:'lib',page:l[1],week:+(l[2]||0),libDay:+(l[3]||0)};
   const m=/^d(\d+)-(flow|goals|anim|files|learned|tasks|quiz)$/.exec(h);return m?{tab:m[2],day:+m[1]}:{tab:'home'};}
 const tabsEl=$('tabs');
 const addTab=(id,html,cls)=>{const b=mk('button',cls||null,html);b.type='button';b.setAttribute('role','tab');b.dataset.t=id;b.setAttribute('aria-selected','false');b.onclick=()=>{direct=true;nav(id);};tabsEl.appendChild(b);};

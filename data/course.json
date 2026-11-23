@@ -350,5 +350,13 @@
     "moduleName": "평가 · 배포 · 운영 · 엣지",
     "title": "On-device / Edge & 깨움말",
     "ready": true
+  },
+  {
+    "day": 45,
+    "week": 10,
+    "module": "M10",
+    "moduleName": "프로젝트",
+    "title": "키오스크 음성 주문",
+    "ready": true
   }
 ]

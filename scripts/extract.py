@@ -132,13 +132,36 @@ def table_rows(block):
     return rows[1:]  # 머리글 제외
 
 
+PROJECT_FROM, PROJECT_TO = 45, 51  # 프로젝트 7일 = 10주차 M10
+LAST = 45  # 자료가 있는 마지막 일차(D46~51은 자료가 들어오면 올린다)
+
+
+class project_week:
+    """re.Match 처럼 group(1)=주차, group(2)=모듈 을 돌려주는 일차 번호 기반 값."""
+    def __init__(self, day):
+        if not PROJECT_FROM <= day <= PROJECT_TO:  # 그 밖의 일차는 머리말 형식 오류 → 조용히 M10으로 두지 않는다
+            raise ValueError("D%d: `N주차 MN` 머리말을 찾지 못함 (M10 기본값은 D%d~%d에만)" % (day, PROJECT_FROM, PROJECT_TO))
+        self.v = (str(10), "M10")
+
+    def group(self, i):
+        return self.v[i - 1]
+
+
+def today_goal(md):
+    """D45~: 목표 절 없이 도입 문단의 `오늘의 목표는 하나입니다. **...**` 한 줄."""
+    m = re.search(r"오늘의 목표는 [^.]*\.\s*\*\*(.+?)\*\*", md)
+    return [plain(m.group(1)).rstrip(".")] if m else []
+
+
 def parse_notebook(day):
     md = notebook_md(day)
     lines = md.splitlines()
-    h1 = re.match(r"# D\d+\.\s*(.+)", lines[0])
+    h1 = re.match(r"# D\d+\s*[.·]\s*(.+)", lines[0])
     title = h1.group(1).strip()
-    metaline = next(l for l in lines[1:8] if "주차" in l)
+    metaline = next(l for l in lines[1:8] if "주차" in l or "Day" in l)
     wm = re.search(r"(\d+)주차\s+(M\d+)", metaline)
+    if not wm:  # D45~51: 머리말이 `Day 45 / 51` → 일차 번호로 주차·모듈을 정한다
+        wm = project_week(day)
     hm = re.search(r"(\d+)시간", metaline)
     tm = re.search(r"시간\s*[|·]\s*(.+?)\**\s*$", metaline)
     meta = {
@@ -152,6 +175,9 @@ def parse_notebook(day):
         n = re.match(r"(\d+)교시", r[0])
         if n and len(r) >= 3:
             periods.append({"n": int(n.group(1)), "topic": plain(r[1]), "parts": plain(r[2])})
+    if not periods:  # D45~: 흐름 표 없음 → `## Part N. (M교시) 제목 — R..` 제목에서
+        for n, k, t in re.findall(r"^## Part (\d+)\. \((\d+)교시\)\s*(.+)$", md, re.M):
+            periods.append({"n": int(k), "topic": plain(t), "parts": "Part " + n})
     parts = [{"n": int(n), "title": t.strip()}
              for n, t in re.findall(r"^## Part (\d+)\.\s*(.+)$", md, re.M)]
     blanks = 0
@@ -174,10 +200,16 @@ def parse_notebook(day):
             if len(r) >= 3:
                 learned.append({"concept": plain(r[0]), "summary": plain(r[1]),
                                 "code": r[2].replace("`", "").strip()})
+    reqs = [{"id": r[0], "text": plain(r[1]), "period": plain(r[2])}
+            for r in table_rows(section(md, r"요구사항")) if len(r) >= 3]
+    cps = [{"n": plain(r[0]), "name": plain(r[1]), "fn": r[2].replace("`", "").strip(), "score": plain(r[3])}
+           for r in table_rows(section(md, r"체크포인트와 점수")) if len(r) >= 4]
     return {
+        "reqs": reqs,
+        "checkpoints": cps,
         "title": title,
         "meta": meta,
-        "goals": numbered(section(md, r"(?:학습|프로젝트) 목표")),
+        "goals": numbered(section(md, r"(?:학습|프로젝트) 목표")) or today_goal(md),
         "periods": periods,
         "parts": parts,
         "blanks": blanks,
@@ -304,6 +336,12 @@ def build_day(day):
     if not homework and nb["checks"]:  # D29~44: 과제 절 없음 -> 오늘의 확인 체크리스트
         homework = nb["checks"]
         extra["homeworkSource"] = "오늘의 확인"
+    proj = {k: nb[k] for k in ("reqs", "checkpoints") if nb[k]}
+    # D45~: 요구사항 R1~R6 · 체크포인트 표(필드가 없는 1~44일 JSON은 그대로)
+    if "reqs" in proj:
+        extra["requirements"] = proj["reqs"]
+    if "checkpoints" in proj:
+        extra["checkpoints"] = proj["checkpoints"]
     return dict({
         "day": day,
         "title": nb["title"],
@@ -327,21 +365,25 @@ MODULE_NAMES = {
     "M4": "음성 합성(TTS) & Voice Cloning", "M5": "LLM 연동 Voice Agent (Cascade 구조)",
     "M6": "실시간 음성 파이프라인 (Pipecat · LiveKit)", "M7": "서비스 배포 & 운영 · Edge AI",
     "M8": "차세대 음성 모델 · 다국어 · 데이터 · TTS 파인튜닝", "M9": "평가 · 배포 · 운영 · 엣지",
+    "M10": "프로젝트",
 }
 
 
 def course_entry(day, ready):
     md = notebook_md(day)
     first = md.splitlines()[0]
-    title = re.match(r"# D\d+\.\s*(.+)", first).group(1)
-    title = re.split(r":| — ", title, maxsplit=1)[0].strip()
-    meta = parse_notebook_meta(md)
+    title = re.match(r"# D\d+\s*[.·]\s*(.+)", first).group(1)
+    parts = [x.strip() for x in re.split(r":| — ", title, maxsplit=1)]
+    title = parts[1] if parts[0].startswith("프로젝트") and len(parts) > 1 else parts[0]  # D45~: 콜론 뒤가 주제
+    meta = parse_notebook_meta(md, day)
     return {"day": day, "week": meta[0], "module": meta[1], "moduleName": MODULE_NAMES.get(meta[1], ""), "title": title, "ready": ready}
 
 
-def parse_notebook_meta(md):
-    line = next(l for l in md.splitlines()[1:8] if "주차" in l)
+def parse_notebook_meta(md, day):
+    line = next(l for l in md.splitlines()[1:8] if "주차" in l or "Day" in l)
     m = re.search(r"(\d+)주차\s+(M\d+)", line)
+    if not m:
+        m = project_week(day)
     return int(m.group(1)), m.group(2)
 
 
@@ -384,15 +426,16 @@ def report(rows):
 
 
 def main(argv):
-    days = list(range(1, 45)) if argv == ["all"] else [int(a) for a in argv] or [1, 10]
+    days = list(range(1, LAST + 1)) if argv == ["all"] else [int(a) for a in argv] or [1, 10]
     os.makedirs(DATA, exist_ok=True)
-    rows, ok = [], []
+    rows, ok, failed = [], [], []
     for day in days:
         try:
             obj = build_day(day)
         except Exception as e:  # 한 일차 실패가 전체를 막지 않게
             print("day%02d: FAIL %s: %s" % (day, type(e).__name__, e))
             rows.append((day, None, "%s: %s" % (type(e).__name__, e)))
+            failed.append(day)
             continue
         dump(os.path.join(DATA, "day%02d.json" % day), obj)
         ok.append(day)
@@ -405,12 +448,19 @@ def main(argv):
         rows.append((day, (len(obj["goals"]), len(obj["parts"]), obj["blanks"], len(obj["learned"]),
                            len(obj["homework"]), qn, len(obj["anims"]), len(obj["road"])),
                      warnings(obj)))
-    course = [course_entry(d, d in ok) for d in range(1, 45)]
+    # 이미 만들어 둔 일차는 ready 유지(일부 일차만 다시 만들어도 course.json이 줄지 않게)
+    # 단, 이번에 요청했다가 실패한 일차는 옛 파일이 있어도 ready로 두지 않는다
+    have = (set(ok) | {d for d in range(1, LAST + 1) if os.path.exists(os.path.join(DATA, "day%02d.json" % d))}) - set(failed)
+    try:
+        course = [course_entry(d, d in have) for d in range(1, LAST + 1)]
+    except Exception as e:  # 머리말 오류 등: course.json은 건드리지 않고 실패로 끝냄
+        print("course.json: FAIL %s: %s" % (type(e).__name__, e))
+        return 1
     dump(os.path.join(DATA, "course.json"), course)
     print("course.json: %d days, ready=%s" % (len(course), [c["day"] for c in course if c["ready"]]))
     if argv == ["all"]:
         report(rows)
-        return 0 if len(ok) == len(days) else 1
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":
