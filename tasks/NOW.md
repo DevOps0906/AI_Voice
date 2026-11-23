@@ -1,10 +1,10 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
 - 갱신: 2026-11-23
-- 현재 작업: 없음 — task-001~031 완료 (task-031: D45 키오스크 연결, 커밋 완료·push 전)
+- 현재 작업: 없음 — task-001~032 완료·push (task-032: 코드 상자 로드 실패 안내 문구, 1~45일 재생성)
 - 마지막으로 한 일: task-031 D45 연결 · 10주차 M10 "프로젝트" · 목표·교시 탭 요구사항(R1~R6)·체크포인트 표 · 코드 탭 D45 18개
 - 다음 한 걸음: D46~51 자료가 pull되면 같은 방식으로 연결(extract.py LAST 값 올리고 파이프라인 재실행)
-- 열린 결정(사용자 확인 필요): 발견한 문제 — reskin CODEBOX_JS 로드 실패 무시(1~45일 공용) 수정 여부
+- 열린 결정(사용자 확인 필요): 없음 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)
 - 주의(이번 작업에서 알게 된 함정):
   - 45~51일은 노트북에 `N주차 MN` 머리말이 없다 → extract.py가 일차 번호로 10주차·M10 처리(그 밖 형식 오류는 ValueError)
   - D45~ 새 절 "요구사항 (고객의 말로)"·"체크포인트와 점수" → day JSON requirements·checkpoints 필드, 없으면 화면에서 숨김
@@ -15,7 +15,7 @@
   - git status의 dashboard/d* 변경은 CRLF 차이일 수 있음 → `git diff --ignore-cr-at-eol --stat`
   - 코드 탭: 일차별 설정 scripts/code_map/dayNN.json, 스니펫 원본 .nomad/code_src/wN(커밋 안 함)
   - 코드 검사 venv는 .venv-code*(gitignore). run_code.py는 --out 없으면 docs/code-run-report.md를 통째로 덮어씀(D45는 docs/code-run-report-d45.md)
-- SDLC 단계: 08 배포(push 대기)
+- SDLC 단계: 08 배포 완료
 - 담당 모델/역할: 팀장(Opus) · builder(sonnet) · codex-reviewer
 - 테스트 상태: run_code D45 18/18 통과(.venv-code-w9), 1~44일 데이터 무변경
-- 남은 작업: push(사용자 요청 시)
+- 남은 작업: 없음
