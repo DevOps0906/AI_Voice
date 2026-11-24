@@ -134,7 +134,7 @@ def table_rows(block):
 
 
 PROJECT_FROM, PROJECT_TO = 45, 51  # 프로젝트 7일 = 10주차 M10
-LAST = 46  # 자료가 있는 마지막 일차(D47~51은 자료가 들어오면 올린다)
+LAST = 47  # 자료가 있는 마지막 일차(D48~51은 자료가 들어오면 올린다)
 
 
 class project_week:
@@ -225,7 +225,9 @@ def parse_notebook(day):
         "checkpoints": cps,
         "title": title,
         "meta": meta,
-        "goals": numbered(section(md, r"(?:학습|프로젝트) 목표")) or today_goal(md),
+        "goals": numbered(section(md, r"(?:학습|프로젝트) 목표")) or today_goal(md)
+                 # D47형: `### 🎯 원장님의 목표` 표(# · 목표 · 기준) → "목표: 기준"
+                 or ["%s: %s" % (plain(r[1]), plain(r[2])) for r in table_rows(section(md, r"🎯 .*목표")) if len(r) >= 3],
         "periods": periods,
         "parts": parts,
         "blanks": blanks,

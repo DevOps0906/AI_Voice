@@ -366,5 +366,13 @@
     "moduleName": "프로젝트",
     "title": "한빛치과 AI 콜센터",
     "ready": true
+  },
+  {
+    "day": 47,
+    "week": 10,
+    "module": "M10",
+    "moduleName": "프로젝트",
+    "title": "느린 자동 회의록 서비스 살리기",
+    "ready": true
   }
 ]

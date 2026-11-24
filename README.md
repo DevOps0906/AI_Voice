@@ -11,6 +11,7 @@
 - ✅ GitHub Pages 배포
 - ✅ 수업 원본 `Edu/`로 정리 · 새 자료 자동 정리 스크립트(`scripts/sync_edu.py`)
 - ✅ D46 대시보드 반영 · 코드 상자 Python·TS 18개 (실행 검사 `docs/reports/code-run-report-d46.md`)
+- ✅ D47 대시보드 반영 · 코드 상자 Python·TS 18개 (실행 검사 `docs/reports/code-run-report-d47.md`)
 
 ## 콘텐츠 바로가기
 | 콘텐츠 | 링크 |
@@ -18,7 +19,7 @@
 | 📊 학습 대시보드 | https://devops0906.github.io/AI_Voice/ |
 | 🗺️ 과정 지도 | https://devops0906.github.io/AI_Voice/#map |
 | 🎬 애니메이션 (예: D1) | https://devops0906.github.io/AI_Voice/dashboard/d1/animation.html |
-| 📁 일차별 수업 자료 (원본) | [`Edu/`](Edu/) — `Edu/day01/` ~ `Edu/day46/` |
+| 📁 일차별 수업 자료 (원본) | [`Edu/`](Edu/) — `Edu/day01/` ~ `Edu/day47/` |
 | 📝 기획 문서 | [`docs/PLAN.md`](docs/PLAN.md) |
 | 🎨 디자인 토큰 | [`design/tokens.css`](design/tokens.css) · [`design/DESIGN.md`](design/DESIGN.md) |
 

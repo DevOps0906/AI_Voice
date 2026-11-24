@@ -1,7 +1,7 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
 - 갱신: 2026-11-24
-- 현재 작업: 없음 — task-035~037 완료·push (Edu/ 정리 · D46 연결 · D46 코드 상자 18/18)
+- 현재 작업: 없음 — task-035~038 완료·push (Edu/ 정리 · D46·D47 연결 · 코드 상자 각 18/18)
 - 마지막으로 한 일: task-032 코드 상자 실패 문구 · task-033 reskin COMMON에 코드 제외 Pretendard !important·결과값(.kv b·.big·slider output) .9rem
 - 다음 한 걸음: 새 자료는 `python scripts/sync_edu.py` → extract(LAST 올림)·reskin·concepts·library → 코드 상자(code_map + build_code + run_code)
 - 열린 결정(사용자 확인 필요): 없음 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)
