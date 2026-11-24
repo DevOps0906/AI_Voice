@@ -134,7 +134,7 @@ def table_rows(block):
 
 
 PROJECT_FROM, PROJECT_TO = 45, 51  # 프로젝트 7일 = 10주차 M10
-LAST = 45  # 자료가 있는 마지막 일차(D46~51은 자료가 들어오면 올린다)
+LAST = 46  # 자료가 있는 마지막 일차(D47~51은 자료가 들어오면 올린다)
 
 
 class project_week:
@@ -151,7 +151,20 @@ class project_week:
 def today_goal(md):
     """D45~: 목표 절 없이 도입 문단의 `오늘의 목표는 하나입니다. **...**` 한 줄."""
     m = re.search(r"오늘의 목표는 [^.]*\.\s*\*\*(.+?)\*\*", md)
+    if not m:  # D46형: `오늘은 다릅니다. 가상의 고객이 준 **요구서**를 읽고, 만들어서, **납품**합니다.`
+        m = re.search(r"오늘은 [^.\n]*\.\s*([^.\n]*\*\*[^.\n]*합니다)\.", md)
     return [plain(m.group(1)).rstrip(".")] if m else []
+
+
+def rfp_reqs(md):
+    """D46형: 인용(>) 안의 `고객 요구서` 표(# · 요구사항). 교시는 `## Part N. (K교시) … — R1 · R2` 제목에서."""
+    block = "\n".join(l.lstrip(">").strip() for l in section(md, r"📄 고객 요구서").splitlines())
+    period = {}
+    for k, rs in re.findall(r"^## Part \d+\. \((\d+)교시\)[^\n]*?—\s*(.+)$", md, re.M):
+        for r in re.findall(r"R\d+", rs):
+            period.setdefault(r, k + "교시")
+    return [{"id": plain(r[0]), "text": plain(r[1]).rstrip("."), "period": period.get(plain(r[0]), "")}
+            for r in table_rows(block) if len(r) >= 2 and re.fullmatch(r"R\d+", plain(r[0]))]
 
 
 def parse_notebook(day):
@@ -203,6 +216,8 @@ def parse_notebook(day):
                                 "code": r[2].replace("`", "").strip()})
     reqs = [{"id": r[0], "text": plain(r[1]), "period": plain(r[2])}
             for r in table_rows(section(md, r"요구사항")) if len(r) >= 3]
+    if not reqs:
+        reqs = rfp_reqs(md)
     cps = [{"n": plain(r[0]), "name": plain(r[1]), "fn": r[2].replace("`", "").strip(), "score": plain(r[3])}
            for r in table_rows(section(md, r"체크포인트와 점수")) if len(r) >= 4]
     return {

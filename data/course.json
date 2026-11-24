@@ -358,5 +358,13 @@
     "moduleName": "프로젝트",
     "title": "키오스크 음성 주문",
     "ready": true
+  },
+  {
+    "day": 46,
+    "week": 10,
+    "module": "M10",
+    "moduleName": "프로젝트",
+    "title": "한빛치과 AI 콜센터",
+    "ready": true
   }
 ]

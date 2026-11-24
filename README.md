@@ -10,7 +10,7 @@
 - ✅ 애니메이션 코드 상자: 44일 단독 실행 코드 Python·TS 792개 (실행 검사 `docs/reports/code-run-report.md`)
 - ✅ GitHub Pages 배포
 - ✅ 수업 원본 `Edu/`로 정리 · 새 자료 자동 정리 스크립트(`scripts/sync_edu.py`)
-- ⬜ D46 대시보드 반영 (원본만 들어옴)
+- ✅ D46 대시보드 반영 (애니메이션 코드 상자는 다음 작업)
 
 ## 콘텐츠 바로가기
 | 콘텐츠 | 링크 |
