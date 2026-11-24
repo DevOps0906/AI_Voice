@@ -279,7 +279,7 @@
     "(선택) 내 목소리 시험: 뉴스 문장 3개와 평소 말투 문장 3개를 직접 녹음해 학습 전 · 후 모델로 받아쓰고 차이를 정리하세요."
   ],
   "worksheet": {
-    "source": "day12/worksheet.html",
+    "source": "Edu/day12/worksheet.html",
     "groups": [
       {
         "title": "1교시 · Fine-tuning 개념 · Teacher forcing · 데이터",
@@ -864,7 +864,7 @@
       "name": "D12_Whisper_FullFinetuning_slides.pdf",
       "kind": "pdf",
       "size": 1150589,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day12/D12_Whisper_FullFinetuning_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -872,7 +872,7 @@
       "name": "D12_Whisper_FullFinetuning_slides.pptx",
       "kind": "pptx",
       "size": 1490007,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day12/D12_Whisper_FullFinetuning_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -880,23 +880,23 @@
       "name": "D12_Whisper_FullFinetuning_강사용.ipynb",
       "kind": "ipynb",
       "size": 1447981,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day12/D12_Whisper_FullFinetuning_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day12/D12_Whisper_FullFinetuning_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D12_Whisper_FullFinetuning_실습.ipynb",
       "kind": "ipynb",
       "size": 1421332,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day12/D12_Whisper_FullFinetuning_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day12/D12_Whisper_FullFinetuning_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day12/D12_Whisper_FullFinetuning_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 57288,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day12/animation.html",
       "colab": null,
       "pages": null
     },
@@ -904,7 +904,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 36075,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day12/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day12/worksheet.html",
       "colab": null,
       "pages": null
     }

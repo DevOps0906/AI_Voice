@@ -235,7 +235,7 @@
   ],
   "homework": [],
   "worksheet": {
-    "source": "day42/worksheet.html",
+    "source": "Edu/day42/worksheet.html",
     "groups": [
       {
         "title": "전체",
@@ -597,7 +597,7 @@
       "name": "D42_서빙부하시험_slides.pdf",
       "kind": "pdf",
       "size": 959653,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -605,7 +605,7 @@
       "name": "D42_서빙부하시험_slides.pptx",
       "kind": "pptx",
       "size": 1226842,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -613,23 +613,23 @@
       "name": "D42_서빙부하시험_강사용.ipynb",
       "kind": "ipynb",
       "size": 631863,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D42_서빙부하시험_실습.ipynb",
       "kind": "ipynb",
       "size": 592993,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day42/D42_%EC%84%9C%EB%B9%99%EB%B6%80%ED%95%98%EC%8B%9C%ED%97%98_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 60394,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day42/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day42/animation.html",
       "colab": null,
       "pages": null
     },
@@ -637,7 +637,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34822,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day42/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day42/worksheet.html",
       "colab": null,
       "pages": null
     }

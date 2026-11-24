@@ -240,7 +240,7 @@
   ],
   "homework": [],
   "worksheet": {
-    "source": "day41/worksheet.html",
+    "source": "Edu/day41/worksheet.html",
     "groups": [
       {
         "title": "전체",
@@ -602,7 +602,7 @@
       "name": "D41_평가자동화_slides.pdf",
       "kind": "pdf",
       "size": 880865,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -610,7 +610,7 @@
       "name": "D41_평가자동화_slides.pptx",
       "kind": "pptx",
       "size": 1162609,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -618,23 +618,23 @@
       "name": "D41_평가자동화_강사용.ipynb",
       "kind": "ipynb",
       "size": 793895,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D41_평가자동화_실습.ipynb",
       "kind": "ipynb",
       "size": 760065,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day41/D41_%ED%8F%89%EA%B0%80%EC%9E%90%EB%8F%99%ED%99%94_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 80657,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day41/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day41/animation.html",
       "colab": null,
       "pages": null
     },
@@ -642,7 +642,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34920,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day41/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day41/worksheet.html",
       "colab": null,
       "pages": null
     }

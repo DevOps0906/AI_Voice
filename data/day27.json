@@ -263,7 +263,7 @@
     "TURN_WAIT 실험: 0.3 · 0.6 · 1.0초로 바꿔 Part 5를 세 번 돌리고, 턴별 시간표와 '말이 잘렸는지'(대화 기록의 user 메시지)를 표로 정리하세요."
   ],
   "worksheet": {
-    "source": "day27/worksheet.html",
+    "source": "Edu/day27/worksheet.html",
     "groups": [
       {
         "title": "1교시 · Frame · FrameProcessor",
@@ -836,7 +836,7 @@
       "name": "D27_Pipecat기초_slides.pdf",
       "kind": "pdf",
       "size": 1032660,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -844,7 +844,7 @@
       "name": "D27_Pipecat기초_slides.pptx",
       "kind": "pptx",
       "size": 1369427,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -852,23 +852,23 @@
       "name": "D27_Pipecat기초_강사용.ipynb",
       "kind": "ipynb",
       "size": 1261334,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D27_Pipecat기초_실습.ipynb",
       "kind": "ipynb",
       "size": 1236511,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day27/D27_Pipecat%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 46683,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day27/animation.html",
       "colab": null,
       "pages": null
     },
@@ -876,7 +876,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 30752,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day27/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day27/worksheet.html",
       "colab": null,
       "pages": null
     }

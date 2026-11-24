@@ -138,7 +138,7 @@ def check_code(day, h, lang, code):
 
 
 def ordinals(day):
-    f = next(iter(glob.glob(str(ROOT / day_cfg(day)[0]))))
+    f = next(iter(glob.glob(str(ROOT / "Edu" / day_cfg(day)[0]))))
     nb = json.load(open(f, encoding="utf-8"))
     codes = [i for i, c in enumerate(nb["cells"]) if c["cell_type"] == "code"]
     return Path(f).name, {i: k + 1 for k, i in enumerate(codes)}  # 노트북 셀 번호 → Colab 코드 셀 순번

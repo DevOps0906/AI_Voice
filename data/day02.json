@@ -245,7 +245,7 @@
     "빈칸 실습 1의 `tone()`으로 \"도레미파솔\" (262, 294, 330, 349, 392 Hz)을 이어 붙여 들려주는 코드를 만들어 보세요. (힌트: `np.concatenate`)"
   ],
   "worksheet": {
-    "source": "day02/worksheet.html",
+    "source": "Edu/day02/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 소리의 정체 · 샘플링",
@@ -830,7 +830,7 @@
       "name": "D2_디지털오디오기초_slides.pdf",
       "kind": "pdf",
       "size": 730543,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_slides.pdf",
       "colab": null,
       "pages": 22
     },
@@ -838,7 +838,7 @@
       "name": "D2_디지털오디오기초_slides.pptx",
       "kind": "pptx",
       "size": 1150145,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -846,15 +846,15 @@
       "name": "D2_디지털오디오기초_실습.ipynb",
       "kind": "ipynb",
       "size": 1528509,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day02/D2_%EB%94%94%EC%A7%80%ED%84%B8%EC%98%A4%EB%94%94%EC%98%A4%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 74179,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day02/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day02/animation.html",
       "colab": null,
       "pages": null
     },
@@ -862,7 +862,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34004,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day02/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day02/worksheet.html",
       "colab": null,
       "pages": null
     }

@@ -1,20 +1,20 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
-- 갱신: 2026-11-23
-- 현재 작업: 없음 — task-001~034 완료·push (task-034: 대시보드 루트 이동, 주소 https://devops0906.github.io/AI_Voice/ · 옛 /dashboard/ 는 해시 유지 리다이렉트)
+- 갱신: 2026-11-24
+- 현재 작업: 없음 — task-035 완료(수업 원본 Edu/ 이동, push 전) · task-001~034 push 완료 (task-034: 대시보드 루트 이동, 주소 https://devops0906.github.io/AI_Voice/ · 옛 /dashboard/ 는 해시 유지 리다이렉트)
 - 마지막으로 한 일: task-032 코드 상자 실패 문구 · task-033 reskin COMMON에 코드 제외 Pretendard !important·결과값(.kv b·.big·slider output) .9rem
-- 다음 한 걸음: D46~51 자료가 pull되면 같은 방식으로 연결(extract.py LAST 값 올리고 파이프라인 재실행)
+- 다음 한 걸음: D46 원본 들어옴(Edu/day46) → 대시보드 연결(extract.py LAST 값 올리고 파이프라인 재실행). 새 자료는 `python scripts/sync_edu.py`로 받는다(루트 dayNN/ → Edu/ 자동 이동)
 - 열린 결정(사용자 확인 필요): 없음 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)
 - 주의(이번 작업에서 알게 된 함정):
   - 45~51일은 노트북에 `N주차 MN` 머리말이 없다 → extract.py가 일차 번호로 10주차·M10 처리(그 밖 형식 오류는 ValueError)
   - D45~ 새 절 "요구사항 (고객의 말로)"·"체크포인트와 점수" → day JSON requirements·checkpoints 필드, 없으면 화면에서 숨김
   - 대시보드 해시는 두 자리 주차(`-w10`)를 받는다(정규식 `-w(\d+)`)
-  - scripts/__pycache__/*.pyc가 추적 파일이라 스크립트 실행마다 변경으로 잡힘 → 커밋에서 제외
+  - 수업 원본은 Edu/dayNN/ (upstream은 루트 dayNN/에 올림 → GitHub Sync fork 대신 sync_edu.py). 리포트는 docs/reports/
   - Codex 리뷰가 -m 없이 astra로 실행됨(config 기본값 확인 필요, 사용자 규칙은 astra 금지)
   - 애니메이션은 scripts/reskin.py로만 다시 만든다 · 원본 D1~34 script는 IIFE
   - git status의 dashboard/d* 변경은 CRLF 차이일 수 있음 → `git diff --ignore-cr-at-eol --stat`
   - 코드 탭: 일차별 설정 scripts/code_map/dayNN.json, 스니펫 원본 .nomad/code_src/wN(커밋 안 함)
-  - 코드 검사 venv는 .venv-code*(gitignore). run_code.py는 --out 없으면 docs/code-run-report.md를 통째로 덮어씀(D45는 docs/code-run-report-d45.md)
+  - 코드 검사 venv는 .venv-code*(gitignore). run_code.py는 --out 없으면 docs/reports/code-run-report.md를 통째로 덮어씀(D45는 docs/reports/code-run-report-d45.md)
 - SDLC 단계: 08 배포 완료
 - 담당 모델/역할: 팀장(Opus) · builder(sonnet) · codex-reviewer
 - 테스트 상태: run_code D45 18/18 통과(.venv-code-w9), 1~44일 데이터 무변경

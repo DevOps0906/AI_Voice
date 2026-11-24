@@ -209,7 +209,7 @@
     "잡음 종류별로 억제가 쉬운 것 · 어려운 것을 구분하고, AGC와 체인 순서를 설명할 수 있다."
   ],
   "worksheet": {
-    "source": "day33/worksheet.html",
+    "source": "Edu/day33/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 에코가 생기는 길과 지연 추정",
@@ -782,7 +782,7 @@
       "name": "D33_실시간음질_slides.pdf",
       "kind": "pdf",
       "size": 765366,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -790,7 +790,7 @@
       "name": "D33_실시간음질_slides.pptx",
       "kind": "pptx",
       "size": 1000760,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -798,23 +798,23 @@
       "name": "D33_실시간음질_강사용.ipynb",
       "kind": "ipynb",
       "size": 747324,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D33_실시간음질_실습.ipynb",
       "kind": "ipynb",
       "size": 694894,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day33/D33_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%9D%8C%EC%A7%88_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 53209,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day33/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day33/animation.html",
       "colab": null,
       "pages": null
     },
@@ -822,7 +822,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31959,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day33/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day33/worksheet.html",
       "colab": null,
       "pages": null
     }

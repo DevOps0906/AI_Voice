@@ -258,7 +258,7 @@
     "WebSocket 서버 확장: `ws_server.py`가 말 끝(`speech_end`)마다 그 구간 소리를 모아 Whisper로 받아쓰고 `{\"type\": \"transcript\", ...}` 이벤트를 돌려주게 바꿔 보세요(D27 Pipecat의 STT 서비스가 하는 일)."
   ],
   "worksheet": {
-    "source": "day26/worksheet.html",
+    "source": "Edu/day26/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 실시간 · 프레임 · 비트레이트",
@@ -831,7 +831,7 @@
       "name": "D26_실시간오디오_slides.pdf",
       "kind": "pdf",
       "size": 857823,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -839,7 +839,7 @@
       "name": "D26_실시간오디오_slides.pptx",
       "kind": "pptx",
       "size": 1193341,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -847,23 +847,23 @@
       "name": "D26_실시간오디오_강사용.ipynb",
       "kind": "ipynb",
       "size": 939065,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D26_실시간오디오_실습.ipynb",
       "kind": "ipynb",
       "size": 918338,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day26/D26_%EC%8B%A4%EC%8B%9C%EA%B0%84%EC%98%A4%EB%94%94%EC%98%A4_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 45656,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day26/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day26/animation.html",
       "colab": null,
       "pages": null
     },
@@ -871,7 +871,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 30497,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day26/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day26/worksheet.html",
       "colab": null,
       "pages": null
     }

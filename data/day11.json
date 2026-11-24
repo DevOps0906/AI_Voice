@@ -263,7 +263,7 @@
     "(선택) AIHub 신청: 관심 분야(회의 · 콜센터 · 노인 · 아동 등)의 AIHub 음성 데이터셋을 하나 골라 라벨 설명서를 읽고, 오늘의 `parse_label()`을 그 데이터에 맞게 고쳐 오세요. (신청 · 승인에 며칠 걸릴 수 있습니다.)"
   ],
   "worksheet": {
-    "source": "day11/worksheet.html",
+    "source": "Edu/day11/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 데이터셋 지도 · HF 스트리밍",
@@ -847,7 +847,7 @@
       "name": "D11_한국어음성데이터셋_slides.pdf",
       "kind": "pdf",
       "size": 1074793,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -855,7 +855,7 @@
       "name": "D11_한국어음성데이터셋_slides.pptx",
       "kind": "pptx",
       "size": 1417941,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -863,23 +863,23 @@
       "name": "D11_한국어음성데이터셋_강사용.ipynb",
       "kind": "ipynb",
       "size": 1322432,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D11_한국어음성데이터셋_실습.ipynb",
       "kind": "ipynb",
       "size": 1292999,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day11/D11_%ED%95%9C%EA%B5%AD%EC%96%B4%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%85%8B_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 52355,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day11/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day11/animation.html",
       "colab": null,
       "pages": null
     },
@@ -887,7 +887,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 35968,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day11/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day11/worksheet.html",
       "colab": null,
       "pages": null
     }

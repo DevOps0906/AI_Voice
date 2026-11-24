@@ -242,7 +242,7 @@
     "6주차 준비: 오늘 지연표에서 가장 큰 막대(STT · LLM · TTS 중)를 하나 골라, 스트리밍으로 바꾸면 얼마나 줄지 예상해 오기."
   ],
   "worksheet": {
-    "source": "day25/worksheet.html",
+    "source": "Edu/day25/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 프로젝트 카드 · 도구 서버",
@@ -817,7 +817,7 @@
       "name": "D25_미니프로젝트_음성비서_slides.pdf",
       "kind": "pdf",
       "size": 901942,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -825,7 +825,7 @@
       "name": "D25_미니프로젝트_음성비서_slides.pptx",
       "kind": "pptx",
       "size": 1120810,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -833,23 +833,23 @@
       "name": "D25_미니프로젝트_음성비서_강사용.ipynb",
       "kind": "ipynb",
       "size": 895113,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D25_미니프로젝트_음성비서_실습.ipynb",
       "kind": "ipynb",
       "size": 871221,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day25/D25_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%9D%8C%EC%84%B1%EB%B9%84%EC%84%9C_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 49231,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day25/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day25/animation.html",
       "colab": null,
       "pages": null
     },
@@ -857,7 +857,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31493,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day25/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day25/worksheet.html",
       "colab": null,
       "pages": null
     }

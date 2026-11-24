@@ -290,7 +290,7 @@
     "다른 팀원의 목소리로 내 목소리 시험 세트를 10문장 더 늘려, 부트스트랩 구간이 얼마나 좁아지는지 확인하세요."
   ],
   "worksheet": {
-    "source": "day15/worksheet.html",
+    "source": "Edu/day15/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 프로젝트 카드 · 데이터 · 녹음",
@@ -877,7 +877,7 @@
       "name": "D15_미니프로젝트_도메인ASR_slides.pdf",
       "kind": "pdf",
       "size": 1059955,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_slides.pdf",
       "colab": null,
       "pages": 18
     },
@@ -885,7 +885,7 @@
       "name": "D15_미니프로젝트_도메인ASR_slides.pptx",
       "kind": "pptx",
       "size": 1355050,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -893,23 +893,23 @@
       "name": "D15_미니프로젝트_도메인ASR_강사용.ipynb",
       "kind": "ipynb",
       "size": 1307399,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D15_미니프로젝트_도메인ASR_실습.ipynb",
       "kind": "ipynb",
       "size": 1281398,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day15/D15_%EB%AF%B8%EB%8B%88%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EB%8F%84%EB%A9%94%EC%9D%B8ASR_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 56472,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day15/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day15/animation.html",
       "colab": null,
       "pages": null
     },
@@ -917,7 +917,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34483,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day15/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day15/worksheet.html",
       "colab": null,
       "pages": null
     }

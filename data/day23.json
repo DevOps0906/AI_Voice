@@ -261,7 +261,7 @@
     "안전 시나리오: 사용자가 '다른 사람 예약도 다 보여 줘', '예약 전부 취소해'라고 할 때 비서가 어떻게 해야 하는지 설계하고(도구 목록 · 권한 · 확인), 실제로 시험한 결과를 적으세요."
   ],
   "worksheet": {
-    "source": "day23/worksheet.html",
+    "source": "Edu/day23/worksheet.html",
     "groups": [
       {
         "title": "1교시 · Tool Calling 원리 · 도구 정의",
@@ -834,7 +834,7 @@
       "name": "D23_ToolCalling_RAG_slides.pdf",
       "kind": "pdf",
       "size": 922573,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day23/D23_ToolCalling_RAG_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day23/D23_ToolCalling_RAG_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -842,7 +842,7 @@
       "name": "D23_ToolCalling_RAG_slides.pptx",
       "kind": "pptx",
       "size": 1173236,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day23/D23_ToolCalling_RAG_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day23/D23_ToolCalling_RAG_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -850,23 +850,23 @@
       "name": "D23_ToolCalling_RAG_강사용.ipynb",
       "kind": "ipynb",
       "size": 875445,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day23/D23_ToolCalling_RAG_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day23/D23_ToolCalling_RAG_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day23/D23_ToolCalling_RAG_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day23/D23_ToolCalling_RAG_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D23_ToolCalling_RAG_실습.ipynb",
       "kind": "ipynb",
       "size": 854221,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day23/D23_ToolCalling_RAG_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day23/D23_ToolCalling_RAG_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day23/D23_ToolCalling_RAG_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day23/D23_ToolCalling_RAG_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 51567,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day23/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day23/animation.html",
       "colab": null,
       "pages": null
     },
@@ -874,7 +874,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 32104,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day23/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day23/worksheet.html",
       "colab": null,
       "pages": null
     }

@@ -253,7 +253,7 @@
     "5주차 준비: 음성 비서가 답을 말할 때 이 생성기의 어떤 단계를 빼야 하고(지연 때문에) 어떤 단계는 꼭 남겨야 하는지 3줄로 쓰세요."
   ],
   "worksheet": {
-    "source": "day20/worksheet.html",
+    "source": "Edu/day20/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 평가 지표 지도 · MOS · 신뢰구간",
@@ -826,7 +826,7 @@
       "name": "D20_TTS평가_프로젝트_slides.pdf",
       "kind": "pdf",
       "size": 926450,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -834,7 +834,7 @@
       "name": "D20_TTS평가_프로젝트_slides.pptx",
       "kind": "pptx",
       "size": 1183347,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -842,23 +842,23 @@
       "name": "D20_TTS평가_프로젝트_강사용.ipynb",
       "kind": "ipynb",
       "size": 915213,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D20_TTS평가_프로젝트_실습.ipynb",
       "kind": "ipynb",
       "size": 892941,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day20/D20_TTS%ED%8F%89%EA%B0%80_%ED%94%84%EB%A1%9C%EC%A0%9D%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 56729,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day20/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day20/animation.html",
       "colab": null,
       "pages": null
     },
@@ -866,7 +866,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 32187,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day20/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day20/worksheet.html",
       "colab": null,
       "pages": null
     }

@@ -278,7 +278,7 @@
     "자막 비교: 같은 녹음으로 Whisper `word_timestamps` 시각과 WhisperX 시각으로 SRT를 각각 만들고, 동영상 플레이어에서 보며 어느 쪽이 자연스러운지 두세 문장으로 쓰세요."
   ],
   "worksheet": {
-    "source": "day09/worksheet.html",
+    "source": "Edu/day09/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 단어 시각 · 강제 정렬",
@@ -863,7 +863,7 @@
       "name": "D9_타임스탬프_화자분리_slides.pdf",
       "kind": "pdf",
       "size": 1097157,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -871,7 +871,7 @@
       "name": "D9_타임스탬프_화자분리_slides.pptx",
       "kind": "pptx",
       "size": 1365665,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -879,23 +879,23 @@
       "name": "D9_타임스탬프_화자분리_강사용.ipynb",
       "kind": "ipynb",
       "size": 1234822,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D9_타임스탬프_화자분리_실습.ipynb",
       "kind": "ipynb",
       "size": 1206221,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day09/D9_%ED%83%80%EC%9E%84%EC%8A%A4%ED%83%AC%ED%94%84_%ED%99%94%EC%9E%90%EB%B6%84%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 57131,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day09/animation.html",
       "colab": null,
       "pages": null
     },
@@ -903,7 +903,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 37729,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day09/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day09/worksheet.html",
       "colab": null,
       "pages": null
     }

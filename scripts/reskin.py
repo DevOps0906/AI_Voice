@@ -312,7 +312,7 @@ def transform_script(sc, rail):
 
 
 def build(n):
-    src = read(os.path.join(ROOT, "day%02d" % n, "animation.html"))
+    src = read(os.path.join(ROOT, "Edu", "day%02d" % n, "animation.html"))
     rail = n >= RAIL_FROM
     s = re.sub(r"<link[^>]*fonts\.g[^>]*>\n?", "", src)
     m = re.search(r"<style>\n?(.*?)</style>", s, re.S)

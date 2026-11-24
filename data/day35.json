@@ -207,7 +207,7 @@
     "재생 · 복제 공격이 화자 검증만으로 통과하는 것을 확인하고, 다층 방어를 설계할 수 있다."
   ],
   "worksheet": {
-    "source": "day35/worksheet.html",
+    "source": "Edu/day35/worksheet.html",
     "groups": [
       {
         "title": "전체",
@@ -572,7 +572,7 @@
       "name": "D35_화자임베딩_slides.pdf",
       "kind": "pdf",
       "size": 846112,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -580,7 +580,7 @@
       "name": "D35_화자임베딩_slides.pptx",
       "kind": "pptx",
       "size": 1087046,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -588,23 +588,23 @@
       "name": "D35_화자임베딩_강사용.ipynb",
       "kind": "ipynb",
       "size": 910905,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D35_화자임베딩_실습.ipynb",
       "kind": "ipynb",
       "size": 845019,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day35/D35_%ED%99%94%EC%9E%90%EC%9E%84%EB%B2%A0%EB%94%A9_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 65551,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day35/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day35/animation.html",
       "colab": null,
       "pages": null
     },
@@ -612,7 +612,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34508,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day35/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day35/worksheet.html",
       "colab": null,
       "pages": null
     }

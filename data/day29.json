@@ -210,7 +210,7 @@
     "fake job으로 작업자 · entrypoint를 시험했고, 진짜 방(또는 Cloud)에서 같은 entrypoint가 돌았다."
   ],
   "worksheet": {
-    "source": "day29/worksheet.html",
+    "source": "Edu/day29/worksheet.html",
     "groups": [
       {
         "title": "1교시 · Room과 출입증",
@@ -783,7 +783,7 @@
       "name": "D29_LiveKit기초_slides.pdf",
       "kind": "pdf",
       "size": 1008344,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -791,7 +791,7 @@
       "name": "D29_LiveKit기초_slides.pptx",
       "kind": "pptx",
       "size": 1349812,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -799,23 +799,23 @@
       "name": "D29_LiveKit기초_강사용.ipynb",
       "kind": "ipynb",
       "size": 1204563,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D29_LiveKit기초_실습.ipynb",
       "kind": "ipynb",
       "size": 1178031,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day29/D29_LiveKit%EA%B8%B0%EC%B4%88_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 51485,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day29/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day29/animation.html",
       "colab": null,
       "pages": null
     },
@@ -823,7 +823,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31769,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day29/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day29/worksheet.html",
       "colab": null,
       "pages": null
     }

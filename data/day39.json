@@ -240,7 +240,7 @@
   ],
   "homework": [],
   "worksheet": {
-    "source": "day39/worksheet.html",
+    "source": "Edu/day39/worksheet.html",
     "groups": [
       {
         "title": "전체",
@@ -604,7 +604,7 @@
       "name": "D39_음성데이터엔지니어링_slides.pdf",
       "kind": "pdf",
       "size": 1001817,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -612,7 +612,7 @@
       "name": "D39_음성데이터엔지니어링_slides.pptx",
       "kind": "pptx",
       "size": 1325740,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -620,23 +620,23 @@
       "name": "D39_음성데이터엔지니어링_강사용.ipynb",
       "kind": "ipynb",
       "size": 1099717,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D39_음성데이터엔지니어링_실습.ipynb",
       "kind": "ipynb",
       "size": 1060298,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day39/D39_%EC%9D%8C%EC%84%B1%EB%8D%B0%EC%9D%B4%ED%84%B0%EC%97%94%EC%A7%80%EB%8B%88%EC%96%B4%EB%A7%81_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 59775,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day39/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day39/animation.html",
       "colab": null,
       "pages": null
     },
@@ -644,7 +644,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 35250,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day39/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day39/worksheet.html",
       "colab": null,
       "pages": null
     }

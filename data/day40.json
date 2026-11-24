@@ -240,7 +240,7 @@
   ],
   "homework": [],
   "worksheet": {
-    "source": "day40/worksheet.html",
+    "source": "Edu/day40/worksheet.html",
     "groups": [
       {
         "title": "전체",
@@ -602,7 +602,7 @@
       "name": "D40_TTS_파인튜닝_slides.pdf",
       "kind": "pdf",
       "size": 862297,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -610,7 +610,7 @@
       "name": "D40_TTS_파인튜닝_slides.pptx",
       "kind": "pptx",
       "size": 1139712,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -618,23 +618,23 @@
       "name": "D40_TTS_파인튜닝_강사용.ipynb",
       "kind": "ipynb",
       "size": 753611,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D40_TTS_파인튜닝_실습.ipynb",
       "kind": "ipynb",
       "size": 715477,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day40/D40_TTS_%ED%8C%8C%EC%9D%B8%ED%8A%9C%EB%8B%9D_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 57294,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day40/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day40/animation.html",
       "colab": null,
       "pages": null
     },
@@ -642,7 +642,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34867,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day40/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day40/worksheet.html",
       "colab": null,
       "pages": null
     }

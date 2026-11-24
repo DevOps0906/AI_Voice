@@ -284,7 +284,7 @@
     "(중요) 사람 목소리 시험: 시험 문장 10개를 직접 녹음해 ① 원래 ② 프롬프트 ③ LoRA로 받아쓰고, gTTS 시험 결과와 얼마나 다른지 정리하세요."
   ],
   "worksheet": {
-    "source": "day13/worksheet.html",
+    "source": "Edu/day13/worksheet.html",
     "groups": [
       {
         "title": "1교시 · LoRA 원리 · 메모리 · 도메인 데이터",
@@ -869,7 +869,7 @@
       "name": "D13_PEFT_LoRA_slides.pdf",
       "kind": "pdf",
       "size": 1057531,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day13/D13_PEFT_LoRA_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day13/D13_PEFT_LoRA_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -877,7 +877,7 @@
       "name": "D13_PEFT_LoRA_slides.pptx",
       "kind": "pptx",
       "size": 1306668,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day13/D13_PEFT_LoRA_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day13/D13_PEFT_LoRA_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -885,23 +885,23 @@
       "name": "D13_PEFT_LoRA_강사용.ipynb",
       "kind": "ipynb",
       "size": 1239005,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day13/D13_PEFT_LoRA_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day13/D13_PEFT_LoRA_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day13/D13_PEFT_LoRA_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day13/D13_PEFT_LoRA_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D13_PEFT_LoRA_실습.ipynb",
       "kind": "ipynb",
       "size": 1213507,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day13/D13_PEFT_LoRA_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day13/D13_PEFT_LoRA_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day13/D13_PEFT_LoRA_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day13/D13_PEFT_LoRA_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 52559,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day13/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day13/animation.html",
       "colab": null,
       "pages": null
     },
@@ -909,7 +909,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 35306,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day13/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day13/worksheet.html",
       "colab": null,
       "pages": null
     }

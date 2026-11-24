@@ -229,7 +229,7 @@
     "로컬 PC에 `uv`로 개발환경을 구성하고 `torch.cuda.is_available()` 결과 화면을 캡처해 제출하세요."
   ],
   "worksheet": {
-    "source": "day01/worksheet.html",
+    "source": "Edu/day01/worksheet.html",
     "groups": [
       {
         "title": "Part 0",
@@ -489,7 +489,7 @@
       "name": "D1_음성AI_첫걸음_slides.pdf",
       "kind": "pdf",
       "size": 654776,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_slides.pdf",
       "colab": null,
       "pages": 25
     },
@@ -497,7 +497,7 @@
       "name": "D1_음성AI_첫걸음_slides.pptx",
       "kind": "pptx",
       "size": 926592,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -505,15 +505,15 @@
       "name": "D1_음성AI_첫걸음_실습.ipynb",
       "kind": "ipynb",
       "size": 528540,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day01/D1_%EC%9D%8C%EC%84%B1AI_%EC%B2%AB%EA%B1%B8%EC%9D%8C_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 54424,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day01/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day01/animation.html",
       "colab": null,
       "pages": null
     },
@@ -521,7 +521,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 27497,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day01/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day01/worksheet.html",
       "colab": null,
       "pages": null
     }

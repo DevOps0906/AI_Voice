@@ -256,7 +256,7 @@
     "설계 메모 (반 페이지): \"공장 현장 안전 점검을 음성으로 보고하는 앱\"에 Whisper를 쓴다면 모델 크기, `language`, 프롬프트에 넣을 용어, 환각 대응을 어떻게 정할지 오늘 표를 근거로 쓰세요."
   ],
   "worksheet": {
-    "source": "day07/worksheet.html",
+    "source": "Edu/day07/worksheet.html",
     "groups": [
       {
         "title": "1교시 · Whisper 구조 · 30초 창 · 특수 토큰",
@@ -841,7 +841,7 @@
       "name": "D7_Whisper심층분석_slides.pdf",
       "kind": "pdf",
       "size": 1332470,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day07/D7_Whisper%EC%8B%AC%EC%B8%B5%EB%B6%84%EC%84%9D_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day07/D7_Whisper%EC%8B%AC%EC%B8%B5%EB%B6%84%EC%84%9D_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -849,15 +849,15 @@
       "name": "D7_Whisper심층분석_실습.ipynb",
       "kind": "ipynb",
       "size": 1643072,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day07/D7_Whisper%EC%8B%AC%EC%B8%B5%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day07/D7_Whisper%EC%8B%AC%EC%B8%B5%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day07/D7_Whisper%EC%8B%AC%EC%B8%B5%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day07/D7_Whisper%EC%8B%AC%EC%B8%B5%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 67050,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day07/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day07/animation.html",
       "colab": null,
       "pages": null
     },
@@ -865,7 +865,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 37121,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day07/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day07/worksheet.html",
       "colab": null,
       "pages": null
     }

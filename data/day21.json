@@ -262,7 +262,7 @@
     "아키텍처 한 장: 최종 프로젝트 후보 서비스 하나의 구조도 + Latency Budget 표 + Cascade/S2S 선택 근거(가중치표)를 노션에 정리하세요."
   ],
   "worksheet": {
-    "source": "day21/worksheet.html",
+    "source": "Edu/day21/worksheet.html",
     "groups": [
       {
         "title": "1교시 · Voice Agent 부품 · Cascade vs S2S · v1",
@@ -835,7 +835,7 @@
       "name": "D21_VoiceAgent아키텍처_slides.pdf",
       "kind": "pdf",
       "size": 916632,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -843,7 +843,7 @@
       "name": "D21_VoiceAgent아키텍처_slides.pptx",
       "kind": "pptx",
       "size": 1233297,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -851,23 +851,23 @@
       "name": "D21_VoiceAgent아키텍처_강사용.ipynb",
       "kind": "ipynb",
       "size": 1003271,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D21_VoiceAgent아키텍처_실습.ipynb",
       "kind": "ipynb",
       "size": 980591,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day21/D21_VoiceAgent%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 51252,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day21/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day21/animation.html",
       "colab": null,
       "pages": null
     },
@@ -875,7 +875,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 32187,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day21/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day21/worksheet.html",
       "colab": null,
       "pages": null
     }

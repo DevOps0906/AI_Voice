@@ -210,7 +210,7 @@
     "위젯의 지연 배지를 읽고, WebSocket 방식과 WebRTC 방식의 차이를 표로 말할 수 있다."
   ],
   "worksheet": {
-    "source": "day32/worksheet.html",
+    "source": "Edu/day32/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 마이크 권한과 녹음 업로드",
@@ -783,7 +783,7 @@
       "name": "D32_웹클라이언트_slides.pdf",
       "kind": "pdf",
       "size": 864144,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -791,7 +791,7 @@
       "name": "D32_웹클라이언트_slides.pptx",
       "kind": "pptx",
       "size": 1105888,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -799,23 +799,23 @@
       "name": "D32_웹클라이언트_강사용.ipynb",
       "kind": "ipynb",
       "size": 937092,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D32_웹클라이언트_실습.ipynb",
       "kind": "ipynb",
       "size": 877296,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day32/D32_%EC%9B%B9%ED%81%B4%EB%9D%BC%EC%9D%B4%EC%96%B8%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 48639,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day32/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day32/animation.html",
       "colab": null,
       "pages": null
     },
@@ -823,7 +823,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31949,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day32/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day32/worksheet.html",
       "colab": null,
       "pages": null
     }

@@ -210,7 +210,7 @@
     "S2S 모델의 능력 표를 읽고, Cascade와 S2S 중 무엇을 고를지 근거를 말할 수 있다."
   ],
   "worksheet": {
-    "source": "day30/worksheet.html",
+    "source": "Edu/day30/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 도구와 Handoff",
@@ -783,7 +783,7 @@
       "name": "D30_LiveKit심화_S2S_slides.pdf",
       "kind": "pdf",
       "size": 862927,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -791,7 +791,7 @@
       "name": "D30_LiveKit심화_S2S_slides.pptx",
       "kind": "pptx",
       "size": 1131619,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -799,23 +799,23 @@
       "name": "D30_LiveKit심화_S2S_강사용.ipynb",
       "kind": "ipynb",
       "size": 887240,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D30_LiveKit심화_S2S_실습.ipynb",
       "kind": "ipynb",
       "size": 865614,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day30/D30_LiveKit%EC%8B%AC%ED%99%94_S2S_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 49050,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day30/animation.html",
       "colab": null,
       "pages": null
     },
@@ -823,7 +823,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31995,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day30/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day30/worksheet.html",
       "colab": null,
       "pages": null
     }

@@ -265,7 +265,7 @@
     "내 목소리 테스트: 휴대폰으로 10개 키워드를 녹음해 `predict_keyword()`로 맞혀 보고, 틀린 단어는 왜 틀렸는지 (top-3, 녹음 환경, 발음) 두세 문장으로 쓰세요."
   ],
   "worksheet": {
-    "source": "day05/worksheet.html",
+    "source": "Edu/day05/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 데이터셋 · 1초 맞추기 · Log-Mel 입력",
@@ -851,7 +851,7 @@
       "name": "D5_딥러닝오디오분류_slides.pdf",
       "kind": "pdf",
       "size": 1010533,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_slides.pdf",
       "colab": null,
       "pages": 19
     },
@@ -859,7 +859,7 @@
       "name": "D5_딥러닝오디오분류_slides.pptx",
       "kind": "pptx",
       "size": 1540655,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -867,23 +867,23 @@
       "name": "D5_딥러닝오디오분류_강사용.ipynb",
       "kind": "ipynb",
       "size": 1427231,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D5_딥러닝오디오분류_실습.ipynb",
       "kind": "ipynb",
       "size": 1363988,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day05/D5_%EB%94%A5%EB%9F%AC%EB%8B%9D%EC%98%A4%EB%94%94%EC%98%A4%EB%B6%84%EB%A5%98_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 63278,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day05/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day05/animation.html",
       "colab": null,
       "pages": null
     },
@@ -891,7 +891,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 35319,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day05/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day05/worksheet.html",
       "colab": null,
       "pages": null
     }

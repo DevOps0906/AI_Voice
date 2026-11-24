@@ -235,7 +235,7 @@
   ],
   "homework": [],
   "worksheet": {
-    "source": "day36/worksheet.html",
+    "source": "Edu/day36/worksheet.html",
     "groups": [
       {
         "title": "전체",
@@ -600,7 +600,7 @@
       "name": "D36_준언어소리이벤트_slides.pdf",
       "kind": "pdf",
       "size": 937720,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -608,7 +608,7 @@
       "name": "D36_준언어소리이벤트_slides.pptx",
       "kind": "pptx",
       "size": 1211415,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -616,23 +616,23 @@
       "name": "D36_준언어소리이벤트_강사용.ipynb",
       "kind": "ipynb",
       "size": 1011085,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D36_준언어소리이벤트_실습.ipynb",
       "kind": "ipynb",
       "size": 963158,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day36/D36_%EC%A4%80%EC%96%B8%EC%96%B4%EC%86%8C%EB%A6%AC%EC%9D%B4%EB%B2%A4%ED%8A%B8_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 66809,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day36/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day36/animation.html",
       "colab": null,
       "pages": null
     },
@@ -640,7 +640,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 35081,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day36/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day36/worksheet.html",
       "colab": null,
       "pages": null
     }

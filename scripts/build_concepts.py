@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""개념 정리 데이터(data/concepts/dayNN.json) 생성 + 리포트(docs/concepts-report.md).
+"""개념 정리 데이터(data/concepts/dayNN.json) 생성 + 리포트(docs/reports/concepts-report.md).
 
 사용: python scripts/build_concepts.py all   (또는 1 10 …)
 - 입력: dayNN/*_실습.ipynb(강사용 제외), dayNN/*_slides.pdf(PyMuPDF), data/dayNN.json(parts·learned)
@@ -164,8 +164,8 @@ def find_one(pattern):
 def build_day(d):
     day = f"day{d:02d}"
     dj = json.load(open(ROOT / "data" / f"{day}.json", encoding="utf-8"))
-    nb_path = find_one(str(ROOT / day / "*_실습.ipynb"))
-    pdf_path = find_one(str(ROOT / day / "*_slides.pdf"))
+    nb_path = find_one(str(ROOT / "Edu" / day / "*_실습.ipynb"))
+    pdf_path = find_one(str(ROOT / "Edu" / day / "*_slides.pdf"))
     nb = json.load(open(nb_path, encoding="utf-8"))
     notes = build_notes(nb["cells"])
     nums = [p["n"] for p in dj["parts"]]
@@ -209,8 +209,8 @@ def write_report(rows):
           f"- base64 덩어리(data:image·attachment:·영숫자 200자 이상) 잔존 합계: {sum(r['b64'] for r in rows)}",
           f"- 150KB 초과 일차: {', '.join(map(str, over)) or '없음'}",
           f"- 최대 크기: {max(r['kb'] for r in rows):.1f}KB"]
-    (ROOT / "docs").mkdir(exist_ok=True)
-    (ROOT / "docs" / "concepts-report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    (ROOT / "docs" / "reports").mkdir(parents=True, exist_ok=True)
+    (ROOT / "docs" / "reports" / "concepts-report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
 
 
 def main(argv):

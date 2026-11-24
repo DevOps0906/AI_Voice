@@ -266,7 +266,7 @@
     "설계 보고서 (반 페이지): \"AI 콜센터에서 고객이 말하는 동안 실시간 자막을 띄우고, 통화가 끝나면 정확한 녹취록을 만든다.\" 실시간 자막과 최종 녹취록에 각각 CTC · AED · Transducer 중 무엇을 쓰겠습니까? 오늘의 비교표를 근거로 쓰세요."
   ],
   "worksheet": {
-    "source": "day06/worksheet.html",
+    "source": "Edu/day06/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 정렬 문제 · CTC",
@@ -853,7 +853,7 @@
       "name": "D6_ASR원리_slides.pdf",
       "kind": "pdf",
       "size": 1388527,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day06/D6_ASR%EC%9B%90%EB%A6%AC_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day06/D6_ASR%EC%9B%90%EB%A6%AC_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -861,7 +861,7 @@
       "name": "D6_ASR원리_slides.pptx",
       "kind": "pptx",
       "size": 1813837,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day06/D6_ASR%EC%9B%90%EB%A6%AC_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day06/D6_ASR%EC%9B%90%EB%A6%AC_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -869,23 +869,23 @@
       "name": "D6_ASR원리_강사용.ipynb",
       "kind": "ipynb",
       "size": 1796255,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D6_ASR원리_실습.ipynb",
       "kind": "ipynb",
       "size": 1756287,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day06/D6_ASR%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 70319,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day06/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day06/animation.html",
       "colab": null,
       "pages": null
     },
@@ -893,7 +893,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 37004,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day06/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day06/worksheet.html",
       "colab": null,
       "pages": null
     }

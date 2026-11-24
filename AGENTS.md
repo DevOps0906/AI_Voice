@@ -4,13 +4,14 @@
 > 영역별 상세 규칙은 `.claude/rules/*.md`(7장 표), 기획 근거는 `docs/`.
 
 ## 1. 무엇인가
-<한 문장: 누구를 위한 무엇>. 기획 정본: `docs/01_PRD.md` · 구조: `docs/02_ARCHITECTURE.md`.
+음성 AI 전문가 과정 수강생을 위한 일차별 학습 대시보드(정적 사이트, imguru-mooc/AI_Voice fork). 기획 정본: `docs/PLAN.md`.
 
 ## 2. 스택 (정적 사이트 — 서버·DB·빌드 도구 없음)
 | 영역 | 선택 | 위치 |
 |---|---|---|
 | 화면 | 정적 HTML · CSS · 순수 JS(외부 라이브러리 없음, 해시 라우팅), 글꼴 Pretendard | `index.html` |
-| 애니메이션 | 원본 animation.html에 디자인만 재입힘(로직 원본 동일) | `dashboard/dN/animation.html` ← `scripts/reskin.py` |
+| 수업 원본 | 강사 저장소(upstream) 자료 — **읽기 전용**, 루트에 두지 않음 | `Edu/dayNN/` ← `scripts/sync_edu.py` |
+| 애니메이션 | 원본 `Edu/dayNN/animation.html`에 디자인만 재입힘(로직 원본 동일) | `dashboard/dN/animation.html` ← `scripts/reskin.py` |
 | 데이터 | 원본 노트북·워크시트에서 추출한 JSON | `data/*.json` ← `scripts/extract.py` 외 `scripts/*.py` (Python 3.11) |
 | 디자인 토큰 | CSS 변수 | `design/tokens.css` |
 | 저장 | 브라우저 localStorage(개인 상태만) | — |
@@ -19,11 +20,11 @@
 ## 3. 명령
 | 목적 | 명령 |
 |---|---|
-| 설치 | `pnpm install` |
-| 개발 서버 | `pnpm dev` |
-| 린트 · 타입 | `pnpm lint` · `pnpm typecheck` |
-| 테스트 | `pnpm test` · `cd apps/api && pytest -q` |
-긴 출력 명령은 `~/.claude/nomad/bin/q <명령>`으로 실행한다.
+| 새 수업 자료 받기 | `python scripts/sync_edu.py` (upstream 병합 → 루트 `dayNN/`을 `Edu/`로 이동·커밋) |
+| 데이터 추출 | `PYTHONIOENCODING=utf-8 python scripts/extract.py all` |
+| 애니메이션 재생성 | `python scripts/reskin.py all` |
+| 로컬 서버 | `python -m http.server 8000` |
+긴 출력 명령은 `~/.claude/nomad/bin/q <명령>`으로 실행한다. 자동 생성 리포트는 `docs/reports/`.
 
 ## 4. 절대 규칙 (위반 = 리뷰 🔴)
 - 비밀(API 키 · service_role · 결제 키)은 저장소·클라이언트 번들·로그에 넣지 않는다. `.env.example`에 이름만.

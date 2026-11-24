@@ -271,7 +271,7 @@
     "스트리밍 손잡이 실험: `stream_local_agreement()`의 `step`을 0.5 / 1.0 / 2.0초로 바꿔 평균 지연 · 최대 계산 시간 · CER을 비교하고, 음성 비서에 쓸 값을 하나 골라 이유를 쓰세요."
   ],
   "worksheet": {
-    "source": "day08/worksheet.html",
+    "source": "Edu/day08/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 병목 · faster-whisper",
@@ -858,7 +858,7 @@
       "name": "D8_추론최적화_스트리밍_slides.pdf",
       "kind": "pdf",
       "size": 1151662,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_slides.pdf",
       "colab": null,
       "pages": 21
     },
@@ -866,7 +866,7 @@
       "name": "D8_추론최적화_스트리밍_slides.pptx",
       "kind": "pptx",
       "size": 1416725,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -874,23 +874,23 @@
       "name": "D8_추론최적화_스트리밍_강사용.ipynb",
       "kind": "ipynb",
       "size": 1247502,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D8_추론최적화_스트리밍_실습.ipynb",
       "kind": "ipynb",
       "size": 1213215,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day08/D8_%EC%B6%94%EB%A1%A0%EC%B5%9C%EC%A0%81%ED%99%94_%EC%8A%A4%ED%8A%B8%EB%A6%AC%EB%B0%8D_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 58340,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day08/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day08/animation.html",
       "colab": null,
       "pages": null
     },
@@ -898,7 +898,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 36147,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day08/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day08/worksheet.html",
       "colab": null,
       "pages": null
     }

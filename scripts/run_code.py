@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""data/code/dayNN.json 코드가 단독으로 실행되는지 검사하고 결과 표를 docs/code-run-report.md에 쓴다.
+"""data/code/dayNN.json 코드가 단독으로 실행되는지 검사하고 결과 표를 docs/reports/code-run-report.md에 쓴다.
 
 사용: python scripts/run_code.py day01 day10 [--venv 경로] [--only python|typescript] [--with-keys]
 - 각 hash의 python · typescript 코드를 '빈 임시 폴더 하나에 파일 하나'로 써서 실행한다(앞 셀 의존이 있으면 실패).
@@ -82,7 +82,7 @@ def main():
     ap.add_argument("--venv", help="Python 가상환경 폴더 (기본: 지금 실행 중인 python)")
     ap.add_argument("--only", choices=["python", "typescript"])
     ap.add_argument("--with-keys", action="store_true", help="API 키 환경 변수를 빼지 않고 실행")
-    ap.add_argument("--out", default=str(ROOT / "docs" / "code-run-report.md"))
+    ap.add_argument("--out", default=str(ROOT / "docs" / "reports" / "code-run-report.md"))
     a = ap.parse_args()
 
     py = python_exe(a.venv)

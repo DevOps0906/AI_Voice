@@ -253,7 +253,7 @@
     "보안 시나리오: '나쁜 날씨 서버'(EVIL)를 실제 MCP 서버로 만들어 `TRUSTED`에 넣지 않고 연결해 보세요. 확인 게이트 · 점검기 · 지문이 각각 어디서 막아 주는지, 그래도 남는 위험은 무엇인지 쓰세요."
   ],
   "worksheet": {
-    "source": "day24/worksheet.html",
+    "source": "Edu/day24/worksheet.html",
     "groups": [
       {
         "title": "1교시 · MCP 원리 · 서버 만들기",
@@ -826,7 +826,7 @@
       "name": "D24_MCP_연동_slides.pdf",
       "kind": "pdf",
       "size": 1060390,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day24/D24_MCP_%EC%97%B0%EB%8F%99_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day24/D24_MCP_%EC%97%B0%EB%8F%99_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -834,7 +834,7 @@
       "name": "D24_MCP_연동_slides.pptx",
       "kind": "pptx",
       "size": 1395965,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day24/D24_MCP_%EC%97%B0%EB%8F%99_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day24/D24_MCP_%EC%97%B0%EB%8F%99_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -842,23 +842,23 @@
       "name": "D24_MCP_연동_강사용.ipynb",
       "kind": "ipynb",
       "size": 1280973,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D24_MCP_연동_실습.ipynb",
       "kind": "ipynb",
       "size": 1252480,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day24/D24_MCP_%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 50313,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day24/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day24/animation.html",
       "colab": null,
       "pages": null
     },
@@ -866,7 +866,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31626,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day24/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day24/worksheet.html",
       "colab": null,
       "pages": null
     }

@@ -13,3 +13,7 @@ id_ed25519*
 
 # 코드 실행 검사용 가상환경 (scripts/run_code.py --venv)
 .venv-code*/
+
+# 파이썬 캐시
+__pycache__/
+*.pyc

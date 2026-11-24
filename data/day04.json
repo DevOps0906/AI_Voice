@@ -265,7 +265,7 @@
     "Silero의 `threshold`(0.3, 0.5, 0.7)와 `min_silence_duration_ms`(100, 300, 1000)를 바꿔 구간 수가 어떻게 달라지는지 표로 만들고, 실시간 음성 비서에는 어떤 값이 좋을지 이유와 함께 쓰세요."
   ],
   "worksheet": {
-    "source": "day04/worksheet.html",
+    "source": "Edu/day04/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 잡음과 SNR · 정규화 · 필터",
@@ -852,7 +852,7 @@
       "name": "D4_오디오전처리_slides.pdf",
       "kind": "pdf",
       "size": 1177442,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -860,7 +860,7 @@
       "name": "D4_오디오전처리_slides.pptx",
       "kind": "pptx",
       "size": 1905952,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -868,23 +868,23 @@
       "name": "D4_오디오전처리_강사용.ipynb",
       "kind": "ipynb",
       "size": 1735872,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D4_오디오전처리_실습.ipynb",
       "kind": "ipynb",
       "size": 1647744,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day04/D4_%EC%98%A4%EB%94%94%EC%98%A4%EC%A0%84%EC%B2%98%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 81621,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day04/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day04/animation.html",
       "colab": null,
       "pages": null
     },
@@ -892,7 +892,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 37264,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day04/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day04/worksheet.html",
       "colab": null,
       "pages": null
     }

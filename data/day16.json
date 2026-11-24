@@ -274,7 +274,7 @@
     "내 목소리 vs 합성음: D15의 내 목소리 문장 10개를 VITS로 합성해 같은 Whisper로 역검증하고, 사람 녹음 CER과 비교하세요."
   ],
   "worksheet": {
-    "source": "day16/worksheet.html",
+    "source": "Edu/day16/worksheet.html",
     "groups": [
       {
         "title": "1교시 · TTS 큰 그림 · 텍스트 정규화",
@@ -854,7 +854,7 @@
       "name": "D16_TTS원리_slides.pdf",
       "kind": "pdf",
       "size": 1200685,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day16/D16_TTS%EC%9B%90%EB%A6%AC_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day16/D16_TTS%EC%9B%90%EB%A6%AC_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -862,7 +862,7 @@
       "name": "D16_TTS원리_slides.pptx",
       "kind": "pptx",
       "size": 1491522,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day16/D16_TTS%EC%9B%90%EB%A6%AC_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day16/D16_TTS%EC%9B%90%EB%A6%AC_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -870,23 +870,23 @@
       "name": "D16_TTS원리_강사용.ipynb",
       "kind": "ipynb",
       "size": 1447151,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D16_TTS원리_실습.ipynb",
       "kind": "ipynb",
       "size": 1426294,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day16/D16_TTS%EC%9B%90%EB%A6%AC_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 54975,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day16/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day16/animation.html",
       "colab": null,
       "pages": null
     },
@@ -894,7 +894,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 32420,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day16/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day16/worksheet.html",
       "colab": null,
       "pages": null
     }

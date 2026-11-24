@@ -247,7 +247,7 @@
     "정규화 보고서: Part 2의 6문장에 내가 만든 문장 4개를 더해 정규화 전 · 후 CER을 표로 정리하고, 정규화 규칙을 한 줄씩 적으세요(3주차 D14에서 그대로 씁니다)."
   ],
   "worksheet": {
-    "source": "day10/worksheet.html",
+    "source": "Edu/day10/worksheet.html",
     "groups": [
       {
         "title": "1교시 · WER · CER · 편집 거리",
@@ -834,7 +834,7 @@
       "name": "D10_ASR평가_회의록생성기_slides.pdf",
       "kind": "pdf",
       "size": 1080562,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -842,7 +842,7 @@
       "name": "D10_ASR평가_회의록생성기_slides.pptx",
       "kind": "pptx",
       "size": 1291135,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -850,23 +850,23 @@
       "name": "D10_ASR평가_회의록생성기_강사용.ipynb",
       "kind": "ipynb",
       "size": 1193184,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D10_ASR평가_회의록생성기_실습.ipynb",
       "kind": "ipynb",
       "size": 1168018,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day10/D10_ASR%ED%8F%89%EA%B0%80_%ED%9A%8C%EC%9D%98%EB%A1%9D%EC%83%9D%EC%84%B1%EA%B8%B0_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 53850,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day10/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day10/animation.html",
       "colab": null,
       "pages": null
     },
@@ -874,7 +874,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 35257,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day10/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day10/worksheet.html",
       "colab": null,
       "pages": null
     }

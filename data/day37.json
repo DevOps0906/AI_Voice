@@ -239,7 +239,7 @@
   ],
   "homework": [],
   "worksheet": {
-    "source": "day37/worksheet.html",
+    "source": "Edu/day37/worksheet.html",
     "groups": [
       {
         "title": "전체",
@@ -608,7 +608,7 @@
       "name": "D37_AudioLLM_Fullduplex_slides.pdf",
       "kind": "pdf",
       "size": 841976,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day37/D37_AudioLLM_Fullduplex_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day37/D37_AudioLLM_Fullduplex_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -616,7 +616,7 @@
       "name": "D37_AudioLLM_Fullduplex_slides.pptx",
       "kind": "pptx",
       "size": 1076112,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day37/D37_AudioLLM_Fullduplex_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day37/D37_AudioLLM_Fullduplex_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -624,23 +624,23 @@
       "name": "D37_AudioLLM_Fullduplex_강사용.ipynb",
       "kind": "ipynb",
       "size": 777259,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day37/D37_AudioLLM_Fullduplex_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day37/D37_AudioLLM_Fullduplex_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day37/D37_AudioLLM_Fullduplex_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day37/D37_AudioLLM_Fullduplex_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D37_AudioLLM_Fullduplex_실습.ipynb",
       "kind": "ipynb",
       "size": 733576,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day37/D37_AudioLLM_Fullduplex_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day37/D37_AudioLLM_Fullduplex_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day37/D37_AudioLLM_Fullduplex_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day37/D37_AudioLLM_Fullduplex_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 57900,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day37/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day37/animation.html",
       "colab": null,
       "pages": null
     },
@@ -648,7 +648,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 35609,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day37/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day37/worksheet.html",
       "colab": null,
       "pages": null
     }

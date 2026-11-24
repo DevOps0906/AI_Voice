@@ -257,7 +257,7 @@
     "모델 선택 메모: '한국어 상업 콜센터'라는 조건에서 오늘 표의 모델 중 무엇을 고를지, 라이선스 · 언어 · 지연 · 워터마크를 근거로 5줄 이내로 쓰세요."
   ],
   "worksheet": {
-    "source": "day18/worksheet.html",
+    "source": "Edu/day18/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 표현형 TTS · Chatterbox 구조 · 첫 합성",
@@ -842,7 +842,7 @@
       "name": "D18_표현형TTS_slides.pdf",
       "kind": "pdf",
       "size": 1018770,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -850,7 +850,7 @@
       "name": "D18_표현형TTS_slides.pptx",
       "kind": "pptx",
       "size": 1337373,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -858,23 +858,23 @@
       "name": "D18_표현형TTS_강사용.ipynb",
       "kind": "ipynb",
       "size": 1088327,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D18_표현형TTS_실습.ipynb",
       "kind": "ipynb",
       "size": 1064577,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day18/D18_%ED%91%9C%ED%98%84%ED%98%95TTS_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 56782,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day18/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day18/animation.html",
       "colab": null,
       "pages": null
     },
@@ -882,7 +882,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 32429,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day18/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day18/worksheet.html",
       "colab": null,
       "pages": null
     }

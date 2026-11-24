@@ -285,7 +285,7 @@
     "손익분기: 하루 처리량을 1 · 10 · 100 · 1,000시간으로 바꿔 가며 'API 하나 vs 로컬 GPU 상시 운영' 월 비용을 표로 만들고, 몇 시간부터 로컬이 유리한지 찾으세요."
   ],
   "worksheet": {
-    "source": "day14/worksheet.html",
+    "source": "Edu/day14/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 공정한 비교 · 시험 세트 · RTF",
@@ -870,7 +870,7 @@
       "name": "D14_성능비교_상용API_slides.pdf",
       "kind": "pdf",
       "size": 1045957,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -878,7 +878,7 @@
       "name": "D14_성능비교_상용API_slides.pptx",
       "kind": "pptx",
       "size": 1268364,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -886,23 +886,23 @@
       "name": "D14_성능비교_상용API_강사용.ipynb",
       "kind": "ipynb",
       "size": 1147965,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D14_성능비교_상용API_실습.ipynb",
       "kind": "ipynb",
       "size": 1122720,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day14/D14_%EC%84%B1%EB%8A%A5%EB%B9%84%EA%B5%90_%EC%83%81%EC%9A%A9API_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 52281,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day14/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day14/animation.html",
       "colab": null,
       "pages": null
     },
@@ -910,7 +910,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34347,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day14/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day14/worksheet.html",
       "colab": null,
       "pages": null
     }

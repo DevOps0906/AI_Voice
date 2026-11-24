@@ -207,7 +207,7 @@
     "상태 머신과 LLM을 섞고, 실패 시나리오 표로 자동 시험할 수 있다."
   ],
   "worksheet": {
-    "source": "day34/worksheet.html",
+    "source": "Edu/day34/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 한국어 역정규화(ITN)",
@@ -778,7 +778,7 @@
       "name": "D34_음성대화설계_slides.pdf",
       "kind": "pdf",
       "size": 870061,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -786,7 +786,7 @@
       "name": "D34_음성대화설계_slides.pptx",
       "kind": "pptx",
       "size": 1089809,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -794,23 +794,23 @@
       "name": "D34_음성대화설계_강사용.ipynb",
       "kind": "ipynb",
       "size": 878722,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D34_음성대화설계_실습.ipynb",
       "kind": "ipynb",
       "size": 835609,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day34/D34_%EC%9D%8C%EC%84%B1%EB%8C%80%ED%99%94%EC%84%A4%EA%B3%84_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 70962,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day34/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day34/animation.html",
       "colab": null,
       "pages": null
     },
@@ -818,7 +818,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31744,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day34/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day34/worksheet.html",
       "colab": null,
       "pages": null
     }

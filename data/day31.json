@@ -210,7 +210,7 @@
     "WebSocket으로 실시간 받아쓰기와 음성 안내 왕복을 했다."
   ],
   "worksheet": {
-    "source": "day31/worksheet.html",
+    "source": "Edu/day31/worksheet.html",
     "groups": [
       {
         "title": "1교시 · HTTP와 FastAPI 기초",
@@ -783,7 +783,7 @@
       "name": "D31_FastAPI음성API_slides.pdf",
       "kind": "pdf",
       "size": 736175,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -791,7 +791,7 @@
       "name": "D31_FastAPI음성API_slides.pptx",
       "kind": "pptx",
       "size": 963077,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -799,23 +799,23 @@
       "name": "D31_FastAPI음성API_강사용.ipynb",
       "kind": "ipynb",
       "size": 730201,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D31_FastAPI음성API_실습.ipynb",
       "kind": "ipynb",
       "size": 711796,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day31/D31_FastAPI%EC%9D%8C%EC%84%B1API_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 45390,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day31/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day31/animation.html",
       "colab": null,
       "pages": null
     },
@@ -823,7 +823,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 30755,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day31/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day31/worksheet.html",
       "colab": null,
       "pages": null
     }

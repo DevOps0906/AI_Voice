@@ -263,7 +263,7 @@
     "이력 전략 실험: 10턴 대화 대본을 만들어 세 전략의 입력 토큰 합계와 마지막 '기억 질문' 정답 여부를 비교하세요."
   ],
   "worksheet": {
-    "source": "day22/worksheet.html",
+    "source": "Edu/day22/worksheet.html",
     "groups": [
       {
         "title": "1교시 · API 공통 구조 · 키 · 하나의 함수",
@@ -836,7 +836,7 @@
       "name": "D22_LLM_API연동_slides.pdf",
       "kind": "pdf",
       "size": 923019,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day22/D22_LLM_API%EC%97%B0%EB%8F%99_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day22/D22_LLM_API%EC%97%B0%EB%8F%99_slides.pdf",
       "colab": null,
       "pages": 20
     },
@@ -844,7 +844,7 @@
       "name": "D22_LLM_API연동_slides.pptx",
       "kind": "pptx",
       "size": 1217344,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day22/D22_LLM_API%EC%97%B0%EB%8F%99_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day22/D22_LLM_API%EC%97%B0%EB%8F%99_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -852,23 +852,23 @@
       "name": "D22_LLM_API연동_강사용.ipynb",
       "kind": "ipynb",
       "size": 987883,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EA%B0%95%EC%82%AC%EC%9A%A9.ipynb",
       "pages": null
     },
     {
       "name": "D22_LLM_API연동_실습.ipynb",
       "kind": "ipynb",
       "size": 967542,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day22/D22_LLM_API%EC%97%B0%EB%8F%99_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 53887,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day22/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day22/animation.html",
       "colab": null,
       "pages": null
     },
@@ -876,7 +876,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 31668,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day22/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day22/worksheet.html",
       "colab": null,
       "pages": null
     }

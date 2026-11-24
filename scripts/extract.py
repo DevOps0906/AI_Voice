@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""원본 dayNN/ 에서 대시보드용 data/dayNN.json, data/course.json 을 만든다.
+"""원본 Edu/dayNN/ 에서 대시보드용 data/dayNN.json, data/course.json 을 만든다.
 
 사용: python scripts/extract.py 1 10   (인자 = 변환할 일차. course.json의 ready 표시 대상)
 표준 라이브러리만 사용. 원본은 읽기만 한다. 계약: docs/PLAN.md#7
@@ -13,6 +13,7 @@ from urllib.parse import quote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
+EDU = os.path.join(ROOT, "Edu")  # 원본 수업 자료(dayNN) 위치
 REPO = "DevOps0906/AI_Voice"
 KIND = {".pdf": "pdf", ".pptx": "pptx", ".ipynb": "ipynb", ".html": "html"}
 IMG = re.compile(r"!\[[^\]]*\]\(data:[^)]*\)")
@@ -98,7 +99,7 @@ def js_const(text, name):
 
 # ---------- 노트북 ----------
 def notebook_md(day):
-    path = glob.glob(os.path.join(ROOT, "day%02d" % day, "*_실습.ipynb"))[0]
+    path = glob.glob(os.path.join(EDU, "day%02d" % day, "*_실습.ipynb"))[0]
     with open(path, encoding="utf-8") as f:
         nb = json.load(f)
     cells = ["".join(c["source"]) for c in nb["cells"] if c["cell_type"] == "markdown"]
@@ -268,7 +269,7 @@ def norm_q(q):
 
 
 def parse_worksheet(day, html):
-    src = "day%02d/worksheet.html" % day
+    src = "Edu/day%02d/worksheet.html" % day
     raw = js_to_py(js_const(html, "Q"))
     if raw and "qs" in raw[0]:  # D10 형식: 교시별 그룹
         groups = [{"title": g["t"], "anim": g.get("anim", ""), "qs": g["qs"]} for g in raw]
@@ -297,12 +298,12 @@ def pdf_pages(path):
 def parse_files(day):
     d = "day%02d" % day
     files = []
-    for name in sorted(os.listdir(os.path.join(ROOT, d))):
-        path = os.path.join(ROOT, d, name)
+    for name in sorted(os.listdir(os.path.join(EDU, d))):
+        path = os.path.join(EDU, d, name)
         kind = KIND.get(os.path.splitext(name)[1].lower())
         if not kind or not os.path.isfile(path):
             continue
-        rel = "%s/%s" % (d, quote(name))
+        rel = "Edu/%s/%s" % (d, quote(name))
         files.append({
             "name": name,
             "kind": kind,
@@ -318,7 +319,7 @@ def parse_files(day):
 # ---------- 조립 ----------
 def build_day(day):
     nb = parse_notebook(day)
-    d = os.path.join(ROOT, "day%02d" % day)
+    d = os.path.join(EDU, "day%02d" % day)
     anim_html = read(os.path.join(d, "animation.html"))
     anims, inv = parse_anims(day, anim_html)
     ws = parse_worksheet(day, read(os.path.join(d, "worksheet.html")))
@@ -420,7 +421,7 @@ def report(rows):
             "- D15: 학습 목표 대신 `프로젝트 목표` 절, 배운 것 대신 `오늘 한 것` 표를 learned로 사용. D25: `5주차 돌아보기` 표를 learned로 사용.",
             "- D7: ROAD의 `more`가 단일 쌍·`more2` 추가 쌍이라 `more` 배열로 합쳤다.",
             "- 빈칸 실습 제목은 콜론이 없는 경우(D24 등)도 센다."]
-    path = os.path.join(ROOT, "docs", "extract-report.md")
+    path = os.path.join(ROOT, "docs", "reports", "extract-report.md")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(out) + "\n")
 

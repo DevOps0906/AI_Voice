@@ -256,7 +256,7 @@
     "빈칸 실습 2의 `dft()`로 $N = 256, 512, 1024, 2048$일 때 계산 시간을 재고 `np.fft.fft`와 비교해 그래프로 그리세요."
   ],
   "worksheet": {
-    "source": "day03/worksheet.html",
+    "source": "Edu/day03/worksheet.html",
     "groups": [
       {
         "title": "1교시 · 사인파의 합 · DFT 원리",
@@ -842,7 +842,7 @@
       "name": "D3_주파수분석_slides.pdf",
       "kind": "pdf",
       "size": 1208139,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_slides.pdf",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_slides.pdf",
       "colab": null,
       "pages": 23
     },
@@ -850,7 +850,7 @@
       "name": "D3_주파수분석_slides.pptx",
       "kind": "pptx",
       "size": 1751315,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_slides.pptx",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_slides.pptx",
       "colab": null,
       "pages": null
     },
@@ -858,15 +858,15 @@
       "name": "D3_주파수분석_실습.ipynb",
       "kind": "ipynb",
       "size": 1565711,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
-      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
+      "colab": "https://colab.research.google.com/github/DevOps0906/AI_Voice/blob/main/Edu/day03/D3_%EC%A3%BC%ED%8C%8C%EC%88%98%EB%B6%84%EC%84%9D_%EC%8B%A4%EC%8A%B5.ipynb",
       "pages": null
     },
     {
       "name": "animation.html",
       "kind": "html",
       "size": 64057,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day03/animation.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day03/animation.html",
       "colab": null,
       "pages": null
     },
@@ -874,7 +874,7 @@
       "name": "worksheet.html",
       "kind": "html",
       "size": 34236,
-      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/day03/worksheet.html",
+      "url": "https://github.com/DevOps0906/AI_Voice/blob/main/Edu/day03/worksheet.html",
       "colab": null,
       "pages": null
     }
