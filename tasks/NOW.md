@@ -1,10 +1,10 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
 - 갱신: 2026-11-24
-- 현재 작업: 없음 — task-035(Edu/ 정리)·task-036(D46 연결) 완료, push 전
+- 현재 작업: 없음 — task-035~037 완료·push (Edu/ 정리 · D46 연결 · D46 코드 상자 18/18)
 - 마지막으로 한 일: task-032 코드 상자 실패 문구 · task-033 reskin COMMON에 코드 제외 Pretendard !important·결과값(.kv b·.big·slider output) .9rem
-- 다음 한 걸음: D46 코드 상자(scripts/code_map/day46.json + data/code/day46.json, D45 방식) · 새 자료는 `python scripts/sync_edu.py`
-- 열린 결정(사용자 확인 필요): push 여부 · .venv-code* 9개 삭제 여부 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)
+- 다음 한 걸음: 새 자료는 `python scripts/sync_edu.py` → extract(LAST 올림)·reskin·concepts·library → 코드 상자(code_map + build_code + run_code)
+- 열린 결정(사용자 확인 필요): .venv-code* 9개 삭제 여부 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)
 - 주의(이번 작업에서 알게 된 함정):
   - 45~51일은 노트북에 `N주차 MN` 머리말이 없다 → extract.py가 일차 번호로 10주차·M10 처리(그 밖 형식 오류는 ValueError)
   - D45~ 새 절 "요구사항 (고객의 말로)"·"체크포인트와 점수" → day JSON requirements·checkpoints 필드, 없으면 화면에서 숨김
