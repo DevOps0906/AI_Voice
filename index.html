@@ -280,6 +280,25 @@ table.lt td:first-child{font-weight:700;width:22%}
 .stg canvas{width:100%;display:block;background:var(--scope);border-radius:6px}
 .mc pre{margin:0;background:var(--soft);border-radius:6px;padding:8px 10px;font-size:.78rem;overflow-x:auto;max-width:100%;max-height:170px;white-space:pre}
 .mc details summary{cursor:pointer;font-size:.86rem;font-weight:700;min-height:var(--tap);display:flex;align-items:center}
+.mbadge{display:inline-block;margin-right:6px;padding:0 .5em;border:1px solid var(--a4);border-radius:999px;color:var(--a4);font-size:.72rem;font-weight:700;line-height:1.6;vertical-align:middle}
+.mbadge.css{border-color:var(--a1);color:var(--a1)}
+.mc .msrc{font-size:.8rem}
+.mc .mcount{font-size:.82rem;font-weight:700;color:var(--ink)}
+.msub{margin:8px 0 4px;font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+.mlinks{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px}
+.mlinks a{display:inline-flex;align-items:center;text-decoration:none;color:var(--ink);font-size:.82rem}
+.stg .scen{width:100%;margin:0}
+.mlf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;font-weight:700;font-size:.9rem}
+.mlf select{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:6px 8px;min-height:var(--tap);font-weight:400}
+.mlcnt{margin:0 0 8px;color:var(--muted);font-size:.86rem}
+table.ml{table-layout:fixed}
+table.ml th:nth-child(1){width:34%}table.ml th:nth-child(2){width:24%}table.ml th:nth-child(3){width:11%}table.ml th:nth-child(4){width:16%}table.ml th:nth-child(5){width:15%}
+table.ml .mact{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+table.ml .mact a{font-weight:700}
+table.ml .mxr td{font-weight:400;background:var(--page)}
+table.ml .mxr p{margin:0;color:var(--muted);font-size:.88rem}
+table.ml pre{margin:6px 0 0;background:var(--soft);border-radius:6px;padding:8px 10px;font-size:.78rem;overflow-x:auto;max-width:100%;white-space:pre}
+table.ml .btn{padding:4px 10px;font-size:.82rem}
 footer{margin-top:36px;color:var(--muted);font-size:.84rem}
 /* 자료실 */
 [hidden]{display:none!important}
@@ -438,7 +457,17 @@ footer{margin-top:36px;color:var(--muted);font-size:.84rem}
 .m-caret::after{content:"";display:inline-block;width:2px;height:1.1em;background:currentColor;margin-left:3px;vertical-align:text-bottom;animation:mk-blink 1s steps(2,start) infinite}
 @keyframes mk-blink{to{visibility:hidden}}
 .m-float{animation:mk-float 2s ease-in-out infinite alternate}
-@keyframes mk-float{to{transform:translateY(-6px)}}</style>
+@keyframes mk-float{to{transform:translateY(-6px)}}
+.m-type{display:inline-block;white-space:nowrap;overflow:hidden;vertical-align:bottom;width:5em;border-right:2px solid currentColor;animation:mk-type 1.6s steps(5) both}
+@keyframes mk-type{from{width:0}}
+.m-shimmer{width:80%;height:12px;margin-bottom:8px;border-radius:99px;background:linear-gradient(90deg,var(--soft) 30%,color-mix(in srgb,var(--a4) 25%,var(--soft)) 50%,var(--soft) 70%) 0 0/200% 100%;animation:mk-shimmer 1.4s linear infinite}
+@keyframes mk-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}
+.m-dots::after{content:"";animation:mk-dots 1s steps(4) infinite}
+@keyframes mk-dots{0%{content:""}25%{content:"."}50%{content:".."}75%{content:"..."}}
+.m-eq{display:flex;align-items:flex-end;gap:4px;height:32px}
+.m-eq i{width:6px;height:100%;border-radius:99px;background:var(--a4);transform-origin:bottom;animation:mk-eq .9s ease-in-out infinite alternate;animation-delay:calc(var(--i)*-.2s)}
+@keyframes mk-eq{from{transform:scaleY(.2)}to{transform:scaleY(1)}}
+</style>
 </head>
 <body>
 <div class="shell">
@@ -463,7 +492,7 @@ footer{margin-top:36px;color:var(--muted);font-size:.84rem}
     <footer>자료: <a href="https://github.com/DevOps0906/AI_Voice" target="_blank" rel="noopener">DevOps0906/AI_Voice</a> (원본 강의 imguru-mooc/AI_Voice의 포크) · 이 대시보드는 링크로 연결만 해요.</footer>
 </main>
 </div>
-<script type="application/json" id="motionData">{"fx": [{"id": "fadeup", "group": "등장", "name": "아래에서 떠오르기", "desc": "투명에서 시작해 14px 위로 올라오며 나타나요.", "html": "<div class=\"box m-fadeup\">카드<\/div>", "code": ".m-fadeup{animation:mk-fadeup .7s ease both}\n@keyframes mk-fadeup{from{opacity:0;transform:translateY(14px)}}"}, {"id": "stagger", "group": "등장", "name": "계단식 등장", "desc": "--i 값에 따라 시간차를 두고 하나씩 나타나요. 목표 목록에 써요.", "html": "<span class=\"pill m-stagger\" style=\"--i:0\">1<\/span><span class=\"pill m-stagger\" style=\"--i:1\">2<\/span><span class=\"pill m-stagger\" style=\"--i:2\">3<\/span><span class=\"pill m-stagger\" style=\"--i:3\">4<\/span>", "code": ".m-stagger{animation:mk-stag .5s ease both;animation-delay:calc(var(--i)*.12s)}\n@keyframes mk-stag{from{opacity:0;transform:translateX(-14px)}}"}, {"id": "pop", "group": "등장", "name": "톡 튀어나오기", "desc": "작게 시작해 살짝 커졌다가 제자리로 돌아와요.", "html": "<div class=\"box m-pop\">카드<\/div>", "code": ".m-pop{animation:mk-pop .5s ease both}\n@keyframes mk-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1)}}"}, {"id": "slide", "group": "등장", "name": "옆에서 밀려오기", "desc": "왼쪽 24px 밖에서 미끄러져 들어와요.", "html": "<div class=\"box m-slide\">카드<\/div>", "code": ".m-slide{animation:mk-slide .6s ease both}\n@keyframes mk-slide{from{opacity:0;transform:translateX(-24px)}}"}, {"id": "blur", "group": "등장", "name": "흐림 풀기", "desc": "흐릿한 상태에서 또렷해지며 나타나요.", "html": "<div class=\"box m-blur\">카드<\/div>", "code": ".m-blur{animation:mk-blur .8s ease both}\n@keyframes mk-blur{from{opacity:0;filter:blur(8px)}}"}, {"id": "reveal", "group": "등장", "name": "가림막 걷기", "desc": "clip-path로 왼쪽에서 오른쪽으로 드러나요.", "html": "<div class=\"box m-reveal\">천천히 드러나는 글<\/div>", "code": ".m-reveal{animation:mk-reveal .9s ease both}\n@keyframes mk-reveal{from{clip-path:inset(0 100% 0 0)}}"}, {"id": "shake", "group": "상태·피드백", "name": "오답 흔들기", "desc": "좌우로 5px 흔들어 틀렸다고 알려요. 퀴즈 오답에 써요.", "html": "<div class=\"box m-shake\">오답<\/div>", "code": ".m-shake{animation:mk-shake .3s;border-color:var(--bad)}\n@keyframes mk-shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}"}, {"id": "ring", "group": "상태·피드백", "name": "퍼지는 고리", "desc": "테두리에서 고리가 퍼져 나가요. 정답·주목에 써요.", "html": "<div class=\"box m-ring\">정답<\/div>", "code": ".m-ring{animation:mk-ring 1.4s ease-out infinite}\n@keyframes mk-ring{from{box-shadow:0 0 0 0 var(--ok)}to{box-shadow:0 0 0 14px transparent}}"}, {"id": "bounce", "group": "상태·피드백", "name": "통통 튀기", "desc": "위로 12px 올라갔다 내려와요.", "html": "<div class=\"box m-bounce\">알림<\/div>", "code": ".m-bounce{animation:mk-bounce .8s ease infinite}\n@keyframes mk-bounce{40%{transform:translateY(-12px)}}"}, {"id": "fill", "group": "상태·피드백", "name": "진행 막대 채우기", "desc": "scaleX로 왼쪽에서 채워져요. 과제 진행 막대에 써요.", "html": "<div class=\"m-fill\"><i><\/i><\/div>", "code": ".m-fill{width:80%;height:10px;background:var(--soft);border-radius:99px;overflow:hidden}\n.m-fill i{display:block;height:100%;background:var(--a1);transform-origin:left;animation:mk-fill 1.2s ease both}\n@keyframes mk-fill{from{transform:scaleX(0)}}"}, {"id": "check", "group": "상태·피드백", "name": "체크 그리기", "desc": "stroke-dashoffset으로 체크 표시를 그려요.", "html": "<svg viewBox=\"0 0 24 24\" width=\"48\" height=\"48\" aria-hidden=\"true\"><path class=\"m-check\" d=\"M4 12l5 5L20 6\" fill=\"none\" stroke=\"var(--ok)\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><\/svg>", "code": ".m-check{stroke-dasharray:24;animation:mk-check .6s ease both}\n@keyframes mk-check{from{stroke-dashoffset:24}}"}, {"id": "flash", "group": "상태·피드백", "name": "배경 반짝", "desc": "주황 배경이 서서히 사라져요. 값이 바뀐 곳을 알려요.", "html": "<div class=\"box m-flash\">값 변경<\/div>", "code": ".m-flash{animation:mk-flash 1.2s ease both}\n@keyframes mk-flash{from{background:color-mix(in srgb,var(--a2) 45%,transparent)}}"}, {"id": "beat", "group": "상태·피드백", "name": "두근두근", "desc": "1.12배까지 두 번 커졌다 돌아와요.", "html": "<div class=\"box m-beat\">듣는 중<\/div>", "code": ".m-beat{animation:mk-beat 1.4s ease infinite}\n@keyframes mk-beat{15%{transform:scale(1.12)}30%{transform:scale(1)}45%{transform:scale(1.08)}60%{transform:scale(1)}}"}, {"id": "lift", "group": "호버·누름", "name": "떠오르는 카드", "desc": "마우스를 올리면 4px 떠오르며 그림자가 생겨요.", "html": "<div class=\"box m-lift\">올려 보세요<\/div>", "code": ".m-lift{transition:transform .2s,box-shadow .2s}\n.m-lift:hover,.on .m-lift{transform:translateY(-4px);box-shadow:0 8px 24px rgb(140 149 159 / .2)}"}, {"id": "press", "group": "호버·누름", "name": "눌림", "desc": "누르는 동안 94%로 작아져요.", "html": "<div class=\"box m-press\">눌러 보세요<\/div>", "code": ".m-press{transition:transform .1s}\n.m-press:active,.on .m-press{transform:scale(.94)}"}, {"id": "ul", "group": "호버·누름", "name": "밑줄 늘어나기", "desc": "마우스를 올리면 밑줄이 왼쪽에서 늘어나요.", "html": "<span class=\"m-ul\">올려 보세요<\/span>", "code": ".m-ul{background:linear-gradient(currentColor,currentColor) 0 100%/0 2px no-repeat;transition:background-size .3s}\n.m-ul:hover,.on .m-ul{background-size:100% 2px}"}, {"id": "glow", "group": "호버·누름", "name": "테두리 빛나기", "desc": "테두리 색이 바뀌고 부드러운 고리가 생겨요.", "html": "<div class=\"box m-glow\">올려 보세요<\/div>", "code": ".m-glow{transition:box-shadow .25s,border-color .25s}\n.m-glow:hover,.on .m-glow{border-color:var(--a4);box-shadow:0 0 0 3px color-mix(in srgb,var(--a4) 30%,transparent)}"}, {"id": "tilt", "group": "호버·누름", "name": "살짝 기울이기", "desc": "-3도 기울며 조금 커져요.", "html": "<div class=\"box m-tilt\">올려 보세요<\/div>", "code": ".m-tilt{transition:transform .2s}\n.m-tilt:hover,.on .m-tilt{transform:rotate(-3deg) scale(1.04)}"}, {"id": "spin", "group": "지속(루프)", "name": "돌아가는 고리", "desc": "불러오는 중임을 알려요.", "html": "<div class=\"m-spin\" role=\"img\" aria-label=\"불러오는 중\"><\/div>", "code": ".m-spin{width:34px;height:34px;border:4px solid var(--soft);border-top-color:var(--a4);border-radius:50%;animation:mk-spin .9s linear infinite}\n@keyframes mk-spin{to{transform:rotate(360deg)}}"}, {"id": "caret", "group": "지속(루프)", "name": "깜빡이는 커서", "desc": "글자 끝에서 커서가 깜빡여요.", "html": "<span class=\"m-caret\">받아쓰는 중<\/span>", "code": ".m-caret::after{content:\"\";display:inline-block;width:2px;height:1.1em;background:currentColor;margin-left:3px;vertical-align:text-bottom;animation:mk-blink 1s steps(2,start) infinite}\n@keyframes mk-blink{to{visibility:hidden}}"}, {"id": "float", "group": "지속(루프)", "name": "둥실 떠 있기", "desc": "위아래로 6px 천천히 오가요.", "html": "<div class=\"box m-float\">대기 중<\/div>", "code": ".m-float{animation:mk-float 2s ease-in-out infinite alternate}\n@keyframes mk-float{to{transform:translateY(-6px)}}"}], "js": [{"id": "scope", "name": "scope 입자 흐름", "desc": "어두운 계측기 화면에 빛나는 점이 선을 따라 흘러요. dot()으로 그려요.", "code": "const u=(t*0.5+k/5)%1;\ndot(c,12+u*(w-24),h/2,3,K.sp[k%5],10);\nfunction dot(c,x,y,r,col,glow=0){c.save();if(glow){c.shadowColor=col;c.shadowBlur=glow;}\n  c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.restore();}"}, {"id": "ease", "name": "ease 지수 보간", "desc": "목표 위치로 부드럽게 따라가요. 프레임 시간(dt)에 맞춰 같은 속도로 움직여요.", "code": "const ease=(cur,tg,dt,k=9)=>cur+(tg-cur)*(1-Math.exp(-k*dt));\nst.cur=ease(st.cur,st.tg,dt);"}, {"id": "grid", "name": "fit + grid 눈금 배경", "desc": "fit()으로 캔버스를 화면 배율에 맞추고, grid()로 눈금을 깔아요.", "code": "function fit(cv){const r=Math.min(2,devicePixelRatio||1),w=cv.clientWidth||cv.parentElement.clientWidth||640,h=+cv.dataset.h||300;\n  if(cv.width!==Math.round(w*r)||cv.height!==Math.round(h*r)){cv.width=Math.round(w*r);cv.height=Math.round(h*r);cv.style.height=h+'px';}\n  const c=cv.getContext('2d');c.setTransform(r,0,0,r,0,0);c.clearRect(0,0,w,h);return {c,w,h};}\nfunction grid(c,w,h,step=40){c.strokeStyle=K.grid;c.lineWidth=1;c.beginPath();\n  for(let x=step;x<w;x+=step){c.moveTo(x+.5,0);c.lineTo(x+.5,h);}\n  for(let y=step;y<h;y+=step){c.moveTo(0,y+.5);c.lineTo(w,y+.5);}c.stroke();}"}, {"id": "tour", "name": "시연 자막 (tour)", "desc": "단계마다 자막을 바꾸고 시간 막대를 채우는 시연 방식이에요. 시연 보기 버튼이 써요.", "code": "const wait=ms=>new Promise(r=>setTimeout(r,ms));\nasync function runTour(){for(let i=0;i<steps.length;i++){if(tok.stop)return;\n  cap.textContent=steps[i].say;await wait(1600);}}"}]}</script>
+<script type="application/json" id="motionData">{"fx": [{"id": "fadeup", "group": "등장", "name": "아래에서 떠오르기", "desc": "투명에서 시작해 14px 위로 올라오며 나타나요.", "html": "<div class=\"box m-fadeup\">카드<\/div>", "code": ".m-fadeup{animation:mk-fadeup .7s ease both}\n@keyframes mk-fadeup{from{opacity:0;transform:translateY(14px)}}"}, {"id": "stagger", "group": "등장", "name": "계단식 등장", "desc": "--i 값에 따라 시간차를 두고 하나씩 나타나요. 목표 목록에 써요.", "html": "<span class=\"pill m-stagger\" style=\"--i:0\">1<\/span><span class=\"pill m-stagger\" style=\"--i:1\">2<\/span><span class=\"pill m-stagger\" style=\"--i:2\">3<\/span><span class=\"pill m-stagger\" style=\"--i:3\">4<\/span>", "code": ".m-stagger{animation:mk-stag .5s ease both;animation-delay:calc(var(--i)*.12s)}\n@keyframes mk-stag{from{opacity:0;transform:translateX(-14px)}}"}, {"id": "pop", "group": "등장", "name": "톡 튀어나오기", "desc": "작게 시작해 살짝 커졌다가 제자리로 돌아와요.", "html": "<div class=\"box m-pop\">카드<\/div>", "code": ".m-pop{animation:mk-pop .5s ease both}\n@keyframes mk-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06)}100%{transform:scale(1)}}"}, {"id": "slide", "group": "등장", "name": "옆에서 밀려오기", "desc": "왼쪽 24px 밖에서 미끄러져 들어와요.", "html": "<div class=\"box m-slide\">카드<\/div>", "code": ".m-slide{animation:mk-slide .6s ease both}\n@keyframes mk-slide{from{opacity:0;transform:translateX(-24px)}}"}, {"id": "blur", "group": "등장", "name": "흐림 풀기", "desc": "흐릿한 상태에서 또렷해지며 나타나요.", "html": "<div class=\"box m-blur\">카드<\/div>", "code": ".m-blur{animation:mk-blur .8s ease both}\n@keyframes mk-blur{from{opacity:0;filter:blur(8px)}}"}, {"id": "reveal", "group": "등장", "name": "가림막 걷기", "desc": "clip-path로 왼쪽에서 오른쪽으로 드러나요.", "html": "<div class=\"box m-reveal\">천천히 드러나는 글<\/div>", "code": ".m-reveal{animation:mk-reveal .9s ease both}\n@keyframes mk-reveal{from{clip-path:inset(0 100% 0 0)}}"}, {"id": "type", "group": "등장", "name": "타자 효과", "desc": "steps()로 글자가 하나씩 찍혀요. 너비를 글자 수(em)에 맞추고 steps 수도 같게 해요.", "html": "<span class=\"m-type\">안녕하세요<\/span>", "code": ".m-type{display:inline-block;white-space:nowrap;overflow:hidden;vertical-align:bottom;width:5em;border-right:2px solid currentColor;animation:mk-type 1.6s steps(5) both}\n@keyframes mk-type{from{width:0}}"}, {"id": "shake", "group": "상태·피드백", "name": "오답 흔들기", "desc": "좌우로 5px 흔들어 틀렸다고 알려요. 퀴즈 오답에 써요.", "html": "<div class=\"box m-shake\">오답<\/div>", "code": ".m-shake{animation:mk-shake .3s;border-color:var(--bad)}\n@keyframes mk-shake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}"}, {"id": "ring", "group": "상태·피드백", "name": "퍼지는 고리", "desc": "테두리에서 고리가 퍼져 나가요. 정답·주목에 써요.", "html": "<div class=\"box m-ring\">정답<\/div>", "code": ".m-ring{animation:mk-ring 1.4s ease-out infinite}\n@keyframes mk-ring{from{box-shadow:0 0 0 0 var(--ok)}to{box-shadow:0 0 0 14px transparent}}"}, {"id": "bounce", "group": "상태·피드백", "name": "통통 튀기", "desc": "위로 12px 올라갔다 내려와요.", "html": "<div class=\"box m-bounce\">알림<\/div>", "code": ".m-bounce{animation:mk-bounce .8s ease infinite}\n@keyframes mk-bounce{40%{transform:translateY(-12px)}}"}, {"id": "fill", "group": "상태·피드백", "name": "진행 막대 채우기", "desc": "scaleX로 왼쪽에서 채워져요. 과제 진행 막대에 써요.", "html": "<div class=\"m-fill\"><i><\/i><\/div>", "code": ".m-fill{width:80%;height:10px;background:var(--soft);border-radius:99px;overflow:hidden}\n.m-fill i{display:block;height:100%;background:var(--a1);transform-origin:left;animation:mk-fill 1.2s ease both}\n@keyframes mk-fill{from{transform:scaleX(0)}}"}, {"id": "check", "group": "상태·피드백", "name": "체크 그리기", "desc": "stroke-dashoffset으로 체크 표시를 그려요.", "html": "<svg viewBox=\"0 0 24 24\" width=\"48\" height=\"48\" aria-hidden=\"true\"><path class=\"m-check\" d=\"M4 12l5 5L20 6\" fill=\"none\" stroke=\"var(--ok)\" stroke-width=\"3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><\/svg>", "code": ".m-check{stroke-dasharray:24;animation:mk-check .6s ease both}\n@keyframes mk-check{from{stroke-dashoffset:24}}"}, {"id": "flash", "group": "상태·피드백", "name": "배경 반짝", "desc": "주황 배경이 서서히 사라져요. 값이 바뀐 곳을 알려요.", "html": "<div class=\"box m-flash\">값 변경<\/div>", "code": ".m-flash{animation:mk-flash 1.2s ease both}\n@keyframes mk-flash{from{background:color-mix(in srgb,var(--a2) 45%,transparent)}}"}, {"id": "beat", "group": "상태·피드백", "name": "두근두근", "desc": "1.12배까지 두 번 커졌다 돌아와요.", "html": "<div class=\"box m-beat\">듣는 중<\/div>", "code": ".m-beat{animation:mk-beat 1.4s ease infinite}\n@keyframes mk-beat{15%{transform:scale(1.12)}30%{transform:scale(1)}45%{transform:scale(1.08)}60%{transform:scale(1)}}"}, {"id": "shimmer", "group": "상태·피드백", "name": "불러오는 중 반짝", "desc": "스켈레톤 줄 위로 빛이 지나가요. 내용이 올 자리를 미리 보여줘요.", "html": "<div class=\"m-shimmer\"><\/div><div class=\"m-shimmer\" style=\"width:60%\"><\/div>", "code": ".m-shimmer{width:80%;height:12px;margin-bottom:8px;border-radius:99px;background:linear-gradient(90deg,var(--soft) 30%,color-mix(in srgb,var(--a4) 25%,var(--soft)) 50%,var(--soft) 70%) 0 0/200% 100%;animation:mk-shimmer 1.4s linear infinite}\n@keyframes mk-shimmer{from{background-position:100% 0}to{background-position:-100% 0}}"}, {"id": "lift", "group": "호버·누름", "name": "떠오르는 카드", "desc": "마우스를 올리면 4px 떠오르며 그림자가 생겨요.", "html": "<div class=\"box m-lift\">올려 보세요<\/div>", "code": ".m-lift{transition:transform .2s,box-shadow .2s}\n.m-lift:hover,.on .m-lift{transform:translateY(-4px);box-shadow:0 8px 24px rgb(140 149 159 / .2)}"}, {"id": "press", "group": "호버·누름", "name": "눌림", "desc": "누르는 동안 94%로 작아져요.", "html": "<div class=\"box m-press\">눌러 보세요<\/div>", "code": ".m-press{transition:transform .1s}\n.m-press:active,.on .m-press{transform:scale(.94)}"}, {"id": "ul", "group": "호버·누름", "name": "밑줄 늘어나기", "desc": "마우스를 올리면 밑줄이 왼쪽에서 늘어나요.", "html": "<span class=\"m-ul\">올려 보세요<\/span>", "code": ".m-ul{background:linear-gradient(currentColor,currentColor) 0 100%/0 2px no-repeat;transition:background-size .3s}\n.m-ul:hover,.on .m-ul{background-size:100% 2px}"}, {"id": "glow", "group": "호버·누름", "name": "테두리 빛나기", "desc": "테두리 색이 바뀌고 부드러운 고리가 생겨요.", "html": "<div class=\"box m-glow\">올려 보세요<\/div>", "code": ".m-glow{transition:box-shadow .25s,border-color .25s}\n.m-glow:hover,.on .m-glow{border-color:var(--a4);box-shadow:0 0 0 3px color-mix(in srgb,var(--a4) 30%,transparent)}"}, {"id": "tilt", "group": "호버·누름", "name": "살짝 기울이기", "desc": "-3도 기울며 조금 커져요.", "html": "<div class=\"box m-tilt\">올려 보세요<\/div>", "code": ".m-tilt{transition:transform .2s}\n.m-tilt:hover,.on .m-tilt{transform:rotate(-3deg) scale(1.04)}"}, {"id": "spin", "group": "지속(루프)", "name": "돌아가는 고리", "desc": "불러오는 중임을 알려요.", "html": "<div class=\"m-spin\" role=\"img\" aria-label=\"불러오는 중\"><\/div>", "code": ".m-spin{width:34px;height:34px;border:4px solid var(--soft);border-top-color:var(--a4);border-radius:50%;animation:mk-spin .9s linear infinite}\n@keyframes mk-spin{to{transform:rotate(360deg)}}"}, {"id": "caret", "group": "지속(루프)", "name": "깜빡이는 커서", "desc": "글자 끝에서 커서가 깜빡여요.", "html": "<span class=\"m-caret\">받아쓰는 중<\/span>", "code": ".m-caret::after{content:\"\";display:inline-block;width:2px;height:1.1em;background:currentColor;margin-left:3px;vertical-align:text-bottom;animation:mk-blink 1s steps(2,start) infinite}\n@keyframes mk-blink{to{visibility:hidden}}"}, {"id": "float", "group": "지속(루프)", "name": "둥실 떠 있기", "desc": "위아래로 6px 천천히 오가요.", "html": "<div class=\"box m-float\">대기 중<\/div>", "code": ".m-float{animation:mk-float 2s ease-in-out infinite alternate}\n@keyframes mk-float{to{transform:translateY(-6px)}}"}, {"id": "dots", "group": "지속(루프)", "name": "로딩 점", "desc": "글자 뒤에 점이 하나씩 늘어나요. content를 steps(4)로 바꿔요.", "html": "<span class=\"m-dots\">듣는 중<\/span>", "code": ".m-dots::after{content:\"\";animation:mk-dots 1s steps(4) infinite}\n@keyframes mk-dots{0%{content:\"\"}25%{content:\".\"}50%{content:\"..\"}75%{content:\"...\"}}"}, {"id": "eq", "group": "지속(루프)", "name": "이퀄라이저 막대", "desc": "막대가 시간차로 오르내려요. 듣는 중·말하는 중을 보여줘요.", "html": "<div class=\"m-eq\" role=\"img\" aria-label=\"소리 나는 중\"><i style=\"--i:0\"><\/i><i style=\"--i:1\"><\/i><i style=\"--i:2\"><\/i><i style=\"--i:3\"><\/i><i style=\"--i:4\"><\/i><\/div>", "code": ".m-eq{display:flex;align-items:flex-end;gap:4px;height:32px}\n.m-eq i{width:6px;height:100%;border-radius:99px;background:var(--a4);transform-origin:bottom;animation:mk-eq .9s ease-in-out infinite alternate;animation-delay:calc(var(--i)*-.2s)}\n@keyframes mk-eq{from{transform:scaleY(.2)}to{transform:scaleY(1)}}"}], "js": [{"id": "scope", "name": "scope 입자 흐름", "desc": "어두운 계측기 화면에 빛나는 점이 선을 따라 흘러요. dot()으로 그려요.", "code": "const u=(t*0.5+k/5)%1;\ndot(c,12+u*(w-24),h/2,3,K.sp[k%5],10);\nfunction dot(c,x,y,r,col,glow=0){c.save();if(glow){c.shadowColor=col;c.shadowBlur=glow;}\n  c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.restore();}"}, {"id": "ease", "name": "ease 지수 보간", "desc": "목표 위치로 부드럽게 따라가요. 프레임 시간(dt)에 맞춰 같은 속도로 움직여요.", "code": "const ease=(cur,tg,dt,k=9)=>cur+(tg-cur)*(1-Math.exp(-k*dt));\nst.cur=ease(st.cur,st.tg,dt);"}, {"id": "grid", "name": "fit + grid 눈금 배경", "desc": "fit()으로 캔버스를 화면 배율에 맞추고, grid()로 눈금을 깔아요.", "code": "function fit(cv){const r=Math.min(2,devicePixelRatio||1),w=cv.clientWidth||cv.parentElement.clientWidth||640,h=+cv.dataset.h||300;\n  if(cv.width!==Math.round(w*r)||cv.height!==Math.round(h*r)){cv.width=Math.round(w*r);cv.height=Math.round(h*r);cv.style.height=h+'px';}\n  const c=cv.getContext('2d');c.setTransform(r,0,0,r,0,0);c.clearRect(0,0,w,h);return {c,w,h};}\nfunction grid(c,w,h,step=40){c.strokeStyle=K.grid;c.lineWidth=1;c.beginPath();\n  for(let x=step;x<w;x+=step){c.moveTo(x+.5,0);c.lineTo(x+.5,h);}\n  for(let y=step;y<h;y+=step){c.moveTo(0,y+.5);c.lineTo(w,y+.5);}c.stroke();}"}, {"id": "tour", "name": "시연 자막 (tour)", "desc": "단계마다 자막을 바꾸고 시간 막대를 채우는 시연 방식이에요. 시연 보기 버튼이 써요.", "code": "const wait=ms=>new Promise(r=>setTimeout(r,ms));\nasync function runTour(){for(let i=0;i<steps.length;i++){if(tok.stop)return;\n  cap.textContent=steps[i].say;await wait(1600);}}"}, {"id": "rr", "name": "rr 둥근 사각형", "desc": "모서리가 둥근 상자를 테두리색·채움색으로 그려요. 단계 상자·막대에 써요.", "code": "function rr(c,x,y,w,h,col,fill){c.strokeStyle=col;c.lineWidth=1.8;c.beginPath();c.roundRect(x,y,w,h,6);if(fill){c.fillStyle=fill;c.fill();}c.stroke();}\nrr(c,x,y,60,34,K.sp[k],K.grid);"}, {"id": "rng", "name": "mulberry + gauss 고정 난수", "desc": "같은 씨앗이면 매번 같은 점이 나와요. gauss()로 가운데에 몰린 잡음 점을 만들어요.", "code": "function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}\nfunction gauss(r){let u=0;while(u===0)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r());}\nconst r=mulberry(7);\nfor(let i=0;i<60;i++)dot(c,12+r()*(w-24),h/2+gauss(r)*h*0.15,2,K.sp[i%5]);"}, {"id": "wave", "name": "wave 파형 선", "desc": "소리 파형처럼 출렁이는 선이에요. 사인 두 개를 곱해 크기가 오르내려요.", "code": "c.strokeStyle=K.sp[4];c.lineWidth=2;c.beginPath();\nfor(let x=12;x<=w-12;x+=2){const y=h/2+Math.sin(x*0.06+t*3)*Math.sin(x*0.015-t)*h*0.34;x>12?c.lineTo(x,y):c.moveTo(x,y);}\nc.stroke();"}, {"id": "bars", "name": "bars 막대 채우기", "desc": "막대 줄이 왼쪽에서 오른쪽으로 하나씩 켜져요. 진행 상태 표시에 써요.", "code": "const n=Math.floor((w-24)/8),head=Math.floor((t*14)%(n+20));\nfor(let i=0;i<n;i++){const bh=10+(Math.sin(i*0.5)+1)*14;\n  c.fillStyle=i<=head?K.sp[0]:K.line;c.fillRect(12+i*8,h/2-bh/2,5,bh);}"}, {"id": "hbar", "name": "hbar 가로 게이지", "desc": "목표 값을 ease로 따라가는 가로 게이지예요. 점수·진행률에 써요.", "code": "if(st.tg===undefined){st.tg=.8;st.cur=.8;st.next=0;}\nst.next-=dt;if(st.next<=0){st.next=1.6;st.tg=st.tg>.5?.25:.8;}\nst.cur=ease(st.cur,st.tg,dt);\nrr(c,14,h/2-6,w-28,12,K.line,K.grid);\nrr(c,14,h/2-6,Math.max(12,(w-28)*st.cur),12,K.sp[1],K.sp[1]);\ntxt(c,Math.round(st.cur*100)+'%',14,h/2-14,K.tx,12,true);"}, {"id": "lanes", "name": "lanes 화자 타임라인", "desc": "화자별 레인에 말한 구간을 깔고 재생 막대가 지나가요. 지나간 구간은 색이 채워져요.", "code": "const S=[[0,0,.3],[1,.3,.55],[0,.55,.8],[1,.8,1]],p=(t*0.2)%1,W=w-28;\nS.forEach(([k,a,b])=>rr(c,14+a*W,16+k*30,(b-a)*W-3,18,K.sp[k],p>b?K.sp[k]:K.grid));\nc.fillStyle=K.tx;c.fillRect(14+p*W,8,2,h-16);"}]}</script>
 <script>
 (()=>{
 'use strict';
@@ -489,6 +518,8 @@ function grid(c,w,h,step=40){c.strokeStyle=K.grid;c.lineWidth=1;c.beginPath();fo
 function dot(c,x,y,r,col,glow=0){c.save();if(glow){c.shadowColor=col;c.shadowBlur=glow;}c.fillStyle=col;c.beginPath();c.arc(x,y,r,0,7);c.fill();c.restore();}
 function txt(c,s,x,y,col=K.tx,size=13,bold=false,align='left'){c.fillStyle=col;c.font=`${bold?'700 ':''}${size}px ${FONT}`;c.textAlign=align;c.fillText(s,x,y);c.textAlign='left';}
 function rr(c,x,y,w,h,col,fill){c.strokeStyle=col;c.lineWidth=1.8;c.beginPath();c.roundRect(x,y,w,h,6);if(fill){c.fillStyle=fill;c.fill();}c.stroke();}
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function gauss(r){let u=0;while(u===0)u=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*r());}
 const DARK='rgba(13,17,23,.9)';
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 
@@ -553,20 +584,116 @@ const CVD={
  ease(c,w,h,t,dt,st){if(st.tg===undefined){st.tg=w*0.2;st.cur=st.tg;st.next=0;}st.next-=dt;if(st.next<=0){st.next=1.4;st.tg=st.tg<w/2?w*0.8:w*0.2;}
   st.cur=ease(st.cur,st.tg,dt);grid(c,w,h,24);dot(c,st.tg,h/2,5,K.mu);dot(c,st.cur,h/2,8,K.sp[1],14);},
  grid(c,w,h,t){grid(c,w,h,20);c.strokeStyle=K.sp[0];c.lineWidth=2;c.beginPath();for(let x=0;x<=w;x+=3){const y=h/2+Math.sin(x*0.04+t*2)*h*0.28;x?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();},
- tour(c,w,h,t){const L=['1단계 · 소리를 받아요','2단계 · 글자로 바꿔요','3단계 · 답을 만들어요'],i=Math.floor(t/1.5)%3,p=(t%1.5)/1.5;txt(c,L[i],14,h/2-4,K.tx,14,true);c.fillStyle=K.sp[3];c.fillRect(14,h/2+10,(w-28)*p,5);}
+ tour(c,w,h,t){const L=['1단계 · 소리를 받아요','2단계 · 글자로 바꿔요','3단계 · 답을 만들어요'],i=Math.floor(t/1.5)%3,p=(t%1.5)/1.5;txt(c,L[i],14,h/2-4,K.tx,14,true);c.fillStyle=K.sp[3];c.fillRect(14,h/2+10,(w-28)*p,5);},
+ rr(c,w,h,t){const n=3,g=12,bw=(w-28-g*(n-1))/n;for(let k=0;k<n;k++){const x=14+k*(bw+g),y=h/2-17+Math.sin(t*2+k)*6;rr(c,x,y,bw,34,K.sp[k],K.grid);}},
+ rng(c,w,h,t){const r=mulberry(7);for(let i=0;i<60;i++)dot(c,12+r()*(w-24),h/2+gauss(r)*h*0.15,2,K.sp[i%5]);},
+ wave(c,w,h,t){c.strokeStyle=K.sp[4];c.lineWidth=2;c.beginPath();for(let x=12;x<=w-12;x+=2){const y=h/2+Math.sin(x*0.06+t*3)*Math.sin(x*0.015-t)*h*0.34;x>12?c.lineTo(x,y):c.moveTo(x,y);}c.stroke();},
+ bars(c,w,h,t){const n=Math.floor((w-24)/8),head=Math.floor((t*14)%(n+20));for(let i=0;i<n;i++){const bh=10+(Math.sin(i*0.5)+1)*14;c.fillStyle=i<=head?K.sp[0]:K.line;c.fillRect(12+i*8,h/2-bh/2,5,bh);}},
+ hbar(c,w,h,t,dt,st){if(st.tg===undefined){st.tg=.8;st.cur=.8;st.next=0;}st.next-=dt;if(st.next<=0){st.next=1.6;st.tg=st.tg>.5?.25:.8;}
+  st.cur=ease(st.cur,st.tg,dt);rr(c,14,h/2-6,w-28,12,K.line,K.grid);rr(c,14,h/2-6,Math.max(12,(w-28)*st.cur),12,K.sp[1],K.sp[1]);txt(c,Math.round(st.cur*100)+'%',14,h/2-14,K.tx,12,true);},
+ lanes(c,w,h,t){const S=[[0,0,.3],[1,.3,.55],[0,.55,.8],[1,.8,1]],p=(t*0.2)%1,W=w-28;S.forEach(([k,a,b])=>rr(c,14+a*W,16+k*30,(b-a)*W-3,18,K.sp[k],p>b?K.sp[k]:K.grid));c.fillStyle=K.tx;c.fillRect(14+p*W,8,2,h-16);}
 };
-const CVS=[];
+const CVS=[],TCV=[];
+const CVT={
+ stepper:function stepper(c,w,h,t){const n=5,g=8,bw=(w-28-g*(n-1))/n,i=Math.floor(t/1.2)%n;
+  for(let k=0;k<n;k++){const x=14+k*(bw+g),on=k===i,v=0.3+0.6*Math.abs(Math.sin(t*1.3+k*1.1));
+    rr(c,x,22,bw,40,on?K.sp[k]:K.line,on?K.sp[k]+'33':DARK);txt(c,String(k+1),x+bw/2,47,on?K.tx:K.mu,14,on,'center');
+    c.fillStyle=K.sp[k];c.globalAlpha=0.8;c.fillRect(x+bw*0.2,h-10-v*30,bw*0.6,v*30);c.globalAlpha=1;}
+  txt(c,(i+1)+'단계',14,14,K.mu,11);},
+ slider:function slider(c,w,h,t){const b=1+Math.floor(t/0.8)%6,L=2**b,x0=20,x1=w-20,y=54;
+  c.strokeStyle=K.line;c.lineWidth=1.5;c.beginPath();c.moveTo(x0,y);c.lineTo(x1,y);c.stroke();
+  c.strokeStyle=K.sp[0];c.beginPath();for(let i=0;i<=L;i++){const x=x0+(x1-x0)*i/L;c.moveTo(x,y-10);c.lineTo(x,y+10);}c.stroke();
+  c.fillStyle=K.line;c.fillRect(x0,h-22,x1-x0,4);dot(c,x0+(x1-x0)*(b-1)/5,h-20,7,K.sp[1],8);
+  txt(c,b+'비트 · '+L+'칸',x0,20,K.tx,12,true);},
+ bargrow:function bargrow(c,w,h,t,dt,st){const L=['처리 시간','비용','정확도'],k=Math.floor(t/1.6),
+  tg=L.map((_,i)=>0.2+0.7*Math.abs(Math.sin(k*1.7+i*2.3)));
+  st.v=(st.v||tg).map((v,i)=>RM?tg[i]:ease(v,tg[i],dt,7));
+  L.forEach((nm,i)=>{const y=14+i*34,x=84,W=w-x-50;txt(c,nm,14,y+14,K.mu,12);
+    rr(c,x,y,W,18,K.line,K.grid);rr(c,x,y,Math.max(12,W*st.v[i]),18,K.sp[i],K.sp[i]);
+    txt(c,Math.round(st.v[i]*100)+'%',x+W+8,y+14,K.tx,12,true);});},
+ plot:function plot(c,w,h,t){const r=Math.min(34,h/2-12),cx=14+r,cy=h/2,x0=cx+r+16,W=w-x0-14,th=(t*Math.PI*0.6)%(2*Math.PI),X=a=>x0+W*a/(2*Math.PI);
+  c.strokeStyle=K.line;c.lineWidth=1.5;c.beginPath();c.arc(cx,cy,r,0,7);c.moveTo(x0,cy);c.lineTo(x0+W,cy);c.stroke();
+  const px=cx+r*Math.cos(th),py=cy-r*Math.sin(th);
+  c.strokeStyle=K.sp[4];c.lineWidth=2;c.beginPath();for(let a=0;a<=th;a+=0.05){const y=cy-r*Math.sin(a);a?c.lineTo(X(a),y):c.moveTo(X(a),y);}c.stroke();
+  c.strokeStyle=K.mu;c.lineWidth=1;c.setLineDash([3,3]);c.beginPath();c.moveTo(px,py);c.lineTo(X(th),py);c.stroke();c.setLineDash([]);
+  dot(c,px,py,4,K.sp[1],8);dot(c,X(th),py,4,K.sp[4],8);},
+ wave:function wave(c,w,h,t){const W=w-28,line=(y,noise,col)=>{c.strokeStyle=col;c.lineWidth=2;c.beginPath();
+    for(let x=0;x<=W;x+=3){const u=x/W+t*0.2,v=Math.sin(u*Math.PI*6)*(1-noise*0.55)+noise*0.75*(Math.sin(x*1.7+t*7)*0.5+Math.sin(x*0.63+t*3.1)*0.5);
+      x?c.lineTo(14+x,y-v*h*0.14):c.moveTo(14,y-v*h*0.14);}c.stroke();};
+  line(h*0.3,0,K.sp[0]);line(h*0.74,0.5,K.sp[2]);
+  txt(c,'만들려던 소리',14,12,K.mu,11);txt(c,'거칠어진 소리',14,h*0.52,K.mu,11);},
+ tablefill:function tablefill(c,w,h,t){const A=[...'오늘날씨어때요'],B=[...'오늘날시어대요'],n=A.length,cw=Math.min(30,(w-64)/n),shown=Math.floor((t%3)/0.15);
+  txt(c,'정답',14,h/2-14,K.mu,11);txt(c,'들림',14,h/2+22,K.mu,11);
+  for(let i=0;i<Math.min(n,shown);i++){const x=52+i*cw,bad=A[i]!==B[i];
+    rr(c,x,h/2-32,cw-4,26,K.line,K.grid);txt(c,A[i],x+(cw-4)/2,h/2-14,K.ok,13,true,'center');
+    rr(c,x,h/2+4,cw-4,26,bad?K.sp[2]:K.line,K.grid);txt(c,B[i],x+(cw-4)/2,h/2+22,bad?K.sp[2]:K.tx,13,true,'center');}},
+ playhead:function playhead(c,w,h,t){const L=3,T=(t*1.2)%(L+1.5),now=Math.min(T,L),X=s=>52+(w-66)*s/L;
+  txt(c,'입력',8,31,K.mu,11);txt(c,'batch',8,63,K.mu,11);txt(c,'stream',8,95,K.mu,11);
+  c.fillStyle=K.sp[0];c.fillRect(X(0),20,X(now)-X(0),14);
+  for(let s=0;s<now;s+=0.1){c.fillStyle=Math.round(s/0.1)%2?K.sp[3]:K.sp[4];c.fillRect(X(s),84,Math.max(1,X(0.08)-X(0)),14);}
+  if(T>L){c.fillStyle=K.sp[1];c.fillRect(X(0),52,(X(L)-X(0))*Math.min(1,(T-L)/0.5),14);}
+  c.fillStyle=K.tx;c.fillRect(X(now),12,2,h-20);},
+ nodeflow:function nodeflow(c,w,h,t){const ph=(t%4)/4,S=['언어 감지','받아쓰기','번역','합성'],k=Math.min(3,Math.floor(ph*4)),
+  bw=Math.min(96,w*0.26),y=h/2-18,xs=[14,w/2-bw/2,w-14-bw],nm=['환자','','직원'];
+  c.strokeStyle=K.line;c.lineWidth=1.5;c.beginPath();c.moveTo(xs[0]+bw,h/2);c.lineTo(xs[1],h/2);c.moveTo(xs[1]+bw,h/2);c.lineTo(xs[2],h/2);c.stroke();
+  xs.forEach((x,i)=>{rr(c,x,y,bw,36,i===1?K.sp[1]:K.line,DARK);txt(c,i===1?S[k]:nm[i],x+bw/2,y+23,i===1?K.sp[1]:K.tx,12,i===1,'center');});
+  txt(c,'통역기',w/2,y-8,K.mu,11,false,'center');
+  const u=ph<0.5?ph*2:(ph-0.5)*2,a=ph<0.5?xs[0]+bw:xs[1]+bw,b=ph<0.5?xs[1]:xs[2];dot(c,a+(b-a)*u,h/2,4,K.sp[0],10);},
+ scatter:function scatter(c,w,h,t){const r=mulberry(3),th=0.5+0.2*Math.sin(t*0.7),X=v=>14+v*(w-28);
+  c.strokeStyle=K.tx;c.lineWidth=1;c.setLineDash([4,4]);c.beginPath();c.moveTo(X(th),8);c.lineTo(X(th),h-8);c.stroke();c.setLineDash([]);
+  txt(c,'등록',14,14,K.mu,11);txt(c,'외부인',14,h-6,K.mu,11);
+  for(let i=0;i<24;i++){const reg=i<12,v=clamp((reg?0.68:0.32)+gauss(r)*0.13,0,1),bad=reg?v<th:v>=th,
+    y=(reg?h*0.34:h*0.68)+Math.sin(t*1.6+i*1.3)*6;dot(c,X(v),y,bad?6:4.5,bad?K.sp[2]:K.sp[reg?0:4],bad?12:4);}},
+ heatmap:function heatmap(c,w,h,t){const cw=4,n=Math.floor((w-28)/cw),bins=24,bh=(h-16)/bins;
+  for(let j=0;j<n;j++){const tt=t*4-(n-j)*0.15,f=bins*(0.3+0.2*Math.sin(tt*0.5));
+    for(let b=0;b<bins;b++){const v=clamp(Math.exp(-((b-f)**2)/6)+0.5*Math.exp(-((b-2*f)**2)/10)+0.1*(Math.sin(tt*3+b*1.7)+1)/2,0,1);
+      c.fillStyle=`hsl(${260-v*220},85%,${5+v*58}%)`;c.fillRect(14+j*cw,h-8-(b+1)*bh,cw,bh+0.5);}}},
+ particle:function particle(c,w,h,t){const B=4,gap=0.3,tr=0.6,gx=w-90,gy=h/2-24,qx=gx-20,k0=Math.floor(t/gap);
+  rr(c,gx,gy,76,48,K.sp[3],DARK);txt(c,'GPU',gx+38,gy+29,K.sp[3],12,true,'center');txt(c,'배치 '+B+'개씩',14,14,K.mu,11);
+  for(let k=Math.max(0,k0-12);k<=k0;k++){const a=k*gap,i=k%B,go=(Math.floor(k/B)*B+B-1)*gap+tr,y=h/2+(i-1.5)*9;let x;
+    if(t<a+tr)x=14+(qx-i*10-14)*(t-a)/tr;else if(t<go)x=qx-i*10;else if(t<go+0.3)x=qx-i*10+(gx+38-qx+i*10)*(t-go)/0.3;else continue;
+    dot(c,x,y,3.5,K.sp[Math.floor(k/B)%5],8);}},
+ quiz:function quiz(box){box.innerHTML='<div class="scen"><div class="q">없는 주소를 요청하면?</div><div class="opts"><button type="button" data-c="0">200 OK</button><button type="button" data-c="1">404 Not Found</button><button type="button" data-c="2">500 Server Error</button></div></div>';
+  const s=box.firstChild,ans=1;
+  s.querySelectorAll('button').forEach(b=>b.onclick=()=>{s.querySelectorAll('button').forEach(x=>x.className='');
+    b.className=+b.dataset.c===ans?'right':'wrong';
+    if(b.className==='wrong'){s.classList.remove('shk');void s.offsetWidth;s.classList.add('shk');}});},
+ pulse:function pulse(c,w,h,t){const L=['단위','통합','종단'],hit=Math.floor(t/2)%3,p=0.5+0.5*Math.sin(t*4);
+  L.forEach((nm,i)=>{const bw=(w-28)*(0.4+0.3*i),x=w/2-bw/2,y=8+i*36,on=i===hit;rr(c,x,y,bw,30,on?K.ok:K.line,DARK);
+    if(on){c.globalAlpha=0.12+0.3*p;c.fillStyle=K.ok;c.beginPath();c.roundRect(x,y,bw,30,6);c.fill();c.globalAlpha=1;}
+    txt(c,nm,w/2,y+20,on?K.ok:K.tx,12,true,'center');});},
+ typing:function typing(c,w,h,t){const T=t%6,tk=[...'안녕하세요'],n=tk.length,shown=Math.min(n,Math.floor(T*1.5)),cw=Math.min(34,(w-70)/n),a=1-Math.min(1,T/4),r=mulberry(Math.floor(T*8));
+  txt(c,'AR',14,36,K.mu,11,true);txt(c,'NAR',14,86,K.mu,11,true);
+  for(let i=0;i<n;i++){const x=56+i*cw,m=(cw-4)/2;
+    if(i<shown){rr(c,x,18,cw-4,26,K.sp[0],K.grid);txt(c,tk[i],x+m,36,K.tx,13,true,'center');}
+    rr(c,x,68,cw-4,26,K.sp[3],K.grid);c.globalAlpha=1-a;txt(c,tk[i],x+m,86,K.tx,13,true,'center');
+    c.globalAlpha=a;for(let j=0;j<6;j++)dot(c,x+r()*(cw-4),68+r()*26,1.5,K.mu);c.globalAlpha=1;}},
+ easemove:function easemove(c,w,h,t,dt,st){const cyc=Math.floor(t/3);if(st.c!==cyc){st.c=cyc;st.a=0;}st.a=RM?1:ease(st.a,1,dt,2.5);
+  const bw=Math.min(110,w*0.3),x0=14+bw,x1=w-14-bw;
+  rr(c,14,h/2-18,bw,36,K.sp[1],DARK);txt(c,'질문',14+bw/2,h/2+5,K.tx,12,true,'center');
+  c.strokeStyle=K.line;c.lineWidth=2;c.beginPath();c.moveTo(x0,h/2);c.lineTo(x0+(x1-x0)*st.a,h/2);c.stroke();
+  c.globalAlpha=st.a;rr(c,x1,h/2-18,bw,36,K.ok,DARK);txt(c,'통과',x1+bw/2,h/2+5,K.ok,12,true,'center');c.globalAlpha=1;}
+};
+/* 공통 카드 출처: 원본 animation.html에서 처음 나오는 일차(grep 확인). 없으면 대시보드 작성 */
+const MSRC={dots:'원본 D1~34 (@keyframes dots)',shake:'원본 D35~51 (대시보드판 @keyframes shake)',scope:'원본 D35~51 (D42에서 가져옴)',ease:'원본 D35~51 (D42에서 가져옴)',grid:'원본 D35~51 (D42에서 가져옴)',tour:'원본 D35~51 (D42에서 가져옴)',
+ rr:'원본 D1 (function rr)',rng:'원본 D4 (mulberry·gauss)',wave:'원본 D37 (function wave)',bars:'원본 D1 (heroLoop)',hbar:'원본 D47 (function hbar)',lanes:'원본 D21 (화자 레인)'};
+const DRV=['raf','click','input','interval'];
+const alink=a=>`dashboard/d${a.day}/animation.html#${a.hash}`;
+const alab=a=>`D${a.day} · ${a.title}`;
 function renderMotion(){
   const p=$('p-motion');if(p.dataset.ok)return;p.dataset.ok='1';
-  p.innerHTML=`<div class="eyebrow">S8 · 모션 레퍼런스</div><h2>모션 레퍼런스</h2><p class="lead">효과 ${MOTION.fx.length}종과 scope 헬퍼 ${MOTION.js.length}종이에요. 화면에 보이는 코드가 그대로 동작해요. 동작 줄이기를 켜면 정지 화면으로 보여요.</p>
-  <div class="qchips" id="mFilter"></div><div class="mgrid" id="mGrid"></div>`;
+  p.innerHTML=`<div class="eyebrow">S8 · 모션 레퍼런스</div><h2>모션 레퍼런스</h2><p class="lead" id="mLead">원본 모션 목록을 불러오는 중이에요 · 공통 효과 CSS ${MOTION.fx.length} · JS ${MOTION.js.length}</p>
+  <h3 class="sec">기법 카드</h3><div class="mgrid" id="mTech"><div class="msg" role="status">불러오는 중…</div></div>
+  <h3 class="sec">공통 효과</h3><p class="lead">대시보드 화면에서 함께 쓰는 짧은 효과예요. 원본에서 가져온 것은 처음 나온 일차를 적었어요.</p>
+  <div class="qchips" id="mFilter"></div><div class="mgrid" id="mGrid"></div>
+  <h3 class="sec">전체 모션 목록</h3><div id="mList"><div class="msg" role="status">불러오는 중…</div></div>`;
   const groups=[...new Set(MOTION.fx.map(x=>x.group))].concat('헬퍼');
   let cur='전체';
   const draw=()=>{const g=$('mGrid');g.innerHTML='';CVS.length=0;
     const items=[...MOTION.fx.map(x=>({...x,kind:'fx'})),...MOTION.js.map(x=>({...x,group:'헬퍼',kind:'js'}))].filter(x=>cur==='전체'||x.group===cur);
     items.forEach((x,i)=>{const card=mk('div','mc');
       const demo=x.kind==='fx'?`<div class="stg" id="stg-${x.id}">${x.html}</div>`:`<div class="stg"><canvas data-demo="${x.id}" data-h="90" aria-label="${esc(x.name)} 데모"></canvas></div>`;
-      card.innerHTML=`<h4>${esc(x.name)}<code>${x.kind==='fx'?'.m-'+x.id:x.id+'()'}</code></h4>${demo}<p>${esc(x.desc)}</p>
+      card.innerHTML=`<h4><span class="mbadge${x.kind==='fx'?' css':''}">${x.kind==='fx'?'CSS':'JS'}</span>${esc(x.name)}<code>${x.kind==='fx'?'.m-'+x.id:x.id+'()'}</code></h4>${demo}<p>${esc(x.desc)}</p><p class="msrc">출처 · ${esc(MSRC[x.id]||'대시보드 작성')}</p>
       <div class="row" style="margin:0"><button class="btn" type="button" data-re="${x.id}">▶ 다시 재생</button><button class="btn" type="button" data-cp="${x.id}">코드 복사</button></div>
       <details><summary>코드 보기</summary><pre><code>${esc(x.code)}</code></pre></details>`;
       g.appendChild(card);
@@ -577,10 +704,56 @@ function renderMotion(){
   $('mFilter').innerHTML=['전체',...groups].map(g=>`<button class="chip" type="button" data-g="${esc(g)}" aria-pressed="${g===cur}">${esc(g)}</button>`).join('');
   $('mFilter').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{cur=b.dataset.g;$('mFilter').querySelectorAll('[data-g]').forEach(x=>x.setAttribute('aria-pressed',x===b));draw();});
   draw();
+  Promise.all([jget('data/motion/techs.json'),jget('data/motion/anims.json')]).then(([T,A])=>{
+    const nt=T.filter(x=>x.id!=='static').length;
+    $('mLead').textContent=`원본 ${A.length}개 모션을 기법 ${nt}가지로 정리했어요 · 공통 효과 CSS ${MOTION.fx.length} · JS ${MOTION.js.length}. 화면에 보이는 코드가 그대로 동작하고, 동작 줄이기를 켜면 정지 화면으로 보여요.`;
+    techCards(T,A);animList(T,A);
+  }).catch(()=>{['mTech','mList'].forEach(id=>$(id).innerHTML='<div class="msg" role="status">원본 모션 목록을 불러오지 못했어요.</div>');});
 }
+function techCards(T,A){const g=$('mTech');g.innerHTML='';TCV.length=0;
+  T.filter(x=>x.id!=='static').forEach(x=>{const r=x.rep,mine=A.filter(a=>a.tech.includes(x.id)),
+    ra=mine.find(a=>a.day===r.day&&a.hash===r.hash)||{note:'',excerpt:''},
+    days=[...new Set(mine.map(a=>a.day))].sort((a,b)=>a-b),
+    pick=d=>mine.find(a=>a.day===d&&a.tech[0]===x.id)||mine.find(a=>a.day===d),
+    dom=x.kind!=='JS',card=mk('div','mc');
+    card.innerHTML=`<h4><span class="mbadge">${esc(x.kind)}</span>${esc(x.name)}<code>${x.id}</code></h4>
+    <p class="mcount">원본 ${mine.length}개 · 주 기법 ${mine.filter(a=>a.tech[0]===x.id).length}개 · ${days.length}일</p>
+    ${dom?'<div class="stg"></div>':`<div class="stg"><canvas data-h="120" aria-label="${esc(x.name)} 데모"></canvas></div>`}
+    <p>원본: ${esc(ra.note)}</p>
+    <div class="row" style="margin:0"><button class="btn" type="button" data-re>▶ 다시 재생</button><button class="btn" type="button" data-cp>코드 복사</button></div>
+    <details><summary>코드 보기</summary><pre><code>${esc(x.demo)}</code></pre>
+    <div class="msub">원본 코드 (<a href="${alink(r)}" target="_blank" rel="noopener">${esc(alab(r))}</a>)</div><pre><code>${esc(ra.excerpt)}</code></pre></details>
+    <details><summary>나오는 곳 · ${days.length}일</summary><div class="mlinks">${days.map(d=>{const a=pick(d);return `<a class="chip" href="${alink(a)}" target="_blank" rel="noopener">${esc(alab(a))}</a>`;}).join('')}</div></details>`;
+    g.appendChild(card);
+    const stg=card.querySelector('.stg');let o=null;
+    if(dom)CVT[x.id](stg);else{o={cv:stg.querySelector('canvas'),fn:CVT[x.id],st:{},t0:null};TCV.push(o);}
+    card.querySelector('[data-re]').onclick=()=>{if(dom)CVT[x.id](stg);else{o.st={};o.t0=null;kick();}};
+    card.querySelector('[data-cp]').onclick=e=>copy(x.demo,e.currentTarget);});
+  kick();}
+function animList(T,A){const box=$('mList'),name=Object.fromEntries(T.map(x=>[x.id,x.name])),f={day:0,tech:'',drv:''},
+  days=[...new Set(A.map(a=>a.day))].sort((a,b)=>a-b);
+  const chips=(k,list)=>[['','전체'],...list].map(([v,l])=>`<button class="chip" type="button" data-${k}="${v}" aria-pressed="${v===''}">${esc(l)}</button>`).join('');
+  box.innerHTML=`<div class="mlf"><label>일차 <select id="mlDay" aria-label="일차 선택"><option value="0">전체</option>${days.map(d=>`<option value="${d}">D${d}</option>`).join('')}</select></label></div>
+  <div class="qchips" id="mlTech" role="group" aria-label="기법 필터">${chips('t',T.map(x=>[x.id,x.name]))}</div>
+  <div class="qchips" id="mlDrv" role="group" aria-label="구동 필터">${chips('d',DRV.map(d=>[d,d]))}</div>
+  <p class="mlcnt" id="mlCnt" role="status"></p>
+  <div class="tw"><table class="lt ml"><thead><tr><th>일차 · 제목</th><th>기법</th><th>구동</th><th>함수</th><th>원본</th></tr></thead><tbody id="mlBody">${A.map((a,i)=>`<tr data-i="${i}"><td>${esc(alab(a))}</td>
+  <td data-l="기법">${a.tech.map((t,k)=>k?esc(name[t]||t):`<b>${esc(name[t]||t)}</b>`).join(' · ')}</td><td data-l="구동"><code>${esc(a.drive)}</code></td><td data-l="함수"><code>${esc(a.fn)}</code></td>
+  <td data-l="원본"><div class="mact"><a href="${alink(a)}" target="_blank" rel="noopener">열기 ↗</a><button class="btn" type="button" data-x="${i}" aria-expanded="false">펼치기</button></div></td></tr>
+  <tr class="mxr" id="mx${i}" hidden><td colspan="5"><p>${esc(a.note)}</p><pre><code>${esc(a.excerpt)}</code></pre></td></tr>`).join('')}</tbody></table></div>`;
+  const rows=[...box.querySelectorAll('tr[data-i]')];
+  const apply=()=>{let n=0;rows.forEach(tr=>{const a=A[+tr.dataset.i],ok=(!f.day||a.day===f.day)&&(!f.tech||a.tech.includes(f.tech))&&(!f.drv||a.drive===f.drv);
+      tr.hidden=!ok;if(!ok){const x=$('mx'+tr.dataset.i);x.hidden=true;tr.querySelector('[data-x]').setAttribute('aria-expanded','false');tr.querySelector('[data-x]').textContent='펼치기';}if(ok)n++;});
+    $('mlCnt').textContent=`${n}줄 / 전체 ${A.length}줄`;};
+  $('mlDay').onchange=e=>{f.day=+e.target.value;apply();};
+  const bind=(id,k,key)=>$(id).querySelectorAll(`[data-${k}]`).forEach(b=>b.onclick=()=>{f[key]=b.dataset[k];$(id).querySelectorAll(`[data-${k}]`).forEach(x=>x.setAttribute('aria-pressed',x===b));apply();});
+  bind('mlTech','t','tech');bind('mlDrv','d','drv');
+  $('mlBody').onclick=e=>{const b=e.target.closest('[data-x]');if(!b)return;const x=$('mx'+b.dataset.x),open=x.hidden;x.hidden=!open;b.setAttribute('aria-expanded',open);b.textContent=open?'접기':'펼치기';};
+  apply();}
 async function copy(s,btn){let ok=false;try{await navigator.clipboard.writeText(s);ok=true;}catch(e){try{const t=mk('textarea');t.value=s;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();ok=document.execCommand('copy');t.remove();}catch(e2){}}
   const o=btn.textContent;btn.textContent=ok?'복사됨':'복사 불가';setTimeout(()=>btn.textContent=o,1200);}
-function drawMotion(dt,now){CVS.forEach(o=>{if(!o.cv.isConnected)return;const {c,w,h}=fit(o.cv);o.fn(c,w,h,RM?1:now,dt,o.st);});}
+function drawMotion(dt,now){CVS.forEach(o=>{if(!o.cv.isConnected)return;const {c,w,h}=fit(o.cv);o.fn(c,w,h,RM?1:now,dt,o.st);});
+  TCV.forEach(o=>{if(!o.cv.isConnected)return;if(o.t0===null)o.t0=now;const {c,w,h}=fit(o.cv);o.fn(c,w,h,RM?2.2:now-o.t0,dt,o.st);});}
 
 /* ── 프레임 루프 ── */
 let active='home',lastTs=0;

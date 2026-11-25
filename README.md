@@ -12,7 +12,8 @@
 - ✅ 수업 원본 `Edu/`로 정리 · 새 자료 자동 정리 스크립트(`scripts/sync_edu.py`)
 - ✅ D46 대시보드 반영 · 코드 상자 Python·TS 18개 (실행 검사 `docs/reports/code-run-report-d46.md`)
 - ✅ D47 대시보드 반영 · 코드 상자 Python·TS 18개 (실행 검사 `docs/reports/code-run-report-d47.md`)
-- ✅ D48~D51 대시보드 반영(목표·애니메이션·개념·자료실) — 코드 상자는 후속
+- ✅ D48~D51 대시보드 반영 · 코드 상자 Python·TS 각 18개 (실행 검사 `docs/reports/code-run-report-d48~51.md`)
+- ✅ 모션 레퍼런스: 원본 459개 모션을 기법 15가지로 정리 · 공통 효과 CSS 25 · JS 10 · 전체 목록 459줄
 
 ## 콘텐츠 바로가기
 | 콘텐츠 | 링크 |
