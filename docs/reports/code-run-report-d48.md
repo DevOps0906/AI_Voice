@@ -1,7 +1,7 @@
 # 코드 실행 검사 결과
 
 - 실행: `python scripts/run_code.py day48` (API 키 뺌 → 키 없는 대체 경로)
-- 일시: 2026-11-25 21:51 · Windows 11 (빌드 10.0.26300)
+- 일시: 2026-11-25 23:00 · Windows 11 (빌드 10.0.26300)
 - Python: Python 3.11.9 (`C:\Users\skydy\AppData\Local\hermes\hermes-agent\venv\Scripts\python.exe`) · Node: v26.13.1
 - 방법: 스니펫 하나를 빈 임시 폴더에 파일 하나로 써서 실행, 제한 300초
 - 판정: 종료코드 0이고 출력에 'Traceback' · '[다시]'(정답 확인 실패)가 없으면 통과
@@ -10,21 +10,21 @@
 
 | 일차 | hash | 언어 | 종료코드 | 초 | 판정 | 마지막 출력 |
 |---|---|---|---|---|---|---|
-| D48 | flow | Python | 0 | 1.5 | 통과 | [정답] 정답입니다! |
-| D48 | flow | TypeScript | 0 | 0.3 | 통과 | [정답] 정답입니다! |
-| D48 | metric | Python | 0 | 0.4 | 통과 | [정답] 정답입니다! |
+| D48 | flow | Python | 0 | 1.9 | 통과 | [정답] 정답입니다! |
+| D48 | flow | TypeScript | 0 | 0.4 | 통과 | [정답] 정답입니다! |
+| D48 | metric | Python | 0 | 0.5 | 통과 | [정답] 정답입니다! |
 | D48 | metric | TypeScript | 0 | 0.2 | 통과 | [정답] 정답입니다! |
-| D48 | errors | Python | 0 | 0.3 | 통과 | [정답] 정답입니다! |
-| D48 | errors | TypeScript | 0 | 0.1 | 통과 | [정답] 정답입니다! |
+| D48 | errors | Python | 0 | 0.4 | 통과 | [정답] 정답입니다! |
+| D48 | errors | TypeScript | 0 | 0.2 | 통과 | [정답] 정답입니다! |
 | D48 | pre | Python | 0 | 0.8 | 통과 | [정답] 정답입니다! |
 | D48 | pre | TypeScript | 0 | 0.2 | 통과 | [정답] 정답입니다! |
-| D48 | decode | Python | 0 | 0.7 | 통과 | [정답] 정답입니다! |
+| D48 | decode | Python | 0 | 0.9 | 통과 | [정답] 정답입니다! |
 | D48 | decode | TypeScript | 0 | 0.2 | 통과 | [정답] 정답입니다! |
-| D48 | fuzzy | Python | 0 | 1.0 | 통과 | [정답] 정답입니다! |
-| D48 | fuzzy | TypeScript | 0 | 0.2 | 통과 | [정답] 정답입니다! |
-| D48 | shake | Python | 0 | 3.2 | 통과 | [정답] 정답입니다! |
-| D48 | shake | TypeScript | 0 | 0.6 | 통과 | [정답] 정답입니다! |
+| D48 | fuzzy | Python | 0 | 1.1 | 통과 | [정답] 정답입니다! |
+| D48 | fuzzy | TypeScript | 0 | 0.3 | 통과 | [정답] 정답입니다! |
+| D48 | shake | Python | 0 | 2.6 | 통과 | [정답] 정답입니다! |
+| D48 | shake | TypeScript | 0 | 0.4 | 통과 | [정답] 정답입니다! |
 | D48 | build | Python | 0 | 1.2 | 통과 | [정답] 정답입니다! |
 | D48 | build | TypeScript | 0 | 0.2 | 통과 | [정답] 정답입니다! |
-| D48 | recap | Python | 0 | 2.1 | 통과 | [정답] 정답입니다! |
+| D48 | recap | Python | 0 | 2.3 | 통과 | [정답] 정답입니다! |
 | D48 | recap | TypeScript | 0 | 0.4 | 통과 | [정답] 정답입니다! |
