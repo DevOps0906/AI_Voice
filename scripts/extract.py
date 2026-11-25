@@ -134,7 +134,7 @@ def table_rows(block):
 
 
 PROJECT_FROM, PROJECT_TO = 45, 51  # 프로젝트 7일 = 10주차 M10
-LAST = 47  # 자료가 있는 마지막 일차(D48~51은 자료가 들어오면 올린다)
+LAST = 51  # 자료가 있는 마지막 일차
 
 
 class project_week:
@@ -154,6 +154,14 @@ def today_goal(md):
     if not m:  # D46형: `오늘은 다릅니다. 가상의 고객이 준 **요구서**를 읽고, 만들어서, **납품**합니다.`
         m = re.search(r"오늘은 [^.\n]*\.\s*([^.\n]*\*\*[^.\n]*합니다)\.", md)
     return [plain(m.group(1)).rstrip(".")] if m else []
+
+
+def compare_goal(md):
+    """D48~51형: `## 오늘…` 절의 비교 표(| | 어제 (…) | 오늘 (…) |) → "항목: 오늘 열"."""
+    for block in re.split(r"\n\s*\n", section(md, r"오늘")):
+        if re.search(r"^\|[^\n]*\|\s*오늘 \(", block, re.M):
+            return ["%s: %s" % (plain(r[0]), plain(r[2])) for r in table_rows(block) if len(r) >= 3]
+    return []
 
 
 def rfp_reqs(md):
@@ -227,7 +235,8 @@ def parse_notebook(day):
         "meta": meta,
         "goals": numbered(section(md, r"(?:학습|프로젝트) 목표")) or today_goal(md)
                  # D47형: `### 🎯 원장님의 목표` 표(# · 목표 · 기준) → "목표: 기준"
-                 or ["%s: %s" % (plain(r[1]), plain(r[2])) for r in table_rows(section(md, r"🎯 .*목표")) if len(r) >= 3],
+                 or ["%s: %s" % (plain(r[1]), plain(r[2])) for r in table_rows(section(md, r"🎯 .*목표")) if len(r) >= 3]
+                 or compare_goal(md),
         "periods": periods,
         "parts": parts,
         "blanks": blanks,

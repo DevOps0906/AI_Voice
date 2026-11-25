@@ -374,5 +374,37 @@
     "moduleName": "프로젝트",
     "title": "느린 자동 회의록 서비스 살리기",
     "ready": true
+  },
+  {
+    "day": 48,
+    "week": 10,
+    "module": "M10",
+    "moduleName": "프로젝트",
+    "title": "현장 안전 음성 보고",
+    "ready": true
+  },
+  {
+    "day": 49,
+    "week": 10,
+    "module": "M10",
+    "moduleName": "프로젝트",
+    "title": "어르신 말벗 에이전트",
+    "ready": true
+  },
+  {
+    "day": 50,
+    "week": 10,
+    "module": "M10",
+    "moduleName": "프로젝트",
+    "title": "인터넷 없는 현장용 오프라인 비서",
+    "ready": true
+  },
+  {
+    "day": 51,
+    "week": 10,
+    "module": "M10",
+    "moduleName": "프로젝트",
+    "title": "프로젝트 ⑦ 오픈 해커톤 · 데모데이",
+    "ready": true
   }
 ]

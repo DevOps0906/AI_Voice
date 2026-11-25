@@ -46,6 +46,13 @@
 | D42 | 4 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
 | D43 | 4 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
 | D44 | 4 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
+| D45 | 1 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
+| D46 | 1 | 6 | 0 | 5 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
+| D47 | 5 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
+| D48 | 4 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
+| D49 | 4 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
+| D50 | 3 | 6 | 0 | 8 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
+| D51 | 4 | 6 | 0 | 6 | 0 | 25 | 9 | 6 | 빈 필드: homework, blanks |
 
 ## 원인·분기 메모
 - D1~34 anims 9개·퀴즈 있음. D35~44는 worksheet `Q`가 이미 D10 형식(`ty`)의 평면 목록(25문항, `an` 필드 포함)이라 교시 구분 없이 그룹 하나(title `전체`)로 담는다.

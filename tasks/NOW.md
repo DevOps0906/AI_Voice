@@ -1,7 +1,7 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
-- 갱신: 2026-11-24
-- 현재 작업: 없음 — task-035~038 완료·push (Edu/ 정리 · D46·D47 연결 · 코드 상자 각 18/18)
+- 갱신: 2026-11-25
+- 현재 작업: 없음 — task-039 완료·push (D48~51 대시보드 연결, 코드 상자 없음)
 - 마지막으로 한 일: task-032 코드 상자 실패 문구 · task-033 reskin COMMON에 코드 제외 Pretendard !important·결과값(.kv b·.big·slider output) .9rem
 - 다음 한 걸음: 새 자료는 `python scripts/sync_edu.py` → extract(LAST 올림)·reskin·concepts·library → 코드 상자(code_map + build_code + run_code)
 - 열린 결정(사용자 확인 필요): 없음 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)
@@ -18,4 +18,4 @@
 - SDLC 단계: 08 배포 완료
 - 담당 모델/역할: 팀장(Opus) · builder(sonnet) · codex-reviewer
 - 테스트 상태: run_code D45 18/18 통과(.venv-code-w9), 1~44일 데이터 무변경
-- 남은 작업: 없음
+- 남은 작업: D48~51 코드 상자(일차별 code_map + build_code + run_code, task-037·038 방식)
