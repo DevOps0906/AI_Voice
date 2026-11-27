@@ -366,7 +366,8 @@ def check(n, src):
 
 
 def main(argv):
-    days = list(range(1, 45)) if argv == ["all"] else [int(x) for x in argv]
+    from extract import LAST  # 자료가 있는 마지막 일차 (extract.py와 같은 값)
+    days = list(range(1, LAST + 1)) if argv == ["all"] else [int(x) for x in argv]
     if not days:
         print(__doc__)
         return 2

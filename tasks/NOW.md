@@ -1,21 +1,22 @@
 # NOW — 재진입 스냅샷 (30줄 이내, 매 작업 끝에 덮어쓴다)
 
-- 갱신: 2026-11-25
-- 현재 작업: 없음 — task-039~042 완료·push (D48~51 연결·코드 상자 · 모션 레퍼런스 재구성)
-- 마지막으로 한 일: task-032 코드 상자 실패 문구 · task-033 reskin COMMON에 코드 제외 Pretendard !important·결과값(.kv b·.big·slider output) .9rem
-- 다음 한 걸음: 새 자료는 `python scripts/sync_edu.py` → extract(LAST 올림)·reskin·concepts·library → 코드 상자(code_map + build_code + run_code)
-- 열린 결정(사용자 확인 필요): 없음 (참고: reskin.py `all`은 range(1,45)라 D45 빠짐 → 1~45를 직접 넘길 것)
+- 갱신: 2026-11-27
+- 현재 작업: 없음 — task-044(정리)·task-045(모션 note 64개 수정) 완료
+- 마지막으로 한 일: reskin.py `all` = 1~LAST(extract.py) · scripts/code_requirements.txt + .venv-code 재생성 · anims.json note 459개 원본 함수 전체로 재검토(64개 수정, 다른 필드 무변경)
+- 다음 한 걸음: 새 자료는 `python scripts/sync_edu.py` → extract(LAST 올림)·reskin all·concepts·library → 코드 상자(code_map + build_code + run_code --venv .venv-code)
+- 열린 결정(사용자 확인 필요): anims.json tech·drive 재분류 여부(의심 항목은 tasks/README.md 발견한 문제 2026-11-27 행)
 - 주의(이번 작업에서 알게 된 함정):
   - 45~51일은 노트북에 `N주차 MN` 머리말이 없다 → extract.py가 일차 번호로 10주차·M10 처리(그 밖 형식 오류는 ValueError)
   - D45~ 새 절 "요구사항 (고객의 말로)"·"체크포인트와 점수" → day JSON requirements·checkpoints 필드, 없으면 화면에서 숨김
   - 대시보드 해시는 두 자리 주차(`-w10`)를 받는다(정규식 `-w(\d+)`)
   - 수업 원본은 Edu/dayNN/ (upstream은 루트 dayNN/에 올림 → GitHub Sync fork 대신 sync_edu.py). 리포트는 docs/reports/
-  - Codex 리뷰가 -m 없이 astra로 실행됨(config 기본값 확인 필요, 사용자 규칙은 astra 금지)
+  - Codex config 기본 모델이 gpt-6.2-astra로 바뀌어 있음 → ~/.claude/agents/codex-reviewer·codex-designer가 `-m gpt-6.1-sol`을 항상 넘기도록 고침(NOMAD 재설치 시 덮어써지면 다시 확인)
   - 애니메이션은 scripts/reskin.py로만 다시 만든다 · 원본 D1~34 script는 IIFE
   - git status의 dashboard/d* 변경은 CRLF 차이일 수 있음 → `git diff --ignore-cr-at-eol --stat`
   - 코드 탭: 일차별 설정 scripts/code_map/dayNN.json, 스니펫 원본 .nomad/code_src/wN(커밋 안 함)
-  - 코드 검사 venv .venv-code*는 2026-11-24 삭제함 → 검사 전에 `python -m venv .venv-code` 후 필요한 패키지 설치, `--venv .venv-code`(Python 3.11). run_code.py는 --out 없으면 docs/reports/code-run-report.md를 통째로 덮어씀(D45는 docs/reports/code-run-report-d45.md)
+  - 코드 검사 venv: `py -3.11 -m venv .venv-code && .venv-code/Scripts/python.exe -m pip install -r scripts/code_requirements.txt` (요구사항 파일에 한글 넣지 말 것 — Windows pip가 cp949로 읽어 실패). run_code.py는 --out 없으면 docs/reports/code-run-report.md를 통째로 덮어씀
+  - anims.json은 한 줄 JSON — 고칠 때 서식 유지
 - SDLC 단계: 08 배포 완료
-- 담당 모델/역할: 팀장(Opus) · builder(sonnet) · codex-reviewer
-- 테스트 상태: run_code D45 18/18 통과(.venv-code-w9), 1~44일 데이터 무변경
-- 남은 작업: 없음 (참고: 모션 목록 일부 note는 그리기 코드 앞부분만 보고 쓴 것 — 고칠 때는 data/motion/anims.json)
+- 담당 모델/역할: 팀장(Opus) · builder(sonnet) ×5
+- 테스트 상태: reskin all 51일 재생성 결과 무변경(CRLF만) · anims.json 459개·note 외 필드 무변경 확인 · 새 .venv-code로 run_code D51 Python 9/9 통과
+- 남은 작업: 없음 (선택: tech·drive 재분류)

@@ -45,6 +45,8 @@
 | task-041 | 모션 레퍼런스 확장 — CSS 4종 + 캔버스 헬퍼 6종 | W16 | 039 | 보통 | builder(sonnet) | 완료 |
 | task-042 | 모션 레퍼런스를 원본 459개 분석으로 재구성 — 기법 카드 15 · 공통 카드 배지·출처 · 전체 목록 459줄 | W16 | 041 | 보통 | 분석 builder(sonnet) ×5 · builder(opus) | 완료 |
 | task-043 | 48~51일차 코드 상자 리뷰(codex) 지적 반영 — 🔴2 · 🟡6(1건은 리뷰 오판) | W16 | 040 | 보통 | codex-reviewer ×4 · builder(sonnet) ×4 | 완료 |
+| task-044 | 정리 — reskin.py `all`을 1~LAST(51)로 · 코드 검사 요구사항 파일 scripts/code_requirements.txt · .venv-code 재생성 | W17 | — | 낮음 | 팀장(opus) | 완료 |
+| task-045 | 모션 목록 note 459개를 원본 함수 전체로 재검토(data/motion/anims.json) | W17 | 042 | 낮음(난이도↑) | builder(sonnet) ×5 | 완료(64개 수정) |
 
 상태: 대기 / 진행 / 완료 / 보류 · 위험도 → 워커 model: 낮음 haiku · 보통 sonnet · 높음 opus
 
@@ -53,6 +55,7 @@
 |---|---|---|---|
 | 2026-11-20 | (task-020에서 해결) dashboard/index.html renderQuiz | 정리 퀴즈 탭이 fill(40)·bucket(20)·lab(10) 문항을 처리하지 않아 본문이 비어 보임 (자료실 문제 풀이는 "정답 보기"로 처리됨) | 정리 퀴즈 탭도 buildQ의 정답 보기 방식 적용 |
 | 2026-11-23 | (task-032에서 해결) scripts/reskin.py CODEBOX_JS (모든 dashboard/dN/animation.html) | 코드 JSON 로드 실패(404·파싱 오류)가 `.catch(()=>{})`로 조용히 사라져 코드 탭이 그냥 안 뜸 | 실패 시 코드 상자에 안내 문구를 보이고 reskin.py로 1~45일 재생성 |
+| 2026-11-27 | data/motion/anims.json tech·drive (task-045 검토 중 발견, 미수정) | tech에 slider가 있지만 슬라이더 없음: 100·106·115·116·125·146·150·193·298·401 / stepper 과분류: 209·213·214 / heatmap인데 선 그래프: 28·31 / bargrow 누락: 14 / pulse 효과 없음: 331·420 / tablefill 어색: 330 / drive 의심: 355(raf→input) · 343(input→raf) · 412·438·442(input인데 시간 애니메이션) | drive 판정 기준(시간 의존 여부)을 정하고 일괄 재분류 → techs.json 개수·기법 카드 '원본 N개' 함께 갱신 |
 
 ## 교훈 (다음 작업에 그대로 적용할 것만, 20줄 이내 유지)
 - 대량 생성은 1주차 시범 → 리뷰 → 나머지 병렬. 병렬 워커는 일차별 파일·주차별 venv·--out 리포트로 분리하고 공용 파일(index·리포트)은 팀장이 마지막에 합친다.
